@@ -10,7 +10,7 @@ const http = require("http");
 const https = require("https");
 const fs = require("fs");
 const path = require("path");
-const { execFileSync, exec, spawn } = require("child_process");
+const { execFileSync, execFile, exec, spawn } = require("child_process");
 
 const ARG = Object.fromEntries(process.argv.slice(2).map(a => {
   const m = a.match(/^--([^=]+)=(.*)$/); return m ? [m[1], m[2]] : [a.replace(/^--/, ""), true];
@@ -47,6 +47,9 @@ if (process.pkg) {
   console.debug = (...a) => writeLog("DEBUG", a);
   process.on("uncaughtException", e => writeLog("FATAL", [e && e.stack || e]));
   process.on("unhandledRejection", e => writeLog("FATAL", [e && e.stack || e]));
+} else {
+  process.on("uncaughtException", e => { console.error("FATAL", e && e.stack || e); process.exit(1); });
+  process.on("unhandledRejection", e => { console.error("FATAL", e && e.stack || e); });
 }
 
 // DuckDB-CLI bei Bedarf herunterladen (für die Windows-.exe ohne Begleitskript)
@@ -183,14 +186,32 @@ const WANT_WHEEL = {
 
 function q(id) { return '"' + String(id).replace(/"/g, '""') + '"'; }
 
+function duckExec(file, sql) {
+  return new Promise((resolve, reject) => {
+    execFile(DUCKDB, [file, "-readonly", "-json", "-c", sql],
+      { maxBuffer: 512 * 1024 * 1024, encoding: "utf8", windowsHide: true, timeout: 180000 },
+      (err, stdout, stderr) => {
+        if (err) {
+          err.stderr = stderr;
+          return reject(err);
+        }
+        try {
+          const rows = JSON.parse(stdout || "[]");
+          resolve(rows.length ? JSON.parse(rows[0].doc) : null);
+        } catch (e) { reject(e); }
+      });
+  });
+}
+// Une requête DuckDB à la fois — le serveur HTTP reste réactif (sessions/config/quit).
+let duckChain = Promise.resolve();
 function duck(file, sql) {
-  const out = execFileSync(DUCKDB, [file, "-readonly", "-json", "-c", sql],
-    { maxBuffer: 512 * 1024 * 1024, encoding: "utf8", windowsHide: true });
-  const rows = JSON.parse(out || "[]");
-  return rows.length ? JSON.parse(rows[0].doc) : null;
+  const run = () => duckExec(file, sql);
+  const p = duckChain.then(run, run);
+  duckChain = p.then(() => {}, () => {});
+  return p;
 }
 
-function loadCatalog(file) {
+async function loadCatalog(file) {
   const sql = `SELECT (json_object(
     'meta',(SELECT json_group_object(key,value) FROM metadata WHERE key<>'CarSetup'),
     'channels',(SELECT json_group_array(json_object('name',channelName,'freq',frequency,'unit',unit)) FROM channelsList),
@@ -201,8 +222,8 @@ function loadCatalog(file) {
   return duck(file, sql);
 }
 
-function loadSession(file) {
-  const cat = loadCatalog(file);
+async function loadSession(file) {
+  const cat = await loadCatalog(file);
   if (!cat) throw new Error("Katalog leer");
   const tables = new Set(cat.tables || []);
   const cols = cat.cols || {};
@@ -249,7 +270,7 @@ function loadSession(file) {
   }
 
   const dataSql = `SELECT (json_object('ch',json_object(${chPieces.join(",")}),'ev',json_object(${evPieces.join(",")}),'wh',json_object(${whPieces.join(",")})))::VARCHAR AS doc`;
-  const data = duck(file, dataSql);
+  const data = await duck(file, dataSql);
 
   outChannels.forEach(c => { c.data = (data.ch && data.ch[c.name]) || []; });
   const events = {};
@@ -264,8 +285,8 @@ function loadSession(file) {
   return { file: path.basename(file), meta: cat.meta || {}, channels: outChannels, events, wheels };
 }
 
-function loadSetup(file) {
-  const setup = duck(file, "SELECT value AS doc FROM metadata WHERE key='CarSetup'");
+async function loadSetup(file) {
+  const setup = await duck(file, "SELECT value AS doc FROM metadata WHERE key='CarSetup'");
   if (!setup) return {};
   const o = {};
   for (const k in setup) { const e = setup[k] || {}; o[k] = { s: e.stringValue, v: e.value, min: e.minValue, max: e.maxValue, last: e.lastSavedStringValue }; }
@@ -292,82 +313,105 @@ function listSessions() {
 
 function sqlStr(s) { return "'" + String(s).replace(/'/g, "''") + "'"; }
 
+function duckLockMsg(e) {
+  const stderr = e && e.stderr ? e.stderr.toString() : "";
+  return stderr || String((e && e.message) || e);
+}
+function isLockErr(msg) {
+  return /lock|in use|conflicting|being used|could not set|already open|another process|verwendet wird|zugreifen|cannot open file|io error/i.test(msg);
+}
+
 /* ---- HTTP ---- */
-const server = http.createServer((req, res) => {
+async function handleRequest(req, res) {
   const u = new URL(req.url, "http://localhost");
   res.setHeader("Access-Control-Allow-Origin", "*");
-  try {
-    if (u.pathname === "/" || u.pathname === "/index.html") {
-      const html = fs.readFileSync(HTML);
-      res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-      return res.end(html);
-    }
-    if (u.pathname === "/favicon.ico") {
-      res.writeHead(204, { "cache-control": "public, max-age=86400" });
-      return res.end();
-    }
-    if (u.pathname === "/api/config") {
-      return json(res, 200, { telDir: TEL_DIR, port: PORT, duckdb: fs.existsSync(DUCKDB), version: APP_VERSION });
-    }
-    if (u.pathname === "/api/version") {
-      return getLatestVersion((latest, url) => json(res, 200, { current: APP_VERSION, latest: latest, url: url, repo: REPO }));
-    }
-    if (u.pathname === "/api/quit") {
-      json(res, 200, { ok: true });
-      console.log("Beenden angefordert – Bridge wird gestoppt.");
-      setTimeout(() => process.exit(0), 250);
-      return;
-    }
-    if (u.pathname === "/api/sessions") {
-      return json(res, 200, listSessions());
-    }
-    if (u.pathname === "/api/session") {
-      const name = u.searchParams.get("file") || "";
-      if (!name || /[\\/]/.test(name) || !/\.duckdb$/i.test(name)) return json(res, 400, { error: "Ungültiger Dateiname" });
-      if (!TEL_DIR) return json(res, 500, { error: "Telemetrie-Ordner unbekannt" });
-      const full = path.join(TEL_DIR, name);
-      if (!fs.existsSync(full)) return json(res, 404, { error: "Datei nicht gefunden" });
-      try {
-        const t0 = Date.now();
-        const data = loadSession(full);
-        data.loadMs = Date.now() - t0;
-        return json(res, 200, data);
-      } catch (e) {
-        const stderr = e.stderr ? e.stderr.toString() : "";
-        const msg = (stderr || String(e.message || e));
-        console.error("[/api/session] Fehler:", msg.slice(0, 1000));
-        // Datei in Verwendung (Aufnahme läuft) -> Sperre (auch dt. Windows-Meldung)
-        if (/lock|in use|conflicting|being used|could not set|already open|another process|verwendet wird|zugreifen|cannot open file|io error/i.test(msg))
-          return json(res, 423, { locked: true, error: "Aufnahme läuft – Datei ist gesperrt" });
-        return json(res, 500, { error: msg.slice(0, 800) });
-      }
-    }
-    if (u.pathname === "/api/setup") {
-      const name = u.searchParams.get("file") || "";
-      if (!name || /[\\/]/.test(name) || !/\.duckdb$/i.test(name)) return json(res, 400, { error: "Ungültiger Dateiname" });
-      if (!TEL_DIR) return json(res, 500, { error: "Telemetrie-Ordner unbekannt" });
-      const full = path.join(TEL_DIR, name);
-      if (!fs.existsSync(full)) return json(res, 404, { error: "Datei nicht gefunden" });
-      try {
-        return json(res, 200, { setup: loadSetup(full) });
-      } catch (e) {
-        const msg = (e.stderr ? e.stderr.toString() : String(e.message || e));
-        if (/lock|in use|conflicting|being used|could not set|already open|another process|verwendet wird|zugreifen|cannot open file|io error/i.test(msg))
-          return json(res, 423, { locked: true, error: "Aufnahme läuft – Datei ist gesperrt" });
-        return json(res, 500, { error: msg.slice(0, 500) });
-      }
-    }
-    res.writeHead(404); res.end("not found");
-  } catch (e) {
-    json(res, 500, { error: String(e.message || e) });
+  if (u.pathname === "/" || u.pathname === "/index.html") {
+    const html = fs.readFileSync(HTML);
+    res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    return res.end(html);
   }
+  if (u.pathname === "/favicon.ico") {
+    res.writeHead(204, { "cache-control": "public, max-age=86400" });
+    return res.end();
+  }
+  if (u.pathname === "/api/config") {
+    return json(res, 200, { telDir: TEL_DIR, port: PORT, duckdb: fs.existsSync(DUCKDB), version: APP_VERSION });
+  }
+  if (u.pathname === "/api/version") {
+    return new Promise(resolve => {
+      getLatestVersion((latest, url) => {
+        json(res, 200, { current: APP_VERSION, latest: latest, url: url, repo: REPO });
+        resolve();
+      });
+    });
+  }
+  if (u.pathname === "/api/quit") {
+    json(res, 200, { ok: true });
+    console.log("Beenden angefordert – Bridge wird gestoppt.");
+    setTimeout(() => process.exit(0), 250);
+    return;
+  }
+  if (u.pathname === "/api/sessions") {
+    return json(res, 200, listSessions());
+  }
+  if (u.pathname === "/api/session") {
+    const name = u.searchParams.get("file") || "";
+    if (!name || /[\\/]/.test(name) || !/\.duckdb$/i.test(name)) return json(res, 400, { error: "Ungültiger Dateiname" });
+    if (!TEL_DIR) return json(res, 500, { error: "Telemetrie-Ordner unbekannt" });
+    const full = path.join(TEL_DIR, name);
+    if (!fs.existsSync(full)) return json(res, 404, { error: "Datei nicht gefunden" });
+    try {
+      const t0 = Date.now();
+      const data = await loadSession(full);
+      data.loadMs = Date.now() - t0;
+      return json(res, 200, data);
+    } catch (e) {
+      const msg = duckLockMsg(e);
+      console.error("[/api/session] Fehler:", msg.slice(0, 1000));
+      if (isLockErr(msg))
+        return json(res, 423, { locked: true, error: "Aufnahme läuft – Datei ist gesperrt" });
+      return json(res, 500, { error: msg.slice(0, 800) });
+    }
+  }
+  if (u.pathname === "/api/setup") {
+    const name = u.searchParams.get("file") || "";
+    if (!name || /[\\/]/.test(name) || !/\.duckdb$/i.test(name)) return json(res, 400, { error: "Ungültiger Dateiname" });
+    if (!TEL_DIR) return json(res, 500, { error: "Telemetrie-Ordner unbekannt" });
+    const full = path.join(TEL_DIR, name);
+    if (!fs.existsSync(full)) return json(res, 404, { error: "Datei nicht gefunden" });
+    try {
+      return json(res, 200, { setup: await loadSetup(full) });
+    } catch (e) {
+      const msg = duckLockMsg(e);
+      if (isLockErr(msg))
+        return json(res, 423, { locked: true, error: "Aufnahme läuft – Datei ist gesperrt" });
+      return json(res, 500, { error: msg.slice(0, 500) });
+    }
+  }
+  res.writeHead(404); res.end("not found");
+}
+const server = http.createServer((req, res) => {
+  handleRequest(req, res).catch(e => {
+    try { json(res, 500, { error: String(e.message || e) }); } catch (_) {}
+  });
 });
 function json(res, code, obj) {
+  if (res.headersSent) return;
   res.writeHead(code, { "content-type": "application/json; charset=utf-8" });
   res.end(JSON.stringify(obj));
 }
 
 ensureDuckDB();
+server.on("error", err => {
+  if (err.code === "EADDRINUSE") {
+    console.error("Port " + PORT + " bereits belegt – öffne die laufende Instanz.");
+    if (!ARG["no-open"]) openApp();
+    setTimeout(() => process.exit(0), 1200);
+    return;
+  }
+  console.error(err);
+  process.exit(1);
+});
 server.listen(PORT, () => {
   console.log("======================================================");
   console.log("  LMU Telemetrie-Analyse v" + APP_VERSION);

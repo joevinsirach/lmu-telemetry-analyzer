@@ -14,16 +14,16 @@
   *{box-sizing:border-box}
   html,body{margin:0;height:100%}
   body{background:var(--bg);color:var(--txt);font:14px/1.45 "Segoe UI",Roboto,system-ui,sans-serif}
-  header{display:flex;align-items:center;gap:14px;padding:10px 16px;background:linear-gradient(180deg,#171c24,#10141b);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+  header{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:8px 12px;background:linear-gradient(180deg,#171c24,#10141b);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
   header h1{font-size:16px;margin:0;letter-spacing:.3px;font-weight:600;white-space:nowrap}
-  .hdrlogo{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);height:38px;width:auto;pointer-events:none;z-index:1;filter:drop-shadow(0 1px 3px rgba(0,0,0,.5))}
+  .hdrlogo{height:28px;width:auto;flex-shrink:0;pointer-events:none;filter:drop-shadow(0 1px 3px rgba(0,0,0,.5))}
   header h1 .dot{color:var(--accent)}
   .grow{flex:1}
   button,.btn{background:var(--panel2);color:var(--txt);border:1px solid var(--line);padding:7px 12px;border-radius:7px;cursor:pointer;font-size:13px;display:inline-flex;align-items:center;gap:7px;transition:.15s}
   button:hover{border-color:var(--accent);background:#222a38}
   button.primary{background:var(--accent);border-color:var(--accent);color:#1a1205;font-weight:600}
   button:disabled{opacity:.4;cursor:not-allowed}
-  .status{font-size:12px;color:var(--muted);white-space:nowrap}
+  .status{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:min(280px,24vw)}
   .live{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:20px;padding:4px 10px;cursor:pointer;user-select:none}
   .live .led{width:9px;height:9px;border-radius:50%;background:#555}
   .live.on .led{background:var(--good);box-shadow:0 0 0 0 rgba(63,185,80,.6);animation:pulse 1.8s infinite}
@@ -39,7 +39,12 @@
   body.sb-collapsed .layout{grid-template-columns:1fr}
   body.sb-collapsed aside{display:none}
   @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(63,185,80,.55)}70%{box-shadow:0 0 0 7px rgba(63,185,80,0)}100%{box-shadow:0 0 0 0 rgba(63,185,80,0)}}
-  .layout{display:grid;grid-template-columns:310px 1fr;height:calc(100% - 53px)}
+  .layout{display:grid;grid-template-columns:310px 1fr;height:calc(100% - var(--hdr-h, 53px))}
+  body.loading main, body.loading aside{pointer-events:none;opacity:.6}
+  @media (max-width:1100px){
+    .layout{grid-template-columns:260px 1fr}
+    .iconbtn.yt, a.iconbtn[href*="github"]{padding:6px 8px}
+  }
   aside{background:var(--panel);border-right:1px solid var(--line);overflow:auto;padding:12px}
   main{overflow:auto;padding:16px 18px}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:16px;box-shadow:var(--shadow)}
@@ -321,8 +326,8 @@ const STATE = { sessions:[], cur:null, model:null, refLap:null, cmpLap:null,
                 refSource:"session", uploadedRef:null, refInfo:null, newestLocked:false };
 
 /* ---------- API ---------- */
-async function apiGet(path){
-  const r = await fetch(API + path, {cache:"no-store"});
+async function apiGet(path, signal){
+  const r = await fetch(API + path, {cache:"no-store", signal});
   if(!r.ok){ const j = await r.json().catch(()=>({error:r.status})); const e=new Error(j.error||r.status); e.code=r.status; e.body=j; throw e; }
   return r.json();
 }
@@ -332,6 +337,9 @@ function fmtTime(s){ if(s==null||!isFinite(s))return "—"; const m=Math.floor(s
 function fmtDelta(s){ return (s>=0?"+":"−")+Math.abs(s).toFixed(3); }
 function escapeHtml(s){ return (s==null?"":String(s)).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c])); }
 function setStatus(s){ document.getElementById("status").textContent=s; }
+function setLoading(on){ document.body.classList.toggle("loading", !!on); }
+function arrMax(a, fn){ let m=-Infinity; for(let i=0;i<a.length;i++){ const v=fn?fn(a[i]):a[i]; if(v>m)m=v; } return m; }
+function arrMin(a, fn){ let m=Infinity; for(let i=0;i<a.length;i++){ const v=fn?fn(a[i]):a[i]; if(v<m)m=v; } return m; }
 
 /* ===================== Internationalisierung (DE/EN) ===================== */
 function lsGetSafe(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v); }catch(e){ return d; } }
@@ -436,7 +444,8 @@ const STR = {
   lcEntry:"Eintritt", lcDrop:"Tempoabfall", lcCoast:"Coast-Zone", lcZone:(n)=>"Zone "+n, lcAt:"bei",
   lcLiftPt:"Lift bei", lcBrakePt:"Bremspunkt", lcCoastGap:"Coast",
   steerL:"Lenkung", gearL:"Gang", missingLapDist:"Kanal 'Lap Dist' fehlt – Runden können nicht erkannt werden.",
-  lapNotSaved:"Runde unvollständig – nicht gespeichert"
+  lapNotSaved:"Runde unvollständig – nicht gespeichert",
+  storageFull:"Speicher voll – Bestzeit/Setup konnte nicht gespeichert werden (Browser-Limit)."
  },
  en:{
   reload:"↻ Refresh", session:"Session", refSource:"Reference source", refLap:"Reference lap (best)", cmpLap:"Comparison lap",
@@ -528,7 +537,8 @@ const STR = {
   lcEntry:"Entry", lcDrop:"Speed drop", lcCoast:"Coast zone", lcZone:(n)=>"Zone "+n, lcAt:"at",
   lcLiftPt:"Lift at", lcBrakePt:"Brake point", lcCoastGap:"Coast",
   steerL:"Steering", gearL:"Gear", missingLapDist:"Channel 'Lap Dist' is missing – laps cannot be detected.",
-  lapNotSaved:"Lap incomplete – not saved"
+  lapNotSaved:"Lap incomplete – not saved",
+  storageFull:"Storage full – could not save best lap/setup (browser limit)."
  },
  fr:{
   reload:"↻ Actualiser", session:"Session", refSource:"Source de référence", refLap:"Tour de référence (meilleur)", cmpLap:"Tour de comparaison",
@@ -620,7 +630,8 @@ const STR = {
   lcEntry:"Entrée", lcDrop:"Perte de vitesse", lcCoast:"Zone de coast", lcZone:(n)=>"Zone "+n, lcAt:"à",
   lcLiftPt:"Lift à", lcBrakePt:"Point de freinage", lcCoastGap:"Coast",
   steerL:"Direction", gearL:"Rapport", missingLapDist:"Le canal « Lap Dist » manque – les tours ne peuvent pas être détectés.",
-  lapNotSaved:"Tour incomplet – non enregistré"
+  lapNotSaved:"Tour incomplet – non enregistré",
+  storageFull:"Stockage plein – impossible d'enregistrer le meilleur tour / setup (limite du navigateur)."
  }
 };
 function t(k,...a){ let v=(STR[LANG]&&STR[LANG][k]); if(v==null)v=STR.de[k]; if(v==null)return k; return typeof v==="function"?v(...a):v; }
@@ -664,7 +675,7 @@ function buildModel(js){
   const cSpeed = findChan(channels, ALIAS.speed);
   if(!cDist){ return { error:t("missingLapDist"), channels, meta:js.meta, events, fileName:js.file }; }
 
-  const trackLen = Math.max.apply(null, cDist.data.filter(v=>isFinite(v)));
+  const trackLen = arrMax(cDist.data, v=>isFinite(v)?v:-Infinity);
   // channelStartTs: Lap-Dist-Resets gegen Lap-Event matchen
   const resets = [];
   for(let i=1;i<cDist.nData;i++){ if(cDist.data[i-1]-cDist.data[i] > 0.5*trackLen && cDist.data[i-1] > 0.6*trackLen) resets.push(i); }
@@ -806,6 +817,9 @@ function buildTips(z,refP,cmpP){
 
 /* ---------- Charts (Canvas) ---------- */
 function fitCanvas(cv){
+  if(!cv) return null;
+  const r0=cv.getBoundingClientRect();
+  if(r0.width<2 || r0.height<2) return null;
   const dpr=window.devicePixelRatio||1;
   // Affecter cv.height modifie aussi l'attribut HTML "height". Conserver la
   // hauteur CSS initiale évite de la remultiplier par le DPR à chaque rendu.
@@ -820,10 +834,16 @@ function fitCanvas(cv){
   ctx.setTransform(dpr,0,0,dpr,0,0);
   return {ctx,w,h};
 }
+function canvasVisible(cv){
+  if(!cv) return false;
+  const r=cv.getBoundingClientRect();
+  return r.width>2 && r.height>2;
+}
 const PAD={l:52,r:14,t:12,b:26};
 const GHOST={x:null};
 function plot(cv,opts){
-  const {ctx,w,h}=fitCanvas(cv); ctx.clearRect(0,0,w,h);
+  const fitted=fitCanvas(cv); if(!fitted) return;
+  const {ctx,w,h}=fitted; ctx.clearRect(0,0,w,h);
   const x0=PAD.l,x1=w-PAD.r,y0=h-PAD.b,y1=PAD.t;
   const series=opts.series.filter(s=>s&&s.ys);
   let ymin=opts.ymin,ymax=opts.ymax;
@@ -846,16 +866,20 @@ function plot(cv,opts){
 }
 const CHARTS=[];
 function registerChart(cvId,ttId,renderFn,readFn){
-  const cv=document.getElementById(cvId),tt=document.getElementById(ttId); const obj={cv,tt,renderFn,readFn}; CHARTS.push(obj);
+  const cv=document.getElementById(cvId),tt=document.getElementById(ttId);
+  if(!cv) return null;
+  let obj=CHARTS.find(c=>c.cv===cv);
+  if(obj){ obj.renderFn=renderFn; obj.readFn=readFn; obj.tt=tt; return obj; }
+  obj={cv,tt,renderFn,readFn}; CHARTS.push(obj);
   cv.addEventListener("mousemove",e=>{ const g=cv._geom; if(!g)return; const r=cv.getBoundingClientRect();
     GHOST.x=Math.max(0,Math.min(g.xmax,(e.clientX-r.left-g.x0)/(g.x1-g.x0)*g.xmax)); syncCursor(); showTip(obj,e); });
-  cv.addEventListener("mouseleave",()=>{ GHOST.x=null; syncCursor(); CHARTS.forEach(c=>c.tt.style.display="none"); });
+  cv.addEventListener("mouseleave",()=>{ GHOST.x=null; syncCursor(); CHARTS.forEach(c=>{ if(c.tt) c.tt.style.display="none"; }); });
   return obj;
 }
 function showTip(obj,e){ if(!obj.readFn||GHOST.x==null){obj.tt.style.display="none";return;} const rows=obj.readFn(GHOST.x); if(!rows){obj.tt.style.display="none";return;}
-  obj.tt.innerHTML=`<div class="row" style="color:#8b97a7"><span>Distanz</span><b>${GHOST.x.toFixed(0)} m</b></div>`+rows.map(r=>`<div class="row"><span style="color:${r.c||'#8b97a7'}">${r.l}</span><b>${r.v}</b></div>`).join("");
+  obj.tt.innerHTML=`<div class="row" style="color:#8b97a7"><span>${t("distanceL")}</span><b>${GHOST.x.toFixed(0)} m</b></div>`+rows.map(r=>`<div class="row"><span style="color:${r.c||'#8b97a7'}">${r.l}</span><b>${r.v}</b></div>`).join("");
   obj.tt.style.display="block"; const r=obj.cv.getBoundingClientRect(); let x=e.clientX-r.left+14,y=e.clientY-r.top+12; if(x>r.width-150)x-=170; obj.tt.style.left=x+"px";obj.tt.style.top=y+"px"; }
-function redrawAll(){ CHARTS.forEach(c=>{try{c.renderFn();}catch(e){}}); }
+function redrawAll(){ CHARTS.forEach(c=>{ if(!canvasVisible(c.cv)) return; try{c.renderFn();}catch(e){} }); }
 function gIdx(x){ return Math.round(x/STATE.refP.L*(GRID_N-1)); }
 /* Sektor-Grenzen (aus Sektor-Zeiten) als Positionen auf der Referenzrunde */
 function computeSectorFracs(){
@@ -918,7 +942,7 @@ function renderInsights(){
   el.innerHTML=a.zones.slice(0,6).map((z,i)=>`<div class="insight"><div class="badge">+${z.loss.toFixed(2)}s</div><div class="body"><b>${t("zoneLbl",i+1,z.dStart.toFixed(0),z.dEnd.toFixed(0))}</b>${z.speedDiff<-1?`<span class="pill cmp">${z.cmpMinSpeed.toFixed(0)} vs ${z.refMinSpeed.toFixed(0)} km/h</span>`:''}<div class="sub">${z.tips.join("<br>")}</div></div></div>`).join("");
 }
 function buildCharts(){
-  CHARTS.length=0; const refP=STATE.refP,cmpP=STATE.cmpP,a=STATE.ana,L=refP.L;
+  const refP=STATE.refP,cmpP=STATE.cmpP,a=STATE.ana,L=refP.L;
   registerChart("cDelta","ttDelta",()=>plot(document.getElementById("cDelta"),{xmax:L,yfmt:v=>v.toFixed(2)+"s",series:[{ys:a.delta,color:"#ff7a00",width:2,fill:"rgba(255,122,0,.12)"}],zones:a.zones.slice(0,6)}),
     x=>{const i=gIdx(x);return[{l:"Delta",v:fmtDelta(a.delta[i])+" s",c:"#ff7a00"}];});
   if(document.getElementById("cDelta2")) registerChart("cDelta2","ttDelta2",()=>plot(document.getElementById("cDelta2"),{xmax:L,yfmt:v=>v.toFixed(2)+"s",series:[{ys:a.delta,color:"#ff7a00",width:2,fill:"rgba(255,122,0,.12)"}],zones:a.zones.slice(0,6)}),
@@ -936,7 +960,7 @@ function fillChanSelect(){
   const sel=document.getElementById("chanSel"), chans=STATE.model.channels;
   sel.innerHTML=chans.map((c,i)=>`<option value="${i}">${escapeHtml(c.name)}${c.unit?" ["+escapeHtml(c.unit)+"]":""}</option>`).join("");
   sel.onchange=renderChan;
-  if(!CHARTS.find(c=>c.cv.id==="cChan")) registerChart("cChan","ttChan",()=>renderChanPlot(),x=>{const i=gIdx(x);return[{l:chanName+" Ref",v:chanRef?chanRef[i].toFixed(2):"—",c:"#2f81f7"},{l:chanName+" Vgl",v:chanCmp?chanCmp[i].toFixed(2):"—",c:"#ff7a00"}];});
+  registerChart("cChan","ttChan",()=>renderChanPlot(),x=>{const i=gIdx(x);return[{l:chanName+" Ref",v:chanRef?chanRef[i].toFixed(2):"—",c:"#2f81f7"},{l:chanName+" Vgl",v:chanCmp?chanCmp[i].toFixed(2):"—",c:"#ff7a00"}];});
   renderChan();
 }
 function chanOnGrid(m,lap,c){
@@ -963,7 +987,8 @@ function projectTrack(p,w,h,pad){
   return { N, PX:i=>ox+(X[i]-xmn)*sc, PY:i=>h-(oy+(Y[i]-ymn)*sc) };
 }
 function drawTrackMap(cv, p, segColor, o){
-  o=o||{}; const {ctx,w,h}=fitCanvas(cv); ctx.clearRect(0,0,w,h);
+  o=o||{}; const fitted=fitCanvas(cv); if(!fitted) return false;
+  const {ctx,w,h}=fitted; ctx.clearRect(0,0,w,h);
   if(!p||!p.lat||!p.lon){ if(o.noGpsText){ctx.fillStyle="#6b7686";ctx.font="13px Segoe UI";ctx.fillText(o.noGpsText,16,26);} cv._track=null; return false; }
   const g=projectTrack(p,w,h,o.pad||30), N=g.N;
   const z=cv._zoom||{k:1,ox:0,oy:0};
@@ -1032,10 +1057,22 @@ function renderOneMap(def){
 function renderAllMaps(){
   const miniCard=document.getElementById("miniMapCard");
   if(miniCard) miniCard.style.display=(STATE.refP&&STATE.refP.lat&&STATE.ana)?"":"none";
-  MAP_CANVASES.forEach(d=>{ if(document.getElementById(d.cv)) renderOneMap(d); });
+  MAP_CANVASES.forEach(d=>{
+    const cv=document.getElementById(d.cv);
+    if(!cv || !canvasVisible(cv)) return;
+    renderOneMap(d);
+  });
 }
 /* Cursor-Synchronisation Karten <-> Charts */
-function syncCursor(){ redrawAll(); renderAllMaps(); }
+let cursorRaf=0;
+function syncCursor(){
+  if(cursorRaf) return;
+  cursorRaf=requestAnimationFrame(()=>{
+    cursorRaf=0;
+    redrawAll();
+    renderAllMaps();
+  });
+}
 function mapTipRows(i){ const rp=STATE.refP,cp=STATE.cmpP,a=STATE.ana; if(!rp)return"";
   const sp=t("speedKmh").replace(/\s*\(.*\)/,"");
   let h=`<div class="row" style="color:#8b97a7"><span>${t("distanceL")}</span><b>${rp.grid[i].toFixed(0)} m</b></div>`;
@@ -1118,15 +1155,23 @@ function computeTopSpeeds(m){ const cs=m.cSpeed; if(!cs)return; const f=speedToK
   m.laps.forEach(l=>{ let mx=0; const a=Math.floor(l.t0*cs.freq),b=Math.ceil(l.t1*cs.freq); for(let k=a;k<=b&&k<cs.nData;k++){const v=cs.data[k]*f; if(v>mx)mx=v;} l.topSpeed=mx; }); }
 
 /* ---------- Laden ---------- */
+let loadGen=0, loadCtrl=null;
 async function loadSession(file){
+  const gen=++loadGen;
+  if(loadCtrl) try{ loadCtrl.abort(); }catch(e){}
+  loadCtrl=new AbortController();
+  const signal=loadCtrl.signal;
   try{
+    setLoading(true);
     setStatus(t("loadingFile",file));
-    const js=await apiGet("/api/session?file="+encodeURIComponent(file));
+    const js=await apiGet("/api/session?file="+encodeURIComponent(file), signal);
+    if(gen!==loadGen) return "stale";
     const m=buildModel(js);
+    computeSectors(m); computeTopSpeeds(m); computeConsumption(m);
+    await recordSetupHistory(m, signal);
+    if(gen!==loadGen) return "stale";
     if(m.error){ showConn(`<div class="banner err">${m.error}</div>`); }
     STATE.model=m; STATE.loadedKey=file;
-    computeSectors(m); computeTopSpeeds(m); computeConsumption(m);
-    await recordSetupHistory(m);
     const best=bestLap(m.laps);
     STATE.refLap=best;
     // Vergleichsrunde: nur vollständige Runden ohne Out-/In-Lap
@@ -1141,8 +1186,11 @@ async function loadSession(file){
     setStatus(t("loaded", m.laps.length, m.laps.filter(l=>l.complete).length));
     return "ok";
   }catch(e){
+    if(e.name==="AbortError" || gen!==loadGen) return "stale";
     if(e.code===423){ setStatus(t("recActive")); return "locked"; }
     showConn(`<div class="banner err">${t("errLoad",escapeHtml(e.message))}</div>`); setStatus(t("errPrefix",e.message)); return "error";
+  }finally{
+    if(gen===loadGen) setLoading(false);
   }
 }
 
@@ -1169,11 +1217,15 @@ async function poll(){
 async function followLive(){
   const newest=STATE.sessions[0]; if(!newest) return;
   const res=await loadSession(newest.file);
+  if(res==="stale") return;
   if(res==="ok"){ STATE.newestLocked=false; return; }
   if(res==="locked"){
     STATE.newestLocked=true;
     if(!STATE.loadedKey || STATE.loadedKey===newest.file){
-      for(let i=1;i<STATE.sessions.length;i++){ if(await loadSession(STATE.sessions[i].file)==="ok") break; }
+      for(let i=1;i<STATE.sessions.length;i++){
+        const r=await loadSession(STATE.sessions[i].file);
+        if(r==="ok"||r==="stale") break;
+      }
     }
     showRecordingBanner(newest);
   }
@@ -1226,7 +1278,7 @@ function computeConsumption(m){
   });
   m.avgLap = lN? lS/lN : (m.laps[0]?m.laps[0].lapTime:0);
   const bestPool=complete.filter(l=>!l.outlap&&!l.inlap); const bestSrc=bestPool.length?bestPool:complete;
-  m.bestLap = bestSrc.length? Math.min.apply(null,bestSrc.map(l=>l.lapTime)) : m.avgLap;
+  m.bestLap = bestSrc.length? arrMin(bestSrc, l=>l.lapTime) : m.avgLap;
   m.vePerLap = veN? veS/veN : null;
   m.fuelPerLap = fN? fS/fN : null;
   m.wearPerLap = wN? wS/wN : null;     // % Verschleiß (schlechtestes Rad) pro Runde
@@ -1244,7 +1296,7 @@ function computeSectors(m){
     if(lap&&bd<4){ lap.lapTime=e.v; lap.exact=true; if(s1!=null&&s12!=null&&s12>s1){ lap.s1=s1; lap.s2=s12-s1; lap.s3=e.v-s12; } }
   });
   const valid=m.laps.filter(l=>l.s1!=null&&l.s2!=null&&l.s3!=null);
-  if(valid.length){ m.bestS1=Math.min.apply(null,valid.map(l=>l.s1)); m.bestS2=Math.min.apply(null,valid.map(l=>l.s2)); m.bestS3=Math.min.apply(null,valid.map(l=>l.s3)); m.theoBest=m.bestS1+m.bestS2+m.bestS3; }
+  if(valid.length){ m.bestS1=arrMin(valid,l=>l.s1); m.bestS2=arrMin(valid,l=>l.s2); m.bestS3=arrMin(valid,l=>l.s3); m.theoBest=m.bestS1+m.bestS2+m.bestS3; }
 }
 function fmtSec(s){ return (s!=null&&isFinite(s))? s.toFixed(3):"—"; }
 function renderSectors(){
@@ -1265,7 +1317,7 @@ function renderWeather(){
   const air=chanAvg(m,["Ambient Temperature"]), track=chanAvg(m,["Track Temperature"]);
   const wind=chanAvg(m,["Wind Speed"]), windDir=chanAvg(m,["Wind Heading"]);
   const cond=m.meta&&m.meta.WeatherConditions;
-  let wet=null; const mw=(m.events||{})["Minimum Path Wetness"]; if(mw&&mw.length){ wet=Math.max.apply(null,mw.map(e=>+e.v||0)); }
+  let wet=null; const mw=(m.events||{})["Minimum Path Wetness"]; if(mw&&mw.length){ wet=arrMax(mw,e=>+e.v||0); }
   const rows=[];
   rows.push(['<b style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px">'+t("weatherTitle")+'</b>','']);
   if(cond) rows.push([t("wConditions"),escapeHtml(cond)]);
@@ -1282,7 +1334,7 @@ function renderSession(){
   const laps=m.laps.filter(l=>l.complete);
   if(!laps.length){ el.innerHTML=`<div class="hint">${t("noLapsSession")}</div>`; return; }
   const bestPool=laps.filter(l=>!l.outlap&&!l.inlap);
-  const best=Math.min.apply(null,(bestPool.length?bestPool:laps).map(l=>l.lapTime));
+  const best=arrMin(bestPool.length?bestPool:laps, l=>l.lapTime);
   let html=`<table class="pit setuptbl" style="font-size:12.5px"><thead><tr><th>#</th><th>${t("lapTime")}</th><th>${t("thDeltaBest")}</th><th>${t("thTop")}</th><th>${t("thVELap")}</th><th>${t("thFuelLapH")}</th><th>${t("thWearLapH")}</th></tr></thead><tbody>`;
   laps.forEach(l=>{ const d=l.lapTime-best, isBest=l.lapTime===best;
     html+=`<tr${isBest?' class="fastest"':''}><td>${t("lapN",l.index+1)}${l.outlap?' <span class="pill">Out</span>':''}${l.inlap?' <span class="pill">In</span>':''}</td>`
@@ -1298,7 +1350,7 @@ function renderSession(){
 
 /* ---------- Persistente Bestzeit-Referenz (localStorage; später optional MotherDuck-Sync) ---------- */
 function lsGet(k,d){ try{const v=localStorage.getItem(k); return v==null?d:JSON.parse(v);}catch(e){return d;} }
-function lsSet(k,v){ try{localStorage.setItem(k,JSON.stringify(v));}catch(e){} }
+function lsSet(k,v){ try{localStorage.setItem(k,JSON.stringify(v)); return true;}catch(e){ try{ setStatus(t("storageFull")); }catch(_){ } return false; } }
 function refKey(track){ return "lmuRef:"+(track||"?"); }
 function getSavedRef(track){ return lsGet(refKey(track),null); }
 function arr(a){ return a?Array.from(a):null; }
@@ -1308,7 +1360,7 @@ function saveBestRef(){
   const rec={ lapTime:STATE.refLap.lapTime,
     profile:{grid:arr(p.grid),speed:arr(p.speed),thr:arr(p.thr),brk:arr(p.brk),steer:arr(p.steer),gear:arr(p.gear),lat:arr(p.lat),lon:arr(p.lon),time:arr(p.time),L:p.L},
     meta:{car:m.meta.CarName,date:m.meta.RecordingTime,file:m.fileName} };
-  lsSet(refKey(m.meta.TrackName),rec);
+  if(!lsSet(refKey(m.meta.TrackName),rec)) return;
   STATE.refSource="saved"; refreshRefSrc(); recompute();
   setStatus(t("bestSaved",fmtTime(STATE.refLap.lapTime),(m.meta.TrackName||"")));
 }
@@ -1628,8 +1680,8 @@ function setupLabel(k){ const [SL,WT]=setupDicts();
   const c=k.match(/^VM_CHASSIS_ADJ_(\d+)$/); if(c) return (LANG==="en"?"Chassis adj ":LANG==="fr"?"Réglage châssis ":"Chassis-Einstellung ")+(+c[1]+1);
   return k.replace(/^VM_|^WM_/,"").replace(/_/g," ").toLowerCase(); }
 function countSetupChanges(a,b){ if(!a||!b)return 0; let n=0; new Set([...Object.keys(a),...Object.keys(b)]).forEach(k=>{ if(a[k]!==b[k])n++; }); return n; }
-async function recordSetupHistory(m){
-  try{ const r=await apiGet("/api/setup?file="+encodeURIComponent(m.fileName)); m.setup=r.setup; }catch(e){ m.setup=null; }
+async function recordSetupHistory(m, signal){
+  try{ const r=await apiGet("/api/setup?file="+encodeURIComponent(m.fileName), signal); m.setup=r.setup; }catch(e){ if(e&&e.name==="AbortError") throw e; m.setup=null; }
   if(!m.setup) return;
   const hist=lsGet("lmuHist",[]); const compact={}; for(const k in m.setup) compact[k]=m.setup[k].s;
   const rec={file:m.fileName,track:m.meta.TrackName,car:m.meta.CarName,date:m.meta.RecordingTime,bestLap:m.bestLap,avgLap:m.avgLap,setup:compact};
@@ -1685,7 +1737,7 @@ function steeringCorrections(m,lap){ const cs=findChan(m.channels,ALIAS.steer); 
 /* ---------- Tabs ---------- */
 function switchTab(name){ document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.tab===name));
   document.querySelectorAll("section[data-panel]").forEach(s=>s.style.display=s.dataset.panel===name?"":"none");
-  setTimeout(()=>{redrawAll(); renderAllMaps(); if(name==="pit")renderPit(); if(name==="tyres")renderTyres(); if(name==="setup")renderSetup(); if(name==="session")renderSession();},0); }
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{redrawAll(); renderAllMaps(); if(name==="pit")renderPit(); if(name==="tyres")renderTyres(); if(name==="setup")renderSetup(); if(name==="session")renderSession();})); }
 document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>switchTab(t.dataset.tab));
 addEventListener("resize",()=>{redrawAll(); if(STATE.refP){renderAllMaps(); renderPitMap();}});
 
@@ -1695,8 +1747,10 @@ let versionChecked=false;
 function cmpVer(a,b){ const pa=String(a).split("."),pb=String(b).split("."); for(let i=0;i<3;i++){ const x=parseInt(pa[i]||0,10),y=parseInt(pb[i]||0,10); if(x>y)return 1; if(x<y)return -1; } return 0; }
 async function checkVersion(){ if(versionChecked)return; versionChecked=true;
   const badge=document.getElementById("versionBadge"); badge.textContent="v"+APP_VERSION; badge.classList.remove("update");
-  try{ const r=await apiGet("/api/version"); const lat=(r.latest||"").replace(/^v/,"");
-    if(lat && cmpVer(lat,APP_VERSION)>0){ const url=r.url||("https://github.com/"+(r.repo||"mzluzifer/lmu-telemetry-analyzer")+"/releases");
+  try{ const r=await apiGet("/api/version"); const cur=String(r.current||APP_VERSION).replace(/^v/,"");
+    badge.textContent="v"+cur;
+    const lat=(r.latest||"").replace(/^v/,"");
+    if(lat && cmpVer(lat,cur)>0){ const url=r.url||("https://github.com/"+(r.repo||"mzluzifer/lmu-telemetry-analyzer")+"/releases");
       badge.innerHTML=`<a href="${url}" target="_blank" rel="noopener" title="${t("updateAvail",lat)}">⬆ v${lat}</a>`; badge.classList.add("update"); }
   }catch(e){}
 }
@@ -1719,6 +1773,15 @@ if(lsGet("lmuSidebar",0)) document.body.classList.add("sb-collapsed");
 document.getElementById("sbToggle").onclick=()=>{ document.body.classList.toggle("sb-collapsed"); lsSet("lmuSidebar", document.body.classList.contains("sb-collapsed")?1:0); setTimeout(()=>{ if(STATE.refP){redrawAll(); renderAllMaps();} },30); };
 document.getElementById("btnQuit").onclick=async()=>{ try{ await fetch(API+"/api/quit",{method:"POST"}); }catch(e){} document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#8b97a7;font:16px \'Segoe UI\'">'+t("quitDone")+'</div>'; };
 setLang(LANG);
+function syncHdrH(){
+  const hdr=document.querySelector("header");
+  if(hdr) document.documentElement.style.setProperty("--hdr-h", hdr.offsetHeight+"px");
+}
+syncHdrH();
+if(window.ResizeObserver){
+  const hdr=document.querySelector("header");
+  if(hdr) new ResizeObserver(()=>{ syncHdrH(); if(STATE.refP){ redrawAll(); renderAllMaps(); } }).observe(hdr);
+}
 poll();
 setInterval(poll, POLL_MS);
 </script>
