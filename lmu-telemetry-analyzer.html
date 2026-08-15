@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" translate="no">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -127,7 +127,7 @@
     <span class="led"></span><span id="liveLabel">Live</span>
   </div>
   <button id="btnReload" data-i18n="reload">↻ Aktualisieren</button>
-  <div class="langsw"><button id="langDe" class="active">DE</button><button id="langEn">EN</button></div>
+  <div class="langsw"><button id="langDe" class="active">DE</button><button id="langEn">EN</button><button id="langFr">FR</button></div>
   <span id="versionBadge" class="vbadge"></span>
   <span class="grow"></span>
   <span id="status" class="status">…</span>
@@ -335,8 +335,16 @@ function setStatus(s){ document.getElementById("status").textContent=s; }
 
 /* ===================== Internationalisierung (DE/EN) ===================== */
 function lsGetSafe(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v); }catch(e){ return d; } }
-let LANG = lsGetSafe("lmuLang","de");
-function WL(k){ return (LANG==="en"?["FL","FR","RL","RR"]:["VL","VR","HL","HR"])[k]; }
+function detectLang(){
+  const stored=lsGetSafe("lmuLang",null);
+  if(stored==="de"||stored==="en"||stored==="fr") return stored;
+  const nav=(navigator.language||"").slice(0,2).toLowerCase();
+  return (nav==="fr"||nav==="en"||nav==="de")?nav:"de";
+}
+let LANG = detectLang();
+function loc(){ return LANG==="fr"?"fr-FR":LANG==="en"?"en-GB":"de-DE"; }
+function perLap(){ return LANG==="fr"?"/tour":LANG==="en"?"/lap":"/Rd"; }
+function WL(k){ return (LANG==="fr"?["AVG","AVD","ARG","ARD"]:LANG==="en"?["FL","FR","RL","RR"]:["VL","VR","HL","HR"])[k]; }
 const STR = {
  de:{
   reload:"↻ Aktualisieren", session:"Session", refSource:"Referenzquelle", refLap:"Referenz-Runde (Bestzeit)", cmpLap:"Vergleichs-Runde",
@@ -426,7 +434,9 @@ const STR = {
   liftCoastTitle:"Lift & Coast – beste Sprit-Spar-Zonen", liftCoastHint:"Markiert sind die Anbremszonen mit dem größten Spritspar-Potenzial: hohe Eintrittsgeschwindigkeit + starkes Bremsen. Dort früher vom Gas gehen (lift & coast) spart am meisten Sprit bei geringstem Zeitverlust. ① = beste Zone. Cyan = Coast-Zone (vom Gas), roter Ring = normaler Bremspunkt. Mit der Maus über eine Zone fahren, um sie in der Tabelle zu markieren. Karte zoombar (Mausrad/ziehen).",
   liftCoastNone:"Keine ausgeprägten Anbremszonen erkannt (Referenzrunde mit GPS nötig).",
   lcEntry:"Eintritt", lcDrop:"Tempoabfall", lcCoast:"Coast-Zone", lcZone:(n)=>"Zone "+n, lcAt:"bei",
-  lcLiftPt:"Lift bei", lcBrakePt:"Bremspunkt", lcCoastGap:"Coast"
+  lcLiftPt:"Lift bei", lcBrakePt:"Bremspunkt", lcCoastGap:"Coast",
+  steerL:"Lenkung", gearL:"Gang", missingLapDist:"Kanal 'Lap Dist' fehlt – Runden können nicht erkannt werden.",
+  lapNotSaved:"Runde unvollständig – nicht gespeichert"
  },
  en:{
   reload:"↻ Refresh", session:"Session", refSource:"Reference source", refLap:"Reference lap (best)", cmpLap:"Comparison lap",
@@ -516,7 +526,101 @@ const STR = {
   liftCoastTitle:"Lift & coast – best fuel-saving zones", liftCoastHint:"Highlighted are the braking zones with the greatest fuel-saving potential: high entry speed + heavy braking. Lifting off the throttle earlier there (lift & coast) saves the most fuel for the least lap time. ① = best zone. Cyan = coast zone (off throttle), red ring = normal braking point. Hover over a zone to highlight it in the table. Map is zoomable (wheel/drag).",
   liftCoastNone:"No pronounced braking zones detected (needs a reference lap with GPS).",
   lcEntry:"Entry", lcDrop:"Speed drop", lcCoast:"Coast zone", lcZone:(n)=>"Zone "+n, lcAt:"at",
-  lcLiftPt:"Lift at", lcBrakePt:"Brake point", lcCoastGap:"Coast"
+  lcLiftPt:"Lift at", lcBrakePt:"Brake point", lcCoastGap:"Coast",
+  steerL:"Steering", gearL:"Gear", missingLapDist:"Channel 'Lap Dist' is missing – laps cannot be detected.",
+  lapNotSaved:"Lap incomplete – not saved"
+ },
+ fr:{
+  reload:"↻ Actualiser", session:"Session", refSource:"Source de référence", refLap:"Tour de référence (meilleur)", cmpLap:"Tour de comparaison",
+  lapTime:"Temps au tour", topSpeed:"Vitesse max", lapHint:'Clic = tour de comparaison · <span class="kbd">R</span>+clic = référence',
+  tabImprove:"🎯 Où est-ce que je perds du temps ?", tabCompare:"📈 Comparaison", tabMap:"🗺️ Carte du circuit", tabTyres:"🛞 Pneus & freins",
+  tabSetup:"🔧 Setup & rythme", tabChannels:"📊 Tous les canaux", tabPit:"⛽ Calculateur d'arrêts", tabDiag:"🔩 Diagnostic",
+  lapOverview:"Aperçu du tour", deltaTitle:"Delta de temps sur le tour", legRefZero:"Référence (ligne 0)", legCmpSlower:"Comparaison · au-dessus de 0 = plus lent",
+  deltaHint:"Quand la courbe monte, tu perds du temps. Les plus fortes hausses sont tes principaux points faibles.", lossZones:"Plus grandes zones de perte & conseils",
+  speedKmh:"Vitesse (km/h)", reference:"Référence", comparison:"Comparaison", throttleBrake:"Accélérateur & frein (%)",
+  legThrRef:"Gaz réf.", legThrCmp:"Gaz cmp", legBrkRef:"Frein réf.", legBrkCmp:"Frein cmp", steerGear:"Direction & rapport",
+  mapTitle:"Carte du circuit – colorée par vitesse", slow:"lent", medium:"moyen", fast:"rapide", lossZone:"zone de perte",
+  tyresCmpLap:"Pneus – tour de comparaison", tyresHint:"Valeurs = moyenne sur le tour. Températures : intérieur · centre · extérieur (pour carrossage/pression). Fenêtre pneus verte ≈ 75–105 °C.",
+  tyreTipsTitle:"Conseils pneus (pression · carrossage · équilibre)", brakeTemp:"Température des freins (°C, moyenne du tour)", wearSessionTitle:"Usure sur la session",
+  setupPaceTitle:"Un changement de setup a-t-il modifié ton rythme ?", setupPaceHint:"Compare deux de tes sessions enregistrées (même voiture + circuit) : ce qui a changé et comment le meilleur tour a évolué. Les sessions sont mémorisées automatiquement dans le navigateur au chargement.",
+  sessionA:"Session A (avant)", sessionB:"Session B (après)", setupDiffTitle:"Paramètres de setup modifiés (A → B)", setupHintsTitle:"Conseils setup issus de la télémétrie – par où commencer ?",
+  setupShopsTitle:"Fournisseurs de setups", setupShopsHint:"Fournisseurs externes de setups prêts à l'emploi (s'ouvrent dans un nouvel onglet).",
+  anyChannel:"Comparer n'importe quel canal", raceData:"Données de course", raceLength:"Durée de course (minutes)", tyreSets:"Trains de pneus", numDrivers:"Nombre de pilotes",
+  pitLoss:"Perte d'arrêt aux stands (s)", avgLapInput:"Temps au tour moy. (m:ss.s)", vePerLapInput:"Virtual Energy / tour (%)", fuelPerLapInput:"Essence / tour (L)",
+  wearPerLapInput:"Usure pneus / tour (%)", savePenaltyInput:"Perte de temps par % économisé (s/tour)", recommendation:"Recommandation – temps total le plus rapide",
+  driverSplit:"Répartition des pilotes", strategyCompare:"Comparaison des stratégies", thStops:"Arrêts", thStints:"Relais", thLapsStint:"Tours/relais", thMinStint:"Min/relais",
+  thVELap:"VE %/tour", thSave:"Économie", thLStint:"L/relais", thTotalTime:"Temps total", thOk:"OK",
+  strategyHint:'Vert = stratégie faisable la plus rapide. « Économie » = lift & coast nécessaire par rapport à ta conso télémétrie (⚠ = plus que réaliste). Clique une ligne pour choisir une stratégie – les points lift & coast sont recalculés.',
+  lcSaveBasis:(p)=>`Points de lift calculés pour ≈ ${p} % d'économie (stratégie choisie).`, lcSaveBasisTele:"Points de lift issus de la télémétrie (défaut – choisis une stratégie ci-dessous).", lcSaveBasisNone:"L'énergie suffit – peu de lift & coast nécessaire.",
+  fastestBadge:"plus rapide", selectedBadge:"choisie", stratSlower:(s)=>`+${s} s vs stratégie la plus rapide`,
+  bridgeConn:"Bridge / connexion", channelsInSession:"Canaux de cette session", thName:"Nom", thUnit:"Unité", thSamples:"Échantillons",
+  saveRef:"📌 Enregistrer ce tour comme meilleur temps", saveRefUpdate:(t)=>"📌 Mettre à jour le meilleur temps ("+t+")",
+  live:"Live", manual:"Manuel", connecting:"Connexion au bridge…", waitingRec:"En attente d'enregistrements…",
+  loaded:(n,c)=>`Chargé : ${n} tours · ${c} complets`, recActive:"⏺ Enregistrement en cours – en attente de la fin…",
+  errPrefix:(m)=>"Erreur : "+m, lapIncomplete:"Tour incomplet", bestSaved:(t,tr)=>`Référence meilleur temps enregistrée : ${t} · ${tr}`,
+  bestRefOpt:(t,d)=>`⭐ Meilleur ${t} (${d})`, sessionBest:"Meilleur tour de cette session", refStar:(t)=>"⭐ Meilleur "+t,
+  kRef:"Référence", kDiff:"Écart", slower:"plus lent", faster:"plus rapide", kSumLoss:"Perte de temps totale", zonesN:(n)=>n+" zones",
+  kFullThr:"Plein gaz", kCoast:"Coast (ni gaz ni frein)", refPct:(x)=>"Réf. "+x+" %", lapN:(i)=>"T"+i,
+  singleLap:'Un seul <b>tour complet</b> dans cet enregistrement – pour le delta et les zones, il faut au moins 2 tours (ou enregistrer un meilleur temps comme référence). Vitesse, gaz/frein et carte du circuit restent affichés.',
+  deltaSum:(d)=>` · total ${d} s`, noZones:"Pas de zones de perte notables – tours très proches ou un seul tour disponible.",
+  zoneLbl:(i,a,b)=>`Zone ${i} : ${a}–${b} m`,
+  tMinSpeed:(k)=>`Ta vitesse mini est ici <b>${k} km/h</b> sous la référence – plus de vitesse en courbe possible (braquer plus tôt/plus souple, freiner moins).`,
+  tBrakeEarly:(m)=>`Tu freines environ <b>${m} m plus tôt</b> que la référence – un point de freinage plus tardif gagne du temps.`,
+  tBrakeLate:(m)=>`Tu freines environ <b>${m} m plus tard</b> – si tu perds ensuite de la vitesse, c'est peut-être trop tard/trop fort.`,
+  tLiftEarly:(m)=>`Tu lèves le pied environ <b>${m} m plus tôt</b> – essaie de rester plus longtemps à fond.`,
+  tThrExit:(m)=>`En sortie de virage tu remets plein gaz <b>${m} m plus tard</b>.`, tSmall:"Petite perte de temps – trajectoire/vitesse un peu plus propres possibles.",
+  pitFill:"Indique la durée de course (minutes) et le temps au tour moyen.", pitNoStrat:"Aucune stratégie faisable – l'économie d'énergie serait trop forte. Augmente l'hypothèse VE/tour ou le nombre d'arrêts.",
+  pitStops:(s)=>`${s} arrêt${s===1?"":"s"} aux stands`, pitStints:(S,l,m)=>`${S} relais · <b>${l} tours/relais</b> (~${m} min)`,
+  veRunde:"Virtual Energy / tour", veSave:(p)=>`≈ ${p} % à économiser (lift & coast)`, veEnough:"L'énergie suffit – pousser", veExact:"pile adapté",
+  fuelStint:"Essence / relais", fuelTotal:(l)=>`course totale ${l}`, raceDist:"Distance de course", lapsN:(n)=>n+" tours", driveTime:(t)=>`temps de conduite ~${t}`,
+  estTotal:"Temps total estimé", stopsXs:(s,p)=>`${s} arrêt(s) × ${p} s`, tyresLbl:"Pneus :", tyreFresh:(n)=>`${n} train(s) neuf(s)`,
+  tyreReused:(r,s)=>` · ${r} relais sur pneus usés (seulement ${s} trains disponibles)`, tyreLast:(l,w)=>` · tiennent ~<b>${l}</b> tours/relais (${w} %/tour) – limite la longueur de relais`,
+  pitExplain:(ms,pen)=>`« Temps total le plus rapide » = le moins d'arrêts où l'économie d'énergie (≤ ${ms} %) <b>et</b> les pneus le permettent ; économiser coûte ici ${pen} s/tour par %.`,
+  driverK:(n)=>"Pilote "+n, stintsN:(n)=>`${n} relais`, driverInfo:(m,l)=>`~${m} min · ~${l} tours`,
+  moreDrivers:(D,S)=>`Plus de pilotes (${D}) que de relais (${S}) – tout le monde ne roulera pas.`,
+  teleNote:(tr,a,b,v,f,w)=>`Issu de la télémétrie · <b>${tr}</b> · tour moy. <b>${a}</b> · meilleur ${b} · VE ${v} · essence ${f} · usure ${w}. Conseil : saisis ton <b>rythme de course</b> prévu (pas l'outlap).`,
+  mTrack:"Circuit", mVehicle:"Voiture", mClass:"Classe", mSession:"Session", mWeather:"Météo", mDriver:"Pilote", mRecording:"Enregistrement",
+  pressure:"Pression", restProfile:"Profil restant", noTyreTemp:"Aucun canal de température pneus dans cet enregistrement.", noTyreData:"Températures pneus sans anomalie (ou trop peu de données, p. ex. seulement une outlap).",
+  noBrakeTemp:"Pas de données de température freins.", noWearData:"Pas de données d'usure.", wRest:(w)=>w+" restant", usedPct:(p)=>p+" % usé",
+  wearWorst:(w,l)=>`Usure moy. (pire pneu) : <b>${w}</b>${l}`, holdLaps:(n)=>` → les pneus tiennent ~<b>${n}</b> tours.`,
+  tPressHigh:(w,d)=>`<b>${w}</b> : le centre est ${d} °C plus chaud que les bords → <b>pression trop élevée</b>.`,
+  tPressLow:(w,d)=>`<b>${w}</b> : le centre est ${d} °C plus froid que les bords → <b>pression trop basse</b>.`,
+  tCamberOut:(w,d)=>`<b>${w}</b> : le bord extérieur est ${d} °C plus chaud que l'intérieur → mets <b>plus de carrossage négatif</b>.`,
+  tCamberIn:(w,d)=>`<b>${w}</b> : le bord intérieur est ${d} °C plus chaud → <b>peut-être trop de carrossage</b>.`,
+  balUnder:(d)=>`<b>Équilibre :</b> pneus avant ${d} °C plus chauds → tendance au <b>sous-virage</b> (avant surchargé) : barre antiroulis AV plus souple / plus d'aileron avant / barre AR plus ferme.`,
+  balOver:(d)=>`<b>Équilibre :</b> pneus arrière ${d} °C plus chauds → tendance au <b>survirage</b> (arrière surchargé) : plus d'aileron arrière / barre AR plus souple / plus de traction.`,
+  tyresCold:(t)=>`Pneus globalement <b>froids</b> (moy. ${t} °C) – peut-être seulement une outlap ; ils montent en température au rythme de course. Sinon augmente la pression / pousse plus.`,
+  brAvg:"Moy.", brMax:"Max",
+  setupNeed:(n,car)=>`Seulement <b>${n}</b> session mémorisée pour ${car} sur ce circuit. Dès que tu fais une autre session avec un <b>setup modifié</b>, tu verras l'effet sur le rythme ici.`,
+  kBestA:"Meilleur A (avant)", kBestB:"Meilleur B (après)", kPaceEffect:"Effet rythme B−A", fasterEmoji:"plus rapide 🎉", kChanged:"Paramètres modifiés", seeBelow:"voir ci-dessous",
+  thParam:"Paramètre", thBefore:"A (avant)", thAfter:"B (après)", noDiff:"Aucune différence – setup identique dans les deux sessions.",
+  hUnder:"Tendance sous-virage", hUnderD:(d)=>`Pneus avant ${d} °C plus chauds que l'arrière. <b>Où :</b> surtout virages lents/moyens (cf. zones de perte). <b>Setup :</b> barre AV plus souple, plus d'aileron avant, ou barre AR plus ferme ; baisse la pression avant si besoin.`,
+  hOver:"Tendance survirage", hOverD:(d)=>`Pneus arrière ${d} °C plus chauds que l'avant. <b>Setup :</b> plus d'aileron arrière, barre AR plus souple, moins de diff power, vérifie le contrôle de traction.`,
+  hPress:(w)=>"Pression "+w, hPressHi:(w)=>`Centre du pneu clairement plus chaud → baisse la pression ${w}.`, hPressLo:(w)=>`Bords plus chauds que le centre → augmente la pression ${w}.`,
+  hNervous:"Arrière peut-être nerveux", hNervousD:(c)=>`Beaucoup de contre-braquages rapides (${c}) – possible signe d'un arrière instable en sortie. <b>Idée setup :</b> plus de stabilité/traction arrière (moins de diff power, barre AR plus souple, plus d'aileron arrière). Avec prudence – les vibreurs/bosses peuvent aussi le provoquer.`,
+  hintsCaveat:"Tendances issues des mesures (surtout températures pneus) – pas un substitut à des tests systématiques. Plus fiable avec plusieurs tours rapides.",
+  noHints:"Pas de tendance setup claire (données peut-être insuffisantes – enchaîne quelques tours rapides).",
+  noComplete:"Aucun tour complet.", helpOffline:(m)=>`L'app tourne, mais le bridge ne répond pas (${m}). Lance-le puis ouvre <code>http://localhost:8777</code>.`,
+  helpEmpty:(d)=>`Bridge OK ✓, mais aucun enregistrement <code>.duckdb</code> dans <span class="mono">${d}</span>. Active l'enregistrement télémétrie dans LMU et fais un relais.`,
+  helpTitle:"Bridge injoignable ou aucun enregistrement trouvé.", recBanner:(n,t)=>`⏺ <b>Enregistrement en cours</b> (${n}, ${t}) – le fichier est encore verrouillé. Affichage de ta <b>dernière session terminée</b>. Dès que tu termines le relais ou rentres aux stands, l'app charge le nouvel enregistrement.`,
+  diagConn:(dir,file,st,len)=>`Bridge : <span class="ok">connecté</span> · dossier : <span class="mono">${dir}</span><br>Fichier : <b>${file}</b> · début canal : ${st} s · circuit ${len} m`,
+  errLoad:(m)=>`Erreur de chargement : ${m}`, noGps:"Pas de coordonnées GPS dans cet enregistrement – carte indisponible.", mapLegend:"Ligne = tour de référence. Les points magenta marquent les plus grandes zones de perte.", noGpsShort:"Pas de données GPS.",
+  loadingFile:(f)=>"Chargement de "+f+" …",
+  sectorsTitle:"Secteurs", thTotal:"Total", theoBest:"Meilleur théorique", noSectors:"Pas de données de secteurs (au moins 1 tour chronométré nécessaire).",
+  weatherTitle:"Météo & piste", wConditions:"Conditions", wAir:"Temp. air", wTrack:"Temp. piste", wWind:"Vent", wWetness:"Humidité", wDry:"sec", wWet:(p)=>p+" % humide",
+  tabSession:"📋 Dernière session", sessOverview:"Aperçu de session", thDeltaBest:"Δ meilleur", thTop:"Max", thFuelLapH:"Essence L/tour", thWearLapH:"Usure %/tour", noLapsSession:"Aucun tour dans cette session.",
+  miniMapTitle:"Où est-ce que je gagne / perds ?", legGain:"gagne", legLose:"perd", updateAvail:(v)=>"Nouvelle version v"+v+" disponible – cliquer pour télécharger",
+  trackMapTitle:"Carte du circuit (interactive)", modeDelta:"Delta", modeSpeed:"Vitesse", mapHoverHint:"Survole le circuit pour les détails à cet endroit.", distanceL:"Distance", gasL:"Gaz", brakeL:"Frein", refShort:"Réf.", cmpShort:"Cmp",
+  tyreMapTitle:"Carte – température freins (moy. des 4)", cold:"froid", warm:"tiède", hot:"chaud", brakeTempShort:"Temp. freins",
+  uploadRef:"📂 Charger un tour de référence (.ld)", refUploaded:(n,tm)=>"📂 "+n+" · "+tm, ldParsing:"Lecture du fichier .ld …", ldError:"Impossible de lire le fichier .ld (format MoTeC invalide ou pas de données GPS/tour).", ldLoaded:(tm,track)=>"Référence chargée : "+tm+" ("+track+")", ldTrackMismatch:"Attention : circuit/longueur différent de la session – comparaison peut-être imprécise.", refSrcUploaded:"📂 Référence importée",
+  quit:"⏻ Quitter", quitDone:"App arrêtée – tu peux fermer cet onglet.", deltaCompareTitle:"Delta de temps (comparaison vs référence)",
+  mapZoomHint:"Molette : zoom · glisser : déplacer · double-clic : réinitialiser",
+  liftCoastTitle:"Lift & coast – meilleures zones d'économie", liftCoastHint:"Zones de freinage au plus fort potentiel d'économie : haute vitesse d'entrée + fort freinage. Lever plus tôt (lift & coast) économise le plus d'essence pour le moins de temps perdu. ① = meilleure zone. Cyan = zone de coast (pied levé), anneau rouge = point de freinage normal. Survole une zone pour la marquer dans le tableau. Carte zoomable (molette/glisser).",
+  liftCoastNone:"Aucune zone de freinage marquée détectée (il faut un tour de référence avec GPS).",
+  lcEntry:"Entrée", lcDrop:"Perte de vitesse", lcCoast:"Zone de coast", lcZone:(n)=>"Zone "+n, lcAt:"à",
+  lcLiftPt:"Lift à", lcBrakePt:"Point de freinage", lcCoastGap:"Coast",
+  steerL:"Direction", gearL:"Rapport", missingLapDist:"Le canal « Lap Dist » manque – les tours ne peuvent pas être détectés.",
+  lapNotSaved:"Tour incomplet – non enregistré"
  }
 };
 function t(k,...a){ let v=(STR[LANG]&&STR[LANG][k]); if(v==null)v=STR.de[k]; if(v==null)return k; return typeof v==="function"?v(...a):v; }
@@ -529,8 +633,11 @@ function setLang(l){
   document.documentElement.lang=l;
   document.getElementById("langDe").classList.toggle("active",l==="de");
   document.getElementById("langEn").classList.toggle("active",l==="en");
+  document.getElementById("langFr").classList.toggle("active",l==="fr");
   applyStaticI18n();
+  document.getElementById("liveLabel").textContent=STATE.follow?t("live"):t("manual");
   if(STATE.model){ renderMeta(); renderWeather(); refreshRefSrc(); recompute(); renderDiag();
+    renderSession(); renderTyres(); renderSetup(); pitPrefill(STATE.model); renderPit();
     setStatus(t("loaded", STATE.model.laps.length, STATE.model.laps.filter(l=>l.complete).length)); }
   else if(STATE.sessions&&STATE.sessions.length){ buildSessionSelect(); }
 }
@@ -555,7 +662,7 @@ function buildModel(js){
   const events = js.events||{};
   const cDist = findChan(channels, ALIAS.lapdist);
   const cSpeed = findChan(channels, ALIAS.speed);
-  if(!cDist){ return { error:"Kanal 'Lap Dist' fehlt – Runden können nicht erkannt werden.", channels, meta:js.meta, events, fileName:js.file }; }
+  if(!cDist){ return { error:t("missingLapDist"), channels, meta:js.meta, events, fileName:js.file }; }
 
   const trackLen = Math.max.apply(null, cDist.data.filter(v=>isFinite(v)));
   // channelStartTs: Lap-Dist-Resets gegen Lap-Event matchen
@@ -698,9 +805,21 @@ function buildTips(z,refP,cmpP){
 }
 
 /* ---------- Charts (Canvas) ---------- */
-function fitCanvas(cv){ const r=cv.getBoundingClientRect(), dpr=window.devicePixelRatio||1;
-  cv.width=Math.max(300,r.width)*dpr; cv.height=(+cv.getAttribute("height")||220)*dpr;
-  const ctx=cv.getContext("2d"); ctx.setTransform(dpr,0,0,dpr,0,0); return {ctx,w:Math.max(300,r.width),h:+cv.getAttribute("height")||220}; }
+function fitCanvas(cv){
+  const dpr=window.devicePixelRatio||1;
+  // Affecter cv.height modifie aussi l'attribut HTML "height". Conserver la
+  // hauteur CSS initiale évite de la remultiplier par le DPR à chaque rendu.
+  const h=cv._logicalHeight||(+cv.getAttribute("height")||220);
+  cv._logicalHeight=h;
+  cv.style.height=h+"px";
+  const r=cv.getBoundingClientRect(),w=Math.max(300,r.width);
+  const pixelW=Math.round(w*dpr),pixelH=Math.round(h*dpr);
+  if(cv.width!==pixelW)cv.width=pixelW;
+  if(cv.height!==pixelH)cv.height=pixelH;
+  const ctx=cv.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  return {ctx,w,h};
+}
 const PAD={l:52,r:14,t:12,b:26};
 const GHOST={x:null};
 function plot(cv,opts){
@@ -809,7 +928,7 @@ function buildCharts(){
   registerChart("cPedals","ttPedals",()=>plot(document.getElementById("cPedals"),{xmax:L,ymin:0,ymax:105,yfmt:v=>v.toFixed(0)+"%",series:[refP.thr&&{ys:refP.thr,color:"#3fb950",width:1.6},cmpP.thr&&{ys:cmpP.thr,color:"#8fe3a3",width:1.4},refP.brk&&{ys:refP.brk,color:"#f85149",width:1.6},cmpP.brk&&{ys:cmpP.brk,color:"#ff9b95",width:1.4}]}),
     x=>{const i=gIdx(x);const r=[];if(refP.thr)r.push({l:"Gas Ref",v:refP.thr[i].toFixed(0)+"%",c:"#3fb950"});if(cmpP.thr)r.push({l:"Gas Vgl",v:cmpP.thr[i].toFixed(0)+"%",c:"#8fe3a3"});if(refP.brk)r.push({l:"Bremse Ref",v:refP.brk[i].toFixed(0)+"%",c:"#f85149"});if(cmpP.brk)r.push({l:"Bremse Vgl",v:cmpP.brk[i].toFixed(0)+"%",c:"#ff9b95"});return r;});
   registerChart("cSteer","ttSteer",()=>plot(document.getElementById("cSteer"),{xmax:L,series:[refP.steer&&{ys:refP.steer,color:"#39d0d8",width:1.6},cmpP.steer&&{ys:cmpP.steer,color:"#d29922",width:1.4}]}),
-    x=>{const i=gIdx(x);const r=[];if(refP.steer)r.push({l:"Lenkung Ref",v:refP.steer[i].toFixed(1),c:"#39d0d8"});if(cmpP.steer)r.push({l:"Lenkung Vgl",v:cmpP.steer[i].toFixed(1),c:"#d29922"});if(refP.gear)r.push({l:"Gang Ref",v:Math.round(refP.gear[i])});if(cmpP.gear)r.push({l:"Gang Vgl",v:Math.round(cmpP.gear[i])});return r;});
+    x=>{const i=gIdx(x);const r=[];if(refP.steer)r.push({l:t("steerL")+" "+t("refShort"),v:refP.steer[i].toFixed(1),c:"#39d0d8"});if(cmpP.steer)r.push({l:t("steerL")+" "+t("cmpShort"),v:cmpP.steer[i].toFixed(1),c:"#d29922"});if(refP.gear)r.push({l:t("gearL")+" "+t("refShort"),v:Math.round(refP.gear[i])});if(cmpP.gear)r.push({l:t("gearL")+" "+t("cmpShort"),v:Math.round(cmpP.gear[i])});return r;});
 }
 
 let chanRef=null,chanCmp=null,chanName="";
@@ -972,7 +1091,7 @@ function renderMeta(){
 }
 function buildSessionSelect(){
   const sel=document.getElementById("sessionSel");
-  sel.innerHTML=STATE.sessions.map((s,i)=>{ const nm=prettyName(s.file); const t=new Date(s.mtime).toLocaleString("de-DE"); return `<option value="${escapeHtml(s.file)}">${escapeHtml(nm)} · ${t}</option>`; }).join("");
+  sel.innerHTML=STATE.sessions.map((s,i)=>{ const nm=prettyName(s.file); const t=new Date(s.mtime).toLocaleString(loc()); return `<option value="${escapeHtml(s.file)}">${escapeHtml(nm)} · ${t}</option>`; }).join("");
   sel.onchange=()=>{ STATE.follow=false; setLive(false); loadSession(sel.value); };
 }
 function prettyName(f){ return f.replace(/\.duckdb$/i,"").replace(/_([A-Z])_/," · $1 · ").replace(/_\d{4}-\d\d-\d\dT.*$/,""); }
@@ -1027,7 +1146,10 @@ async function loadSession(file){
   }
 }
 
+let pollRunning=false;
 async function poll(){
+  if(pollRunning)return;
+  pollRunning=true;
   try{
     const r=await apiGet("/api/sessions");
     if(r.error){ showBridgeHelp(r); return; }
@@ -1038,7 +1160,11 @@ async function poll(){
     if(STATE.follow){ if(STATE.loadedKey!==newest.file || STATE.newestLocked) await followLive(); }
     else if(!STATE.loadedKey){ await followLive(); }
     document.getElementById("liveToggle").classList.toggle("on",STATE.follow);
-  }catch(e){ showBridgeHelp({offline:true, msg:e.message}); }
+  }catch(e){
+    showBridgeHelp({offline:true, msg:e.message});
+  }finally{
+    pollRunning=false;
+  }
 }
 async function followLive(){
   const newest=STATE.sessions[0]; if(!newest) return;
@@ -1053,7 +1179,7 @@ async function followLive(){
   }
 }
 function showRecordingBanner(newest){
-  const tm=new Date(newest.mtime).toLocaleTimeString(LANG==="en"?"en-GB":"de-DE");
+  const tm=new Date(newest.mtime).toLocaleTimeString(loc());
   showConn(`<div class="banner">${t("recBanner",escapeHtml(prettyName(newest.file)),tm)}</div>`);
 }
 function showConn(html){ document.getElementById("conn").innerHTML=html||""; }
@@ -1178,7 +1304,7 @@ function getSavedRef(track){ return lsGet(refKey(track),null); }
 function arr(a){ return a?Array.from(a):null; }
 function saveBestRef(){
   const m=STATE.model; if(!m||!STATE.refLap){return;}
-  const p=lapProfile(m,STATE.refLap); if(!p){setStatus("Runde unvollständig – nicht gespeichert");return;}
+  const p=lapProfile(m,STATE.refLap); if(!p){setStatus(t("lapNotSaved"));return;}
   const rec={ lapTime:STATE.refLap.lapTime,
     profile:{grid:arr(p.grid),speed:arr(p.speed),thr:arr(p.thr),brk:arr(p.brk),steer:arr(p.steer),gear:arr(p.gear),lat:arr(p.lat),lon:arr(p.lon),time:arr(p.time),L:p.L},
     meta:{car:m.meta.CarName,date:m.meta.RecordingTime,file:m.fileName} };
@@ -1274,7 +1400,7 @@ function pitPrefill(m){
   document.getElementById("piVE").value = m.vePerLap!=null? m.vePerLap.toFixed(2):"";
   document.getElementById("piFuel").value = m.fuelPerLap!=null? m.fuelPerLap.toFixed(1):"";
   document.getElementById("piWear").value = m.wearPerLap!=null? m.wearPerLap.toFixed(2):"";
-  const pl = LANG==="en"?"/lap":"/Rd";
+  const pl = perLap();
   const veS = m.vePerLap!=null?m.vePerLap.toFixed(2)+" %"+pl:"—", fuS = m.fuelPerLap!=null?m.fuelPerLap.toFixed(1)+" L"+pl:"—", wS = m.wearPerLap!=null?m.wearPerLap.toFixed(2)+" %"+pl:"—";
   document.getElementById("piTeleNote").innerHTML=t("teleNote",escapeHtml(m.meta.TrackName||""),fmtTime(m.avgLap),fmtTime(m.bestLap),veS,fuS,wS);
 }
@@ -1480,7 +1606,7 @@ function renderWearSession(){
   let html='<div class="grid2">';
   for(let k=0;k<4;k++){ const used=(s&&e)?(s[k]-e[k]):null;
     html+=`<div class="stat"><div class="l">${t("wRest",WL(k))}</div><div class="v">${e?e[k].toFixed(1)+' %':'–'}</div><div class="d muted">${used!=null?t("usedPct",used.toFixed(1)):''}</div></div>`; }
-  const worstStr = m.wearPerLap!=null? m.wearPerLap.toFixed(2)+(LANG==="en"?" %/lap":" %/Runde"):"—";
+  const worstStr = m.wearPerLap!=null? m.wearPerLap.toFixed(2)+" %"+perLap():"—";
   const holdStr = m.wearPerLap? t("holdLaps",Math.floor(100/m.wearPerLap)):"";
   html+='</div><div class="hint" style="margin-top:8px">'+t("wearWorst","<b>"+worstStr+"</b>",holdStr)+'</div>';
   el.innerHTML=html;
@@ -1491,12 +1617,15 @@ const SETUP_LABELS={VM_FRONT_WING:"Frontflügel",VM_REAR_WING:"Heckflügel",VM_B
 const WM_T={PRESSURE:"Reifendruck",CAMBER:"Sturz",SPRING:"Feder",RIDEHEIGHT:"Bodenfreiheit",SLOWBUMP:"Dämpfer Druck (slow)",SLOWREBOUND:"Dämpfer Zug (slow)",FASTBUMP:"Dämpfer Druck (fast)",FASTREBOUND:"Dämpfer Zug (fast)",PACKERS:"Packer",COMPOUND:"Mischung",BRAKEDISC:"Bremsscheibe",BRAKEPAD:"Bremsbelag",TENDERSPRING:"Hilfsfeder"};
 const SETUP_LABELS_EN={VM_FRONT_WING:"Front wing",VM_REAR_WING:"Rear wing",VM_BRAKE_BALANCE:"Brake balance",VM_BRAKE_PRESSURE:"Brake pressure",VM_BRAKE_MIGRATION:"Brake migration",VM_BRAKE_DUCTS:"Brake ducts front",VM_BRAKE_DUCTS_REAR:"Brake ducts rear",VM_FRONT_ANTISWAY:"ARB front",VM_REAR_ANTISWAY:"ARB rear",VM_DIFF_POWER:"Diff power",VM_DIFF_COAST:"Diff coast",VM_DIFF_PRELOAD:"Diff preload",VM_ENGINE_MIXTURE:"Mixture",VM_ENGINE_BRAKEMAP:"Engine brake",VM_ENGINE_BOOST:"Boost",VM_REGEN_LEVEL:"Regen",VM_TORQUE_SPLIT:"Torque split",VM_TRACTION_CONTROL:"Traction control",VM_TRACTIONCONTROLMAP:"TC map",VM_FRONT_TOEIN:"Toe front",VM_REAR_TOEIN:"Toe rear",VM_STEER_LOCK:"Steering lock",VM_WEIGHT_DISTRIB:"Weight distribution",VM_FUEL_LEVEL:"Fuel level",VM_VIRTUAL_ENERGY:"Virtual energy (start)",VM_FRONT_TIRE_COMPOUND:"Tyre compound front",VM_REAR_TIRE_COMPOUND:"Tyre compound rear",VM_FRONT_WHEEL_TRACK:"Track width front",VM_REAR_WHEEL_TRACK:"Track width rear"};
 const WM_T_EN={PRESSURE:"Tyre pressure",CAMBER:"Camber",SPRING:"Spring",RIDEHEIGHT:"Ride height",SLOWBUMP:"Damper bump (slow)",SLOWREBOUND:"Damper rebound (slow)",FASTBUMP:"Damper bump (fast)",FASTREBOUND:"Damper rebound (fast)",PACKERS:"Packers",COMPOUND:"Compound",BRAKEDISC:"Brake disc",BRAKEPAD:"Brake pad",TENDERSPRING:"Tender spring"};
+const SETUP_LABELS_FR={VM_FRONT_WING:"Aileron avant",VM_REAR_WING:"Aileron arrière",VM_BRAKE_BALANCE:"Répartition de freinage",VM_BRAKE_PRESSURE:"Pression de freinage",VM_BRAKE_MIGRATION:"Migration de freinage",VM_BRAKE_DUCTS:"Conduits de frein avant",VM_BRAKE_DUCTS_REAR:"Conduits de frein arrière",VM_FRONT_ANTISWAY:"Barre antiroulis AV",VM_REAR_ANTISWAY:"Barre antiroulis AR",VM_DIFF_POWER:"Diff power",VM_DIFF_COAST:"Diff coast",VM_DIFF_PRELOAD:"Précharge différentiel",VM_ENGINE_MIXTURE:"Richesse",VM_ENGINE_BRAKEMAP:"Frein moteur",VM_ENGINE_BOOST:"Boost",VM_REGEN_LEVEL:"Récupération",VM_TORQUE_SPLIT:"Répartition du couple",VM_TRACTION_CONTROL:"Contrôle de traction",VM_TRACTIONCONTROLMAP:"Carte TC",VM_FRONT_TOEIN:"Pincement avant",VM_REAR_TOEIN:"Pincement arrière",VM_STEER_LOCK:"Braquage max",VM_WEIGHT_DISTRIB:"Répartition des masses",VM_FUEL_LEVEL:"Niveau de carburant",VM_VIRTUAL_ENERGY:"Virtual Energy (départ)",VM_FRONT_TIRE_COMPOUND:"Gomme avant",VM_REAR_TIRE_COMPOUND:"Gomme arrière",VM_FRONT_WHEEL_TRACK:"Voie avant",VM_REAR_WHEEL_TRACK:"Voie arrière"};
+const WM_T_FR={PRESSURE:"Pression pneu",CAMBER:"Carrossage",SPRING:"Ressort",RIDEHEIGHT:"Garde au sol",SLOWBUMP:"Amortisseur compression (lent)",SLOWREBOUND:"Amortisseur détente (lent)",FASTBUMP:"Amortisseur compression (rapide)",FASTREBOUND:"Amortisseur détente (rapide)",PACKERS:"Cales",COMPOUND:"Gomme",BRAKEDISC:"Disque de frein",BRAKEPAD:"Plaquette",TENDERSPRING:"Ressort secondaire"};
 const WIDX={FL:0,FR:1,RL:2,RR:3};
-function setupLabel(k){ const en=LANG==="en"; const SL=en?SETUP_LABELS_EN:SETUP_LABELS, WT=en?WM_T_EN:WM_T;
+function setupDicts(){ return LANG==="fr"?[SETUP_LABELS_FR,WM_T_FR]:LANG==="en"?[SETUP_LABELS_EN,WM_T_EN]:[SETUP_LABELS,WM_T]; }
+function setupLabel(k){ const [SL,WT]=setupDicts();
   if(SL[k])return SL[k];
   const m=k.match(/^WM_([A-Z]+)-W_(FL|FR|RL|RR)$/); if(m) return (WT[m[1]]||m[1])+" "+WL(WIDX[m[2]]);
-  const g=k.match(/^VM_GEAR_(\d+)$/); if(g) return en?("Gear "+g[1]):(g[1]+". Gang");
-  const c=k.match(/^VM_CHASSIS_ADJ_(\d+)$/); if(c) return (en?"Chassis adj ":"Chassis-Einstellung ")+(+c[1]+1);
+  const g=k.match(/^VM_GEAR_(\d+)$/); if(g) return LANG==="en"?("Gear "+g[1]):LANG==="fr"?("Rapport "+g[1]):(g[1]+". Gang");
+  const c=k.match(/^VM_CHASSIS_ADJ_(\d+)$/); if(c) return (LANG==="en"?"Chassis adj ":LANG==="fr"?"Réglage châssis ":"Chassis-Einstellung ")+(+c[1]+1);
   return k.replace(/^VM_|^WM_/,"").replace(/_/g," ").toLowerCase(); }
 function countSetupChanges(a,b){ if(!a||!b)return 0; let n=0; new Set([...Object.keys(a),...Object.keys(b)]).forEach(k=>{ if(a[k]!==b[k])n++; }); return n; }
 async function recordSetupHistory(m){
@@ -1575,6 +1704,7 @@ async function checkVersion(){ if(versionChecked)return; versionChecked=true;
 /* ---------- Start ---------- */
 document.getElementById("langDe").onclick=()=>setLang("de");
 document.getElementById("langEn").onclick=()=>setLang("en");
+document.getElementById("langFr").onclick=()=>setLang("fr");
 attachMapHover("cBigMap","ttBigMap");
 attachMapHover("cCompMap","ttCompMap");
 attachMapHover("cTyreMap","ttTyreMap");

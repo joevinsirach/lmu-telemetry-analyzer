@@ -18,7 +18,7 @@ const ARG = Object.fromEntries(process.argv.slice(2).map(a => {
 const PORT = parseInt(ARG.port || process.env.LMU_PORT || "8777", 10);
 // Bei .exe (pkg) liegen Daten neben der EXE; im Node-Lauf neben dem Skript.
 const BASE = process.pkg ? path.dirname(process.execPath) : __dirname;
-const DUCKDB = path.join(BASE, "duckdbcli", "duckdb.exe");
+const DUCKDB = path.join(BASE, "duckdbcli", process.platform === "win32" ? "duckdb.exe" : "duckdb");
 const HTML = path.join(__dirname, "lmu-telemetry-analyzer.html"); // im pkg-Snapshot eingebettet
 const REPO = "mzluzifer/lmu-telemetry-analyzer";
 const APP_VERSION = "1.10.0";
@@ -49,9 +49,13 @@ if (process.pkg) {
   process.on("unhandledRejection", e => writeLog("FATAL", [e && e.stack || e]));
 }
 
-// DuckDB-CLI bei Bedarf herunterladen (für die .exe ohne Begleitskript)
+// DuckDB-CLI bei Bedarf herunterladen (für die Windows-.exe ohne Begleitskript)
 function ensureDuckDB() {
   if (fs.existsSync(DUCKDB)) return;
+  if (process.platform !== "win32") {
+    console.error("DuckDB-CLI fehlt: " + DUCKDB);
+    return;
+  }
   console.log("Lade DuckDB-CLI herunter (einmalig)...");
   const dir = path.join(BASE, "duckdbcli");
   try {
@@ -63,7 +67,22 @@ function ensureDuckDB() {
 // Standard-Browser als Tab öffnen (Fallback, wenn kein Edge/Chrome gefunden wird
 // oder der App-Start fehlschlägt). Beendet die Bridge NICHT mit, da hier kein
 // überwachbarer Prozess vorliegt.
-function openBrowserTab() { try { exec('start "" http://localhost:' + PORT, { windowsHide: true }); } catch (e) {} }
+function openBrowserTab() {
+  const url = "http://localhost:" + PORT;
+  try {
+    if (process.platform === "darwin") {
+      const child = spawn("open", [url], { detached: true, stdio: "ignore" });
+      child.unref();
+    } else if (process.platform === "win32") {
+      exec('start "" ' + url, { windowsHide: true });
+    } else {
+      const child = spawn("xdg-open", [url], { detached: true, stdio: "ignore" });
+      child.unref();
+    }
+  } catch (e) {
+    console.error("Browser konnte nicht geöffnet werden:", e.message);
+  }
+}
 
 // Edge (bevorzugt) oder Chrome finden – für den App-Modus (eigenes Fenster).
 function findBrowser() {
@@ -122,6 +141,8 @@ function getLatestVersion(cb) {
 function findTelemetryDir() {
   if (ARG.dir) return ARG.dir;
   if (process.env.LMU_TELEMETRY_DIR) return process.env.LMU_TELEMETRY_DIR;
+  const localTel = path.join(BASE, "telemetry");
+  try { if (fs.existsSync(localTel)) return localTel; } catch {}
   const libs = [];
   const vdfs = [
     "C:\\Program Files (x86)\\Steam\\steamapps\\libraryfolders.vdf",
@@ -251,14 +272,20 @@ function loadSetup(file) {
   return o;
 }
 
+function sessionTimeFromName(file) {
+  const m = file.match(/_(\d{4}-\d{2}-\d{2}T\d{2})_(\d{2})_(\d{2}Z)\.duckdb$/i);
+  return m ? Date.parse(`${m[1]}:${m[2]}:${m[3]}`) || 0 : 0;
+}
+
 function listSessions() {
   if (!TEL_DIR) return { error: "Telemetrie-Ordner nicht gefunden", telDir: null, sessions: [] };
   let files = [];
   try {
     files = fs.readdirSync(TEL_DIR).filter(f => /\.duckdb$/i.test(f)).map(f => {
       const st = fs.statSync(path.join(TEL_DIR, f));
-      return { file: f, size: st.size, mtime: st.mtimeMs };
-    }).sort((a, b) => b.mtime - a.mtime);
+      return { file: f, size: st.size, mtime: st.mtimeMs, sessionTime: sessionTimeFromName(f) };
+    }).sort((a, b) => b.mtime - a.mtime || b.sessionTime - a.sessionTime || b.file.localeCompare(a.file))
+      .map(({ sessionTime, ...session }) => session);
   } catch (e) { return { error: String(e.message), telDir: TEL_DIR, sessions: [] }; }
   return { telDir: TEL_DIR, sessions: files };
 }
@@ -274,6 +301,10 @@ const server = http.createServer((req, res) => {
       const html = fs.readFileSync(HTML);
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
       return res.end(html);
+    }
+    if (u.pathname === "/favicon.ico") {
+      res.writeHead(204, { "cache-control": "public, max-age=86400" });
+      return res.end();
     }
     if (u.pathname === "/api/config") {
       return json(res, 200, { telDir: TEL_DIR, port: PORT, duckdb: fs.existsSync(DUCKDB), version: APP_VERSION });
