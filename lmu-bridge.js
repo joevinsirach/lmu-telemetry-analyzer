@@ -260,7 +260,10 @@ async function loadSession(file) {
   const whPieces = [];
   for (const [name, target] of Object.entries(WANT_WHEEL)) {
     if (!tables.has(name)) continue;
-    const valCols = (cols[name] || []).filter(c => /^value\d+$/.test(c));
+    // Numerisch sortieren: information_schema garantiert keine Spaltenreihenfolge,
+    // value1..4 müssen aber exakt FL,FR,RL,RR entsprechen.
+    const valCols = (cols[name] || []).filter(c => /^value\d+$/.test(c))
+      .sort((a, b) => parseInt(a.slice(5), 10) - parseInt(b.slice(5), 10));
     if (!valCols.length) continue;
     const freq = (chMeta[name] && chMeta[name].freq) || target;
     const stride = Math.max(1, Math.round(freq / target));
@@ -324,7 +327,11 @@ function isLockErr(msg) {
 /* ---- HTTP ---- */
 async function handleRequest(req, res) {
   const u = new URL(req.url, "http://localhost");
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  // CORS nur für lokale Origins – sonst könnte jede besuchte Website die
+  // Telemetrie auslesen oder die Bridge per /api/quit beenden.
+  const origin = req.headers.origin || "";
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin))
+    res.setHeader("Access-Control-Allow-Origin", origin);
   if (u.pathname === "/" || u.pathname === "/index.html") {
     const html = fs.readFileSync(HTML);
     res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
@@ -412,7 +419,8 @@ server.on("error", err => {
   console.error(err);
   process.exit(1);
 });
-server.listen(PORT, () => {
+// Nur an Loopback binden – die Bridge ist eine lokale App, kein LAN-Dienst.
+server.listen(PORT, "127.0.0.1", () => {
   console.log("======================================================");
   console.log("  LMU Telemetrie-Analyse v" + APP_VERSION);
   console.log("  ▶  Eigenes App-Fenster (Adresse: http://localhost:" + PORT + ")");

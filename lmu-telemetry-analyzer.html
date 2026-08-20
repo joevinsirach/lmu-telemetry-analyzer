@@ -283,6 +283,7 @@
             <label><span data-i18n="avgLapInput">Ø Rundenzeit (m:ss.s)</span><input id="piLap" type="text" value=""></label>
             <label><span data-i18n="vePerLapInput">Virtual Energy / Runde (%)</span><input id="piVE" type="number" step="0.01" value=""></label>
             <label><span data-i18n="fuelPerLapInput">Sprit / Runde (L)</span><input id="piFuel" type="number" step="0.1" value=""></label>
+            <label><span data-i18n="tankCapInput">Tankinhalt (L, optional)</span><input id="piTank" type="number" min="0" step="1" value=""></label>
             <label><span data-i18n="wearPerLapInput">Reifenverschleiß / Runde (%)</span><input id="piWear" type="number" step="0.05" value=""></label>
             <label><span data-i18n="savePenaltyInput">Zeitverlust je % Sparen (s/Rd)</span><input id="piPenalty" type="number" step="0.05" value="0.2"></label>
           </div>
@@ -371,7 +372,7 @@ const STR = {
   setupShopsTitle:"Setup-Anbieter", setupShopsHint:"Externe Anbieter für fertige Setups (öffnen in einem neuen Tab).",
   anyChannel:"Beliebigen Kanal vergleichen", raceData:"Renn-Eckdaten", raceLength:"Rennlänge (Minuten)", tyreSets:"Reifensätze", numDrivers:"Anzahl Fahrer",
   pitLoss:"Boxenstopp-Verlust (s)", avgLapInput:"Ø Rundenzeit (m:ss.s)", vePerLapInput:"Virtual Energy / Runde (%)", fuelPerLapInput:"Sprit / Runde (L)",
-  wearPerLapInput:"Reifenverschleiß / Runde (%)", savePenaltyInput:"Zeitverlust je % Sparen (s/Rd)", recommendation:"Empfehlung – schnellste Gesamtzeit",
+  wearPerLapInput:"Reifenverschleiß / Runde (%)", savePenaltyInput:"Zeitverlust je % Sparen (s/Rd)", tankCapInput:"Tankinhalt (L, optional)", recommendation:"Empfehlung – schnellste Gesamtzeit",
   driverSplit:"Fahrer-Einteilung", strategyCompare:"Strategie-Vergleich", thStops:"Stopps", thStints:"Stints", thLapsStint:"Rd/Stint", thMinStint:"Min/Stint",
   thVELap:"VE %/Rd", thSave:"Sparen", thLStint:"L/Stint", thTotalTime:"Gesamtzeit", thOk:"OK",
   strategyHint:'Grün = schnellste machbare Strategie. „Sparen" = nötiger Lift&Coast gegenüber deinem Telemetrie-Verbrauch (⚠ = mehr als machbar). Zeile anklicken, um eine Strategie zu wählen – die Lift-&-Coast-Punkte werden dafür neu berechnet.',
@@ -393,6 +394,11 @@ const STR = {
   tBrakeLate:(m)=>`Du bremst ca. <b>${m} m später</b> – falls du danach Speed verlierst, evtl. zu spät/zu hart.`,
   tLiftEarly:(m)=>`Du gehst rund <b>${m} m früher vom Gas</b> – versuche, länger am Gas zu bleiben.`,
   tThrExit:(m)=>`Am Kurvenausgang gehst du <b>${m} m später</b> wieder voll aufs Gas.`, tSmall:"Kleiner Zeitverlust – Linie/Speed minimal sauberer möglich.",
+  tBrakeSoft:(d)=>`Dein Spitzenbremsdruck ist <b>${d} Punkte niedriger</b> – anfangs härter bremsen, dann progressiv lösen.`,
+  tBrakeLong:(m)=>`Du bleibst ca. <b>${m} m länger</b> auf der Bremse – früher lösen und mehr Kurvenspeed mitnehmen.`,
+  tCoast:(m)=>`Du rollst hier ca. <b>${m} m mehr</b> ohne Gas und Bremse – später bremsen oder früher ans Gas.`,
+  tExitSpeed:(k)=>`Am Ausgang bist du <b>${k} km/h langsamer</b> – der Rückstand wächst auf der folgenden Geraden weiter.`,
+  tGear:(c,r)=>`Am langsamsten Punkt bist du im <b>${c}. Gang</b>, die Referenz im ${r}. – Gangwahl prüfen (Traktion/Drehzahl).`,
   pitFill:"Bitte Rennlänge (Minuten) und Ø Rundenzeit angeben.", pitNoStrat:"Keine machbare Strategie – Energie-Sparen wäre zu groß. Erhöhe die VE/Runde-Annahme oder die Stopps.",
   pitStops:(s)=>`${s} Boxenstopp${s===1?"":"s"}`, pitStints:(S,l,m)=>`${S} Stints · <b>${l} Runden/Stint</b> (~${m} min)`,
   veRunde:"Virtual Energy / Runde", veSave:(p)=>`≈ ${p} % sparen (Lift&Coast)`, veEnough:"Energie reicht – pushen", veExact:"genau passend",
@@ -464,7 +470,7 @@ const STR = {
   setupShopsTitle:"Setup providers", setupShopsHint:"External providers for ready-made setups (open in a new tab).",
   anyChannel:"Compare any channel", raceData:"Race parameters", raceLength:"Race length (minutes)", tyreSets:"Tyre sets", numDrivers:"Number of drivers",
   pitLoss:"Pit stop loss (s)", avgLapInput:"Avg lap time (m:ss.s)", vePerLapInput:"Virtual energy / lap (%)", fuelPerLapInput:"Fuel / lap (L)",
-  wearPerLapInput:"Tyre wear / lap (%)", savePenaltyInput:"Time loss per % saving (s/lap)", recommendation:"Recommendation – fastest total time",
+  wearPerLapInput:"Tyre wear / lap (%)", savePenaltyInput:"Time loss per % saving (s/lap)", tankCapInput:"Fuel tank (L, optional)", recommendation:"Recommendation – fastest total time",
   driverSplit:"Driver split", strategyCompare:"Strategy comparison", thStops:"Stops", thStints:"Stints", thLapsStint:"Laps/stint", thMinStint:"Min/stint",
   thVELap:"VE %/lap", thSave:"Save", thLStint:"L/stint", thTotalTime:"Total time", thOk:"OK",
   strategyHint:'Green = fastest feasible strategy. "Save" = required lift&coast vs your telemetry consumption (⚠ = more than feasible). Click a row to pick a strategy – the lift & coast points are recalculated for it.',
@@ -486,6 +492,11 @@ const STR = {
   tBrakeLate:(m)=>`You brake about <b>${m} m later</b> – if you lose speed afterwards, possibly too late/too hard.`,
   tLiftEarly:(m)=>`You lift off about <b>${m} m earlier</b> – try to stay on the throttle longer.`,
   tThrExit:(m)=>`On corner exit you get back to full throttle <b>${m} m later</b>.`, tSmall:"Small time loss – line/speed marginally cleaner possible.",
+  tBrakeSoft:(d)=>`Your peak brake pressure is <b>${d} points lower</b> – hit the pedal harder initially, then release progressively.`,
+  tBrakeLong:(m)=>`You stay on the brakes about <b>${m} m longer</b> – release earlier to carry more corner speed.`,
+  tCoast:(m)=>`You coast about <b>${m} m more</b> (no throttle, no brake) – brake later or get back on the power sooner.`,
+  tExitSpeed:(k)=>`You exit <b>${k} km/h slower</b> – the gap keeps growing down the following straight.`,
+  tGear:(c,r)=>`At the slowest point you are in <b>gear ${c}</b>, the reference in gear ${r} – check gear choice (traction/revs).`,
   pitFill:"Please enter race length (minutes) and avg lap time.", pitNoStrat:"No feasible strategy – energy saving would be too high. Increase the VE/lap assumption or the number of stops.",
   pitStops:(s)=>`${s} pit stop${s===1?"":"s"}`, pitStints:(S,l,m)=>`${S} stints · <b>${l} laps/stint</b> (~${m} min)`,
   veRunde:"Virtual energy / lap", veSave:(p)=>`≈ ${p} % save (lift&coast)`, veEnough:"Energy is enough – push", veExact:"exactly right",
@@ -557,7 +568,7 @@ const STR = {
   setupShopsTitle:"Fournisseurs de setups", setupShopsHint:"Fournisseurs externes de setups prêts à l'emploi (s'ouvrent dans un nouvel onglet).",
   anyChannel:"Comparer n'importe quel canal", raceData:"Données de course", raceLength:"Durée de course (minutes)", tyreSets:"Trains de pneus", numDrivers:"Nombre de pilotes",
   pitLoss:"Perte d'arrêt aux stands (s)", avgLapInput:"Temps au tour moy. (m:ss.s)", vePerLapInput:"Virtual Energy / tour (%)", fuelPerLapInput:"Essence / tour (L)",
-  wearPerLapInput:"Usure pneus / tour (%)", savePenaltyInput:"Perte de temps par % économisé (s/tour)", recommendation:"Recommandation – temps total le plus rapide",
+  wearPerLapInput:"Usure pneus / tour (%)", savePenaltyInput:"Perte de temps par % économisé (s/tour)", tankCapInput:"Réservoir (L, optionnel)", recommendation:"Recommandation – temps total le plus rapide",
   driverSplit:"Répartition des pilotes", strategyCompare:"Comparaison des stratégies", thStops:"Arrêts", thStints:"Relais", thLapsStint:"Tours/relais", thMinStint:"Min/relais",
   thVELap:"VE %/tour", thSave:"Économie", thLStint:"L/relais", thTotalTime:"Temps total", thOk:"OK",
   strategyHint:'Vert = stratégie faisable la plus rapide. « Économie » = lift & coast nécessaire par rapport à ta conso télémétrie (⚠ = plus que réaliste). Clique une ligne pour choisir une stratégie – les points lift & coast sont recalculés.',
@@ -579,6 +590,11 @@ const STR = {
   tBrakeLate:(m)=>`Tu freines environ <b>${m} m plus tard</b> – si tu perds ensuite de la vitesse, c'est peut-être trop tard/trop fort.`,
   tLiftEarly:(m)=>`Tu lèves le pied environ <b>${m} m plus tôt</b> – essaie de rester plus longtemps à fond.`,
   tThrExit:(m)=>`En sortie de virage tu remets plein gaz <b>${m} m plus tard</b>.`, tSmall:"Petite perte de temps – trajectoire/vitesse un peu plus propres possibles.",
+  tBrakeSoft:(d)=>`Ta pression de freinage max est <b>${d} points plus basse</b> – attaque la pédale plus fort au début, puis relâche progressivement.`,
+  tBrakeLong:(m)=>`Tu restes environ <b>${m} m de plus</b> sur les freins – relâche plus tôt pour garder de la vitesse en courbe.`,
+  tCoast:(m)=>`Tu roules environ <b>${m} m de plus</b> en roue libre (ni gaz ni frein) – freine plus tard ou remets les gaz plus tôt.`,
+  tExitSpeed:(k)=>`Tu sors <b>${k} km/h plus lentement</b> – l'écart continue de grandir sur la ligne droite suivante.`,
+  tGear:(c,r)=>`Au point le plus lent tu es en <b>${c}ᵉ</b>, la référence en ${r}ᵉ – vérifie le choix du rapport (motricité/régime).`,
   pitFill:"Indique la durée de course (minutes) et le temps au tour moyen.", pitNoStrat:"Aucune stratégie faisable – l'économie d'énergie serait trop forte. Augmente l'hypothèse VE/tour ou le nombre d'arrêts.",
   pitStops:(s)=>`${s} arrêt${s===1?"":"s"} aux stands`, pitStints:(S,l,m)=>`${S} relais · <b>${l} tours/relais</b> (~${m} min)`,
   veRunde:"Virtual Energy / tour", veSave:(p)=>`≈ ${p} % à économiser (lift & coast)`, veEnough:"L'énergie suffit – pousser", veExact:"pile adapté",
@@ -776,8 +792,11 @@ function lapProfile(m, lap){
     brakeTemp=chanVsDist({freq:bw.freq||5, data:avg, nData:bn}, null);
   }
 
-  const time=new Float64Array(N), dd=L/(N-1);
-  for(let i=1;i<N;i++){ const v=Math.max((speed[i]+speed[i-1])/2/3.6,1); time[i]=time[i-1]+dd/v; }
+  // Zeit auf dem Distanzgitter aus den echten (Distanz,Zeit)-Paaren des
+  // Lap-Dist-Kanals – genauer als die frühere 1/v-Integration, die über
+  // 600 Punkte Fehler akkumulierte (Delta-Summe wich von der echten
+  // Rundenzeit-Differenz ab, Verlustzonen verschoben sich).
+  const time=resample(di, ti, grid);
   return { grid, speed, thr, brk, steer, gear, lat, lon, time, L, brakeTemp };
 }
 
@@ -797,22 +816,44 @@ function analyze(refP, cmpP){
 function minIn(a,i0,i1){ let m=Infinity; for(let i=i0;i<=i1;i++) if(a[i]<m)m=a[i]; return m; }
 function coastingPct(p){ if(!p.thr||!p.brk)return null; let c=0; for(let i=0;i<p.thr.length;i++) if(p.thr[i]<5&&p.brk[i]<5)c++; return 100*c/p.thr.length; }
 function fullThrottlePct(p){ if(!p.thr)return null; let c=0; for(let i=0;i<p.thr.length;i++) if(p.thr[i]>95)c++; return 100*c/p.thr.length; }
-function brakePoint(p,a,b){ if(!p.brk)return null; const pad=Math.max(0,a-40); for(let i=pad;i<=b;i++) if(p.brk[i]>15)return i; return null; }
-function liftPoint(p,a,b){ if(!p.thr)return null; const pad=Math.max(0,a-60); let last=null; for(let i=pad;i<=b;i++){ if(p.thr[i]>90)last=i; } return last; }
+/* Meter → Grid-Indizes (Fenster in Metern statt Indizes, damit das Verhalten
+   unabhängig von der Streckenlänge ist – 600 Punkte auf 4 km ≠ 600 auf 13 km). */
+function idxPad(p,meters){ return Math.max(1,Math.round(meters/(p.L/(p.grid.length-1)))); }
+function apexIdx(p,a,b){ let m=Infinity,k=a; for(let i=a;i<=b;i++) if(p.speed[i]<m){m=p.speed[i];k=i;} return k; }
+function brakePoint(p,a,b){ if(!p.brk)return null; const pad=Math.max(0,a-idxPad(p,250)); for(let i=pad;i<=b;i++) if(p.brk[i]>15)return i; return null; }
+function brakeRelease(p,a,b){ if(!p.brk)return null; let last=null; for(let i=Math.max(0,a);i<=b;i++) if(p.brk[i]>15)last=i; return last; }
+function peakBrake(p,a,b){ if(!p.brk)return null; let m=0; for(let i=Math.max(0,a);i<=b;i++) if(p.brk[i]>m)m=p.brk[i]; return m; }
+function coastDist(p,a,b){ if(!p.thr||!p.brk)return null; const dd=p.L/(p.grid.length-1); let c=0; for(let i=a;i<=b;i++) if(p.thr[i]<5&&p.brk[i]<5)c++; return c*dd; }
+function liftPoint(p,a,b){ if(!p.thr)return null; const pad=Math.max(0,a-idxPad(p,350)); let last=null; for(let i=pad;i<=b;i++){ if(p.thr[i]>90)last=i; } return last; }
 function buildTips(z,refP,cmpP){
-  const tips=[], g=refP.grid;
+  const tips=[], g=refP.grid, N=g.length;
+  // Langsamster Punkt der Referenz in der Zone = "Kurve"; Bremse/Lift werden nur
+  // bis dorthin gesucht, sonst erwischt man bei langen Zonen das Wieder-Beschleunigen.
+  const ap=apexIdx(refP,z.a,z.b);
   if(z.speedDiff<-2) tips.push(t("tMinSpeed",Math.abs(z.speedDiff).toFixed(0)));
-  const bpR=brakePoint(refP,z.a,z.b), bpC=brakePoint(cmpP,z.a,z.b);
+  const bpR=brakePoint(refP,z.a,ap), bpC=brakePoint(cmpP,z.a,ap);
   if(bpR!=null&&bpC!=null){ const dm=g[bpC]-g[bpR];
     if(dm<-6) tips.push(t("tBrakeEarly",Math.abs(dm).toFixed(0)));
-    else if(dm>6) tips.push(t("tBrakeLate",dm.toFixed(0))); }
-  const lpR=liftPoint(refP,z.a,z.b), lpC=liftPoint(cmpP,z.a,z.b);
+    else if(dm>6) tips.push(t("tBrakeLate",dm.toFixed(0)));
+    const pkR=peakBrake(refP,bpR,ap), pkC=peakBrake(cmpP,bpC,ap);
+    if(pkR!=null&&pkC!=null&&pkR>40&&pkR-pkC>12) tips.push(t("tBrakeSoft",(pkR-pkC).toFixed(0))); }
+  const relEnd=Math.min(N-1,ap+idxPad(refP,120));
+  const relR=brakeRelease(refP,z.a,relEnd), relC=brakeRelease(cmpP,z.a,relEnd);
+  if(relR!=null&&relC!=null){ const dm=g[relC]-g[relR]; if(dm>8) tips.push(t("tBrakeLong",dm.toFixed(0))); }
+  const lpR=liftPoint(refP,z.a,ap), lpC=liftPoint(cmpP,z.a,ap);
   if(lpR!=null&&lpC!=null){ const dm=g[lpC]-g[lpR]; if(dm<-6) tips.push(t("tLiftEarly",Math.abs(dm).toFixed(0))); }
-  if(cmpP.thr&&refP.thr){ const exit=Math.min(z.b+50,refP.thr.length-1); let rOn=null,cOn=null;
-    for(let i=z.b;i<=exit;i++){ if(rOn==null&&refP.thr[i]>80)rOn=i; if(cOn==null&&cmpP.thr[i]>80)cOn=i; }
+  const cdR=coastDist(refP,z.a,z.b), cdC=coastDist(cmpP,z.a,z.b);
+  if(cdR!=null&&cdC!=null&&cdC-cdR>20) tips.push(t("tCoast",(cdC-cdR).toFixed(0)));
+  if(cmpP.thr&&refP.thr){ const exit=Math.min(N-1,z.b+idxPad(refP,120)); let rOn=null,cOn=null;
+    for(let i=ap;i<=exit;i++){ if(rOn==null&&refP.thr[i]>80)rOn=i; if(cOn==null&&cmpP.thr[i]>80)cOn=i; }
     if(rOn!=null&&cOn!=null&&g[cOn]-g[rOn]>6) tips.push(t("tThrExit",(g[cOn]-g[rOn]).toFixed(0))); }
+  const ex=Math.min(N-1,ap+idxPad(refP,150));
+  const vd=cmpP.speed[ex]-refP.speed[ex];
+  if(vd<-3) tips.push(t("tExitSpeed",Math.abs(vd).toFixed(0)));
+  if(refP.gear&&cmpP.gear){ const gR=Math.round(refP.gear[ap]), gC=Math.round(cmpP.gear[ap]);
+    if(gR>0&&gC>0&&gR!==gC) tips.push(t("tGear",gC,gR)); }
   if(!tips.length) tips.push(t("tSmall"));
-  return tips;
+  return tips.slice(0,5);
 }
 
 /* ---------- Charts (Canvas) ---------- */
@@ -947,10 +988,11 @@ function buildCharts(){
     x=>{const i=gIdx(x);return[{l:"Delta",v:fmtDelta(a.delta[i])+" s",c:"#ff7a00"}];});
   if(document.getElementById("cDelta2")) registerChart("cDelta2","ttDelta2",()=>plot(document.getElementById("cDelta2"),{xmax:L,yfmt:v=>v.toFixed(2)+"s",series:[{ys:a.delta,color:"#ff7a00",width:2,fill:"rgba(255,122,0,.12)"}],zones:a.zones.slice(0,6)}),
     x=>{const i=gIdx(x);return[{l:"Delta",v:fmtDelta(a.delta[i])+" s",c:"#ff7a00"}];});
+  const spd=t("speedKmh").replace(/\s*\(.*\)/,""), rS=t("refShort"), cS=t("cmpShort");
   registerChart("cSpeed","ttSpeed",()=>plot(document.getElementById("cSpeed"),{xmax:L,yfmt:v=>v.toFixed(0),series:[{ys:refP.speed,color:"#2f81f7",width:1.8},{ys:cmpP.speed,color:"#ff7a00",width:1.8}],zones:a.zones.slice(0,6)}),
-    x=>{const i=gIdx(x);return[{l:"Speed Ref",v:refP.speed[i].toFixed(0)+" km/h",c:"#2f81f7"},{l:"Speed Vgl",v:cmpP.speed[i].toFixed(0)+" km/h",c:"#ff7a00"},{l:"Δ",v:(cmpP.speed[i]-refP.speed[i]).toFixed(0)+" km/h"}];});
+    x=>{const i=gIdx(x);return[{l:spd+" "+rS,v:refP.speed[i].toFixed(0)+" km/h",c:"#2f81f7"},{l:spd+" "+cS,v:cmpP.speed[i].toFixed(0)+" km/h",c:"#ff7a00"},{l:"Δ",v:(cmpP.speed[i]-refP.speed[i]).toFixed(0)+" km/h"}];});
   registerChart("cPedals","ttPedals",()=>plot(document.getElementById("cPedals"),{xmax:L,ymin:0,ymax:105,yfmt:v=>v.toFixed(0)+"%",series:[refP.thr&&{ys:refP.thr,color:"#3fb950",width:1.6},cmpP.thr&&{ys:cmpP.thr,color:"#8fe3a3",width:1.4},refP.brk&&{ys:refP.brk,color:"#f85149",width:1.6},cmpP.brk&&{ys:cmpP.brk,color:"#ff9b95",width:1.4}]}),
-    x=>{const i=gIdx(x);const r=[];if(refP.thr)r.push({l:"Gas Ref",v:refP.thr[i].toFixed(0)+"%",c:"#3fb950"});if(cmpP.thr)r.push({l:"Gas Vgl",v:cmpP.thr[i].toFixed(0)+"%",c:"#8fe3a3"});if(refP.brk)r.push({l:"Bremse Ref",v:refP.brk[i].toFixed(0)+"%",c:"#f85149"});if(cmpP.brk)r.push({l:"Bremse Vgl",v:cmpP.brk[i].toFixed(0)+"%",c:"#ff9b95"});return r;});
+    x=>{const i=gIdx(x);const r=[];if(refP.thr)r.push({l:t("gasL")+" "+rS,v:refP.thr[i].toFixed(0)+"%",c:"#3fb950"});if(cmpP.thr)r.push({l:t("gasL")+" "+cS,v:cmpP.thr[i].toFixed(0)+"%",c:"#8fe3a3"});if(refP.brk)r.push({l:t("brakeL")+" "+rS,v:refP.brk[i].toFixed(0)+"%",c:"#f85149"});if(cmpP.brk)r.push({l:t("brakeL")+" "+cS,v:cmpP.brk[i].toFixed(0)+"%",c:"#ff9b95"});return r;});
   registerChart("cSteer","ttSteer",()=>plot(document.getElementById("cSteer"),{xmax:L,series:[refP.steer&&{ys:refP.steer,color:"#39d0d8",width:1.6},cmpP.steer&&{ys:cmpP.steer,color:"#d29922",width:1.4}]}),
     x=>{const i=gIdx(x);const r=[];if(refP.steer)r.push({l:t("steerL")+" "+t("refShort"),v:refP.steer[i].toFixed(1),c:"#39d0d8"});if(cmpP.steer)r.push({l:t("steerL")+" "+t("cmpShort"),v:cmpP.steer[i].toFixed(1),c:"#d29922"});if(refP.gear)r.push({l:t("gearL")+" "+t("refShort"),v:Math.round(refP.gear[i])});if(cmpP.gear)r.push({l:t("gearL")+" "+t("cmpShort"),v:Math.round(cmpP.gear[i])});return r;});
 }
@@ -960,7 +1002,7 @@ function fillChanSelect(){
   const sel=document.getElementById("chanSel"), chans=STATE.model.channels;
   sel.innerHTML=chans.map((c,i)=>`<option value="${i}">${escapeHtml(c.name)}${c.unit?" ["+escapeHtml(c.unit)+"]":""}</option>`).join("");
   sel.onchange=renderChan;
-  registerChart("cChan","ttChan",()=>renderChanPlot(),x=>{const i=gIdx(x);return[{l:chanName+" Ref",v:chanRef?chanRef[i].toFixed(2):"—",c:"#2f81f7"},{l:chanName+" Vgl",v:chanCmp?chanCmp[i].toFixed(2):"—",c:"#ff7a00"}];});
+  registerChart("cChan","ttChan",()=>renderChanPlot(),x=>{const i=gIdx(x);return[{l:chanName+" "+t("refShort"),v:chanRef?chanRef[i].toFixed(2):"—",c:"#2f81f7"},{l:chanName+" "+t("cmpShort"),v:chanCmp?chanCmp[i].toFixed(2):"—",c:"#ff7a00"}];});
   renderChan();
 }
 function chanOnGrid(m,lap,c){
@@ -995,8 +1037,8 @@ function drawTrackMap(cv, p, segColor, o){
   const PX=i=>g.PX(i)*z.k+z.ox, PY=i=>g.PY(i)*z.k+z.oy;
   ctx.lineWidth=o.lw||4; ctx.lineCap="round";
   for(let i=1;i<N;i++){ ctx.strokeStyle=segColor(i); ctx.beginPath();ctx.moveTo(PX(i-1),PY(i-1));ctx.lineTo(PX(i),PY(i));ctx.stroke(); }
-  if(o.zones) o.zones.forEach(zn=>{ const i=(zn.a+zn.b)>>1; ctx.fillStyle="#ff00d0";ctx.beginPath();ctx.arc(PX(i),PY(i),o.dot||6,0,7);ctx.fill();
-    if(o.zoneText){ctx.fillStyle="#fff";ctx.font="bold 11px Segoe UI";ctx.fillText("+"+zn.loss.toFixed(2)+"s",PX(i)+9,PY(i)+4);} });
+  if(o.zones) o.zones.forEach((zn,zi)=>{ const i=(zn.a+zn.b)>>1; ctx.fillStyle="#ff00d0";ctx.beginPath();ctx.arc(PX(i),PY(i),o.dot||6,0,7);ctx.fill();
+    if(o.zoneText){ctx.fillStyle="#fff";ctx.font="bold 11px Segoe UI";ctx.fillText(("①②③④⑤⑥".charAt(zi)||(zi+1))+" +"+zn.loss.toFixed(2)+"s",PX(i)+9,PY(i)+4);} });
   // Sektorgrenzen (amber) + Start/Ziel (🏁) – auf allen Karten
   const showLab=o.zoneText!==false, sf=STATE.sectorFracs;
   if(sf){ const mp=fr=>Math.max(0,Math.min(N-1,Math.round(fr*(N-1))));
@@ -1128,7 +1170,13 @@ function renderMeta(){
 }
 function buildSessionSelect(){
   const sel=document.getElementById("sessionSel");
+  // Nur neu aufbauen, wenn sich die Liste (oder die Sprache) geändert hat –
+  // sonst schließt der 5-s-Poll ein gerade geöffnetes Dropdown.
+  const key=LANG+";"+STATE.sessions.map(s=>s.file+"|"+s.mtime).join(";");
+  if(sel.dataset.key===key){ if(STATE.loadedKey&&sel.value!==STATE.loadedKey) sel.value=STATE.loadedKey; return; }
+  sel.dataset.key=key;
   sel.innerHTML=STATE.sessions.map((s,i)=>{ const nm=prettyName(s.file); const t=new Date(s.mtime).toLocaleString(loc()); return `<option value="${escapeHtml(s.file)}">${escapeHtml(nm)} · ${t}</option>`; }).join("");
+  if(STATE.loadedKey) sel.value=STATE.loadedKey;
   sel.onchange=()=>{ STATE.follow=false; setLive(false); loadSession(sel.value); };
 }
 function prettyName(f){ return f.replace(/\.duckdb$/i,"").replace(/_([A-Z])_/," · $1 · ").replace(/_\d{4}-\d\d-\d\dT.*$/,""); }
@@ -1148,7 +1196,8 @@ function buildLapTable(){
     document.getElementById("refSel").value=STATE.refLap.index; document.getElementById("cmpSel").value=STATE.cmpLap.index; recompute(); });
 }
 let refMode=false;
-addEventListener("keydown",e=>{if(e.key==="r"||e.key==="R")refMode=true;}); addEventListener("keyup",e=>{if(e.key==="r"||e.key==="R")refMode=false;});
+addEventListener("keydown",e=>{ if(/^(INPUT|SELECT|TEXTAREA)$/.test(e.target&&e.target.tagName))return; if(e.key==="r"||e.key==="R")refMode=true;});
+addEventListener("keyup",e=>{if(e.key==="r"||e.key==="R")refMode=false;});
 function bestLap(laps){ const pool=laps.filter(l=>l.complete&&!l.outlap&&!l.inlap); const cand=pool.length?pool:(laps.filter(l=>l.complete).length?laps.filter(l=>l.complete):laps); return cand.reduce((a,b)=>b.lapTime<a.lapTime?b:a,cand[0]); }
 
 function computeTopSpeeds(m){ const cs=m.cSpeed; if(!cs)return; const f=speedToKmh(cs);
@@ -1546,6 +1595,7 @@ function renderPit(){
   const vePerLap=parseFloat(document.getElementById("piVE").value)||null;
   const fuelPerLap=parseFloat(document.getElementById("piFuel").value)||null;
   const pen=parseFloat(document.getElementById("piPenalty").value)||0;
+  const tankCap=parseFloat(document.getElementById("piTank").value)||null;
   const wearPerLap=parseFloat(document.getElementById("piWear").value)||null;
   const tyreLapsMax = wearPerLap? Math.max(1,Math.floor(100/wearPerLap)) : Infinity;   // Runden bis Reifen runter
   const tb=document.querySelector("#piTable tbody"), plan=document.getElementById("piDriverPlan");
@@ -1564,7 +1614,8 @@ function renderPit(){
     const totalTime=totalLaps*lapT+stops*pitLoss;
     const fuelStint=fuelPerLap? fuelPerLap*lapsPerStint : null;
     const tyreOK = lapsPerStint<=tyreLapsMax;
-    const feasible = (vePerLap? savePct<=PIT_MAXSAVE : true) && tyreOK;
+    const fuelOK = !(tankCap&&fuelStint) || fuelStint<=tankCap;
+    const feasible = (vePerLap? savePct<=PIT_MAXSAVE : true) && tyreOK && fuelOK;
     rows.push({S,stops,lapsPerStint,stintMin:lapsPerStint*avgLap/60,veTarget,savePct,fuelStint,totalTime,feasible,tyreOK});
   }
   let best=null; rows.forEach(r=>{ if(r.feasible&&(!best||r.totalTime<best.totalTime))best=r; });
@@ -1591,7 +1642,7 @@ function renderPit(){
   plan.innerHTML='<div class="grid2">'+html+'</div>'+(S<D?`<div class="hint" style="margin-top:8px">${t("moreDrivers",D,S)}</div>`:'');
 }
 // Eingaben verdrahten
-["piRace","piTyres","piDrivers","piPit","piLap","piVE","piFuel","piWear","piPenalty"].forEach(id=>{ const e=document.getElementById(id); if(e) e.addEventListener("input",renderPit); });
+["piRace","piTyres","piDrivers","piPit","piLap","piVE","piFuel","piTank","piWear","piPenalty"].forEach(id=>{ const e=document.getElementById(id); if(e) e.addEventListener("input",renderPit); });
 document.getElementById("refSrcSel").addEventListener("change",e=>{ STATE.refSource = e.target.value; recompute(); });
 document.getElementById("btnSaveRef").addEventListener("click",saveBestRef);
 
@@ -1742,12 +1793,14 @@ document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>switchTab(t.dataset.t
 addEventListener("resize",()=>{redrawAll(); if(STATE.refP){renderAllMaps(); renderPitMap();}});
 
 /* ---------- Versionscheck (GitHub Releases) ---------- */
-const APP_VERSION="1.10.0";
+/* Die Versionsnummer kommt ausschließlich von der Bridge (/api/version) –
+   keine zweite, driftende Konstante im HTML. */
 let versionChecked=false;
 function cmpVer(a,b){ const pa=String(a).split("."),pb=String(b).split("."); for(let i=0;i<3;i++){ const x=parseInt(pa[i]||0,10),y=parseInt(pb[i]||0,10); if(x>y)return 1; if(x<y)return -1; } return 0; }
 async function checkVersion(){ if(versionChecked)return; versionChecked=true;
-  const badge=document.getElementById("versionBadge"); badge.textContent="v"+APP_VERSION; badge.classList.remove("update");
-  try{ const r=await apiGet("/api/version"); const cur=String(r.current||APP_VERSION).replace(/^v/,"");
+  const badge=document.getElementById("versionBadge"); badge.classList.remove("update");
+  try{ const r=await apiGet("/api/version"); const cur=String(r.current||"").replace(/^v/,"");
+    if(!cur){ return; }
     badge.textContent="v"+cur;
     const lat=(r.latest||"").replace(/^v/,"");
     if(lat && cmpVer(lat,cur)>0){ const url=r.url||("https://github.com/"+(r.repo||"mzluzifer/lmu-telemetry-analyzer")+"/releases");
