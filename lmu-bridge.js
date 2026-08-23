@@ -9,6 +9,7 @@
 const http = require("http");
 const https = require("https");
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const { execFileSync, execFile, exec, spawn } = require("child_process");
 
@@ -18,10 +19,31 @@ const ARG = Object.fromEntries(process.argv.slice(2).map(a => {
 const PORT = parseInt(ARG.port || process.env.LMU_PORT || "8777", 10);
 // Bei .exe (pkg) liegen Daten neben der EXE; im Node-Lauf neben dem Skript.
 const BASE = process.pkg ? path.dirname(process.execPath) : __dirname;
-const DUCKDB = path.join(BASE, "duckdbcli", process.platform === "win32" ? "duckdb.exe" : "duckdb");
+// macOS: Documents/Desktop/Downloads sind TCC-geschützt. Chrome-Profil und DuckDB
+// dürfen NICHT im Projektordner liegen, sonst blockiert macOS Node (EPERM).
+const DATA_DIR = process.platform === "darwin"
+  ? path.join(os.homedir(), "Library", "Application Support", "LMU Telemetry Analyzer")
+  : BASE;
+try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch (_) {}
+const DUCKDB = path.join(DATA_DIR, "duckdbcli", process.platform === "win32" ? "duckdb.exe" : "duckdb");
 const HTML = path.join(__dirname, "lmu-telemetry-analyzer.html"); // im pkg-Snapshot eingebettet
+const CHROME_PROFILE = path.join(DATA_DIR, "chrome-profile");
 const REPO = "mzluzifer/lmu-telemetry-analyzer";
 const APP_VERSION = "1.10.0";
+let HTML_BUF = null;
+function loadHtml() {
+  if (HTML_BUF) return HTML_BUF;
+  try {
+    HTML_BUF = fs.readFileSync(HTML);
+    return HTML_BUF;
+  } catch (e) {
+    if (e.code !== "EPERM" && e.code !== "EACCES") throw e;
+    const dest = path.join(DATA_DIR, "lmu-telemetry-analyzer.html");
+    execFileSync("/bin/cp", ["-f", HTML, dest]);
+    HTML_BUF = fs.readFileSync(dest);
+    return HTML_BUF;
+  }
+}
 
 // --- Kein Konsolenfenster -------------------------------------------------
 // Die .exe wird als GUI-Subsystem gebaut (Post-Build-Patch in build-exe.ps1),
@@ -64,7 +86,7 @@ function ensureDuckDB() {
         "$ErrorActionPreference='Stop'; $z=Join-Path $env:TEMP 'lmu_dk.zip'; Invoke-WebRequest 'https://github.com/duckdb/duckdb/releases/download/v1.4.0/duckdb_cli-windows-amd64.zip' -OutFile $z; Expand-Archive $z -DestinationPath '" + dir + "' -Force; Remove-Item $z -Force"],
         { stdio: "ignore", windowsHide: true });
     } else if (process.platform === "darwin") {
-      const zip = path.join(require("os").tmpdir(), "lmu_dk.zip");
+      const zip = path.join(os.tmpdir(), "lmu_dk.zip");
       execFileSync("curl", ["-fsSL", "-o", zip, "https://github.com/duckdb/duckdb/releases/download/v1.4.0/duckdb_cli-osx-universal.zip"], { stdio: "ignore" });
       execFileSync("unzip", ["-o", zip, "-d", dir], { stdio: "ignore" });
       try { fs.unlinkSync(zip); } catch (_) {}
@@ -130,7 +152,8 @@ function openApp() {
   // Eigenes Profilverzeichnis erzwingt einen unabhängigen Browser-Prozess, dessen
   // Lebensdauer dem Fenster entspricht (sonst übergibt Edge/Chrome an eine bereits
   // laufende Instanz und der Kindprozess endet sofort).
-  const profile = path.join(BASE, ".app-profile");
+  const profile = CHROME_PROFILE;
+  try { fs.mkdirSync(profile, { recursive: true }); } catch (_) {}
   try {
     const child = spawn(browser, [
       "--app=" + url,
@@ -161,7 +184,8 @@ function getLatestVersion(cb) {
 function findTelemetryDir() {
   if (ARG.dir) return ARG.dir;
   if (process.env.LMU_TELEMETRY_DIR) return process.env.LMU_TELEMETRY_DIR;
-  const localTel = path.join(BASE, "telemetry");
+  const srcBase = process.env.LMU_APP_SRC || BASE;
+  const localTel = path.join(srcBase, "telemetry");
   try { if (fs.existsSync(localTel)) return localTel; } catch {}
   const libs = [];
   const vdfs = [
@@ -350,7 +374,7 @@ async function handleRequest(req, res) {
   if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin))
     res.setHeader("Access-Control-Allow-Origin", origin);
   if (u.pathname === "/" || u.pathname === "/index.html") {
-    const html = fs.readFileSync(HTML);
+    const html = loadHtml();
     res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
     return res.end(html);
   }
@@ -426,6 +450,7 @@ function json(res, code, obj) {
 }
 
 ensureDuckDB();
+loadHtml();
 server.on("error", err => {
   if (err.code === "EADDRINUSE") {
     console.error("Port " + PORT + " bereits belegt – öffne die laufende Instanz.");
