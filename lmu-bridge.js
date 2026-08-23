@@ -52,19 +52,27 @@ if (process.pkg) {
   process.on("unhandledRejection", e => { console.error("FATAL", e && e.stack || e); });
 }
 
-// DuckDB-CLI bei Bedarf herunterladen (für die Windows-.exe ohne Begleitskript)
+// DuckDB-CLI bei Bedarf herunterladen (Windows-.exe und macOS-Doppelklick)
 function ensureDuckDB() {
   if (fs.existsSync(DUCKDB)) return;
-  if (process.platform !== "win32") {
-    console.error("DuckDB-CLI fehlt: " + DUCKDB);
-    return;
-  }
   console.log("Lade DuckDB-CLI herunter (einmalig)...");
   const dir = path.join(BASE, "duckdbcli");
+  try { fs.mkdirSync(dir, { recursive: true }); } catch (_) {}
   try {
-    execFileSync("powershell", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command",
-      "$ErrorActionPreference='Stop'; $z=Join-Path $env:TEMP 'lmu_dk.zip'; Invoke-WebRequest 'https://github.com/duckdb/duckdb/releases/download/v1.4.0/duckdb_cli-windows-amd64.zip' -OutFile $z; Expand-Archive $z -DestinationPath '" + dir + "' -Force; Remove-Item $z -Force"],
-      { stdio: "ignore", windowsHide: true });
+    if (process.platform === "win32") {
+      execFileSync("powershell", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command",
+        "$ErrorActionPreference='Stop'; $z=Join-Path $env:TEMP 'lmu_dk.zip'; Invoke-WebRequest 'https://github.com/duckdb/duckdb/releases/download/v1.4.0/duckdb_cli-windows-amd64.zip' -OutFile $z; Expand-Archive $z -DestinationPath '" + dir + "' -Force; Remove-Item $z -Force"],
+        { stdio: "ignore", windowsHide: true });
+    } else if (process.platform === "darwin") {
+      const zip = path.join(require("os").tmpdir(), "lmu_dk.zip");
+      execFileSync("curl", ["-fsSL", "-o", zip, "https://github.com/duckdb/duckdb/releases/download/v1.4.0/duckdb_cli-osx-universal.zip"], { stdio: "ignore" });
+      execFileSync("unzip", ["-o", zip, "-d", dir], { stdio: "ignore" });
+      try { fs.unlinkSync(zip); } catch (_) {}
+      try { fs.chmodSync(DUCKDB, 0o755); } catch (_) {}
+    } else {
+      console.error("DuckDB-CLI fehlt: " + DUCKDB);
+      return;
+    }
   } catch (e) { console.error("DuckDB-Download fehlgeschlagen:", e.message); }
 }
 // Standard-Browser als Tab öffnen (Fallback, wenn kein Edge/Chrome gefunden wird
@@ -74,7 +82,10 @@ function openBrowserTab() {
   const url = "http://localhost:" + PORT;
   try {
     if (process.platform === "darwin") {
-      const child = spawn("open", [url], { detached: true, stdio: "ignore" });
+      const args = fs.existsSync("/Applications/Google Chrome.app")
+        ? ["-a", "Google Chrome", url]
+        : [url];
+      const child = spawn("open", args, { detached: true, stdio: "ignore" });
       child.unref();
     } else if (process.platform === "win32") {
       exec('start "" ' + url, { windowsHide: true });
@@ -87,19 +98,25 @@ function openBrowserTab() {
   }
 }
 
-// Edge (bevorzugt) oder Chrome finden – für den App-Modus (eigenes Fenster).
+// Chrome (macOS) bzw. Edge/Chrome (Windows) – für den App-Modus (eigenes Fenster).
 function findBrowser() {
-  const pf = process.env["ProgramFiles"] || "C:\\Program Files";
-  const pf86 = process.env["ProgramFiles(x86)"] || "C:\\Program Files (x86)";
-  const lad = process.env["LOCALAPPDATA"] || "";
-  const candidates = [
-    path.join(pf86, "Microsoft", "Edge", "Application", "msedge.exe"),
-    path.join(pf, "Microsoft", "Edge", "Application", "msedge.exe"),
-    path.join(pf, "Google", "Chrome", "Application", "chrome.exe"),
-    path.join(pf86, "Google", "Chrome", "Application", "chrome.exe"),
-    lad && path.join(lad, "Google", "Chrome", "Application", "chrome.exe"),
-  ].filter(Boolean);
-  for (const c of candidates) { try { if (fs.existsSync(c)) return c; } catch (e) {} }
+  const home = process.env.HOME || "";
+  const candidates = process.platform === "darwin" ? [
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    path.join(home, "Applications/Google Chrome.app/Contents/MacOS/Google Chrome"),
+  ] : process.platform === "linux" ? [
+    "/usr/bin/google-chrome",
+    "/usr/bin/google-chrome-stable",
+    "/usr/bin/chromium-browser",
+    "/usr/bin/chromium",
+  ] : [
+    path.join(process.env["ProgramFiles"] || "C:\\Program Files", "Google", "Chrome", "Application", "chrome.exe"),
+    path.join(process.env["ProgramFiles(x86)"] || "C:\\Program Files (x86)", "Google", "Chrome", "Application", "chrome.exe"),
+    process.env["LOCALAPPDATA"] && path.join(process.env["LOCALAPPDATA"], "Google", "Chrome", "Application", "chrome.exe"),
+    path.join(process.env["ProgramFiles(x86)"] || "C:\\Program Files (x86)", "Microsoft", "Edge", "Application", "msedge.exe"),
+    path.join(process.env["ProgramFiles"] || "C:\\Program Files", "Microsoft", "Edge", "Application", "msedge.exe"),
+  ];
+  for (const c of candidates.filter(Boolean)) { try { if (fs.existsSync(c)) return c; } catch (e) {} }
   return null;
 }
 
