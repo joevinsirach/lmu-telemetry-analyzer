@@ -66,13 +66,20 @@ node lmu-bridge.js --dir="D:\path\to\Le Mans Ultimate\UserData\Telemetry"
 
 ### Live tab & demo
 
-- **Race-engineer view** – timing tower, live sectors, mini-map, fuel pit strategy from official `LMU_Data` (Windows) or **demo mode**.
+- **Race-engineer view** – timing tower, live sectors, mini-map, fuel pit strategy from official `LMU_Data` (Windows) or **demo mode** (8-car WEC field at Circuit de la Sarthe).
 - **Auto** (default): on Windows reads `LMU_Data` while Le Mans Ultimate is running; otherwise falls back to demo data.
-- **Demo**: convincing mock telemetry for testing without LMU (works on any OS).
+- **Demo**: realistic mock telemetry for testing without LMU (works on any OS).
 - Live API: `GET /api/live` or Server-Sent Events at `/api/live/stream`.
-- **LAN viewer (no WAN relay):** start bridge with `--host=0.0.0.0`, copy token/URL from Live tab or `GET /api/live/share`. Viewer opens `/view?token=…` on another machine on the same network.
 
-Fuel strategy unit tests:
+**Try the LAN viewer (demo):**
+```
+node lmu-bridge.js --live-mode=mock --port=8777
+```
+Open the app → **Live** tab → switch to **Demo** → **Copy link** at the bottom → on another machine on the same network open `/view?token=…`. The viewer is read-only (no sidebar, no mode toggles).
+
+**LAN only:** The share token currently works on your local network only (`--host=0.0.0.0`). **Internet/NAT relay is not implemented yet.**
+
+Unit tests:
 ```
 npm test
 ```

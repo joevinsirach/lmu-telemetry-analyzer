@@ -68,11 +68,18 @@ node lmu-bridge.js --dir="D:\Pfad\zu\Le Mans Ultimate\UserData\Telemetry"
 ### Live-Tab & Demo
 
 - **Auto** (Standard): unter Windows wird `LMU_Data` gelesen, solange Le Mans Ultimate läuft; sonst Demo-Daten.
-- **Demo**: überzeugende Mock-Telemetrie zum Testen ohne LMU (funktioniert auf allen Betriebssystemen).
+- **Demo**: überzeugende Mock-Telemetrie (8 WEC-Fahrzeuge, Circuit de la Sarthe) zum Testen ohne LMU.
 - Live-Daten: `GET /api/live` oder Server-Sent Events unter `/api/live/stream`.
-- **LAN-Zuschauer (ohne WAN-Relay):** Bridge mit `--host=0.0.0.0` starten, Token/URL unter Live-Tab oder `GET /api/live/share`. Viewer öffnet `/view?token=…` auf einem anderen Rechner im selben Netz.
 
-Tests für die Sprit-Strategie-Mathematik:
+**LAN-Zuschauer testen (Demo):**
+```
+node lmu-bridge.js --live-mode=mock --port=8777
+```
+Browser öffnen → Tab **Live** → **Demo** wählen → unten **Link kopieren** → auf einem zweiten Rechner im selben Netz `/view?token=…` öffnen. Die Visionneuse ist schreibgeschützt (keine Sidebar, kein Modus-Umschalter).
+
+**Nur LAN:** Der Share-Token funktioniert derzeit nur im lokalen Netzwerk (`--host=0.0.0.0`). Ein Relay über Internet/NAT ist **noch nicht** implementiert.
+
+Tests:
 ```
 npm test
 ```
@@ -94,7 +101,7 @@ Browser (`localStorage`) gespeichert. Die Telemetriedateien bleiben auf deinem R
 ## Français (aperçu)
 
 - **Onglet Live** : vue ingénieur de course (timing tower, secteurs live, mini-carte, stratégie carburant) via `LMU_Data` (Windows) ou **mode démo**.
-- **Partage LAN (bêta)** : token local + URL `/view?token=…` pour un collègue sur le même réseau (`--host=0.0.0.0`). Pas encore de relais Internet/NAT.
+- **Partage LAN (bêta)** : token local + URL `/view?token=…` pour un collègue sur le même réseau. **Pas encore de relais Internet/NAT** – fonctionne uniquement en LAN pour l'instant.
 - Langue **FR** disponible en haut à droite (avec DE/EN).
 
 ## Lizenz

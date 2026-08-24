@@ -31,7 +31,7 @@ const DUCKDB = path.join(DATA_DIR, "duckdbcli", process.platform === "win32" ? "
 const HTML = path.join(__dirname, "lmu-telemetry-analyzer.html"); // im pkg-Snapshot eingebettet
 const CHROME_PROFILE = path.join(DATA_DIR, "chrome-profile");
 const REPO = "mzluzifer/lmu-telemetry-analyzer";
-const APP_VERSION = "1.12.2";
+const APP_VERSION = "1.12.3";
 const { LiveTelemetryService, MODES } = require("./lmu-live");
 const liveService = new LiveTelemetryService({ mode: ARG["live-mode"] || process.env.LMU_LIVE_MODE || MODES.auto });
 const FUEL_STRATEGY = path.join(__dirname, "fuel-strategy.js");
@@ -428,9 +428,13 @@ async function handleRequest(req, res) {
   if (localOriginAllowed(origin)) res.setHeader("Access-Control-Allow-Origin", origin);
   if (u.pathname === "/view") {
     const token = u.searchParams.get("token") || "";
+    if (!token) {
+      res.writeHead(401, { "content-type": "text/html; charset=utf-8" });
+      return res.end("<h1>401 – share token required</h1>");
+    }
     if (!shareTokenValid(token)) {
       res.writeHead(403, { "content-type": "text/html; charset=utf-8" });
-      return res.end("<h1>403 – invalid or missing share token</h1>");
+      return res.end("<h1>403 – invalid share token</h1>");
     }
     const html = loadViewHtml();
     res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
@@ -454,6 +458,15 @@ async function handleRequest(req, res) {
       res.writeHead(404); return res.end("not found");
     }
   }
+  if (u.pathname === "/live-defaults.js") {
+    try {
+      const js = fs.readFileSync(path.join(__dirname, "live-defaults.js"));
+      res.writeHead(200, { "content-type": "application/javascript; charset=utf-8", "cache-control": "no-cache" });
+      return res.end(js);
+    } catch (e) {
+      res.writeHead(404); return res.end("not found");
+    }
+  }
   if (u.pathname === "/api/live/share") {
     const lanIp = HOST === "0.0.0.0" ? pickLanIp() : HOST;
     const baseUrl = "http://" + (lanIp === "0.0.0.0" ? "127.0.0.1" : lanIp) + ":" + PORT;
@@ -468,13 +481,18 @@ async function handleRequest(req, res) {
   }
   if (u.pathname === "/api/live") {
     const token = u.searchParams.get("token");
-    if (token && !shareTokenValid(token)) return json(res, 403, { error: "Invalid share token" });
-    const mode = u.searchParams.get("mode");
-    if (mode === "mock" || mode === "shm" || mode === "auto") liveService.setMode(mode);
+    const isViewer = token && shareTokenValid(token);
+    if (token && !isViewer) return json(res, 403, { error: "Invalid share token" });
+    if (!isViewer) {
+      const mode = u.searchParams.get("mode");
+      if (mode === "mock" || mode === "shm" || mode === "auto") liveService.setMode(mode);
+    }
     return json(res, 200, liveService.snapshot());
   }
   if (u.pathname === "/api/live/mode") {
     if (req.method === "POST") {
+      const token = u.searchParams.get("token") || req.headers["x-share-token"];
+      if (token) return json(res, 403, { error: "Mode changes not allowed for share viewers" });
       let body = "";
       for await (const chunk of req) body += chunk;
       try {
@@ -487,7 +505,8 @@ async function handleRequest(req, res) {
   }
   if (u.pathname === "/api/live/stream") {
     const token = u.searchParams.get("token");
-    if (token && !shareTokenValid(token)) {
+    const isViewer = token && shareTokenValid(token);
+    if (token && !isViewer) {
       res.writeHead(403, { "content-type": "text/plain; charset=utf-8" });
       return res.end("Invalid share token");
     }
@@ -497,8 +516,10 @@ async function handleRequest(req, res) {
       connection: "keep-alive",
     });
     res.write(": connected\n\n");
-    const mode = u.searchParams.get("mode");
-    if (mode === "mock" || mode === "shm" || mode === "auto") liveService.setMode(mode);
+    if (!isViewer) {
+      const mode = u.searchParams.get("mode");
+      if (mode === "mock" || mode === "shm" || mode === "auto") liveService.setMode(mode);
+    }
     const tickMs = Math.max(50, Math.min(500, parseInt(u.searchParams.get("interval") || "100", 10) || 100));
     const timer = setInterval(() => {
       if (res.writableEnded) return;

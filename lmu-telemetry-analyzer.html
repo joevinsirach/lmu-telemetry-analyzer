@@ -73,6 +73,8 @@
   body.live-view aside,body.live-view .tab:not([data-tab="live"]),body.live-view #btnReload,body.live-view #sbToggle{display:none!important}
   body.live-view .layout{grid-template-columns:1fr}
   body.live-view #conn{display:none!important}
+  body.live-view #liveModeSwitch,body.live-view #liveShareBox{display:none!important}
+  body.live-view .liveinputs input{pointer-events:none;opacity:.55}
   body.live-view section[data-panel="live"]{display:block!important}
   body.live-view .tabs .tab[data-tab="live"]{display:none}
   body.live-view #app{display:block!important}
@@ -170,6 +172,7 @@
   .setuptbl td:nth-child(2),.setuptbl td:nth-child(3){font-variant-numeric:tabular-nums}
   .chg-up{color:var(--good)} .chg-down{color:var(--bad)}
 </style>
+<script src="/live-defaults.js"></script>
 <script src="/fuel-strategy.js"></script>
 </head>
 <body>
@@ -306,10 +309,14 @@
         </div>
         <div id="liveConnStats" hidden></div>
         <div id="liveConnHint" hidden></div>
-        <div class="live-share" id="liveShareBox" style="display:none">
+        <div class="live-share" id="liveShareBox">
           <div class="sec-title" data-i18n="liveShareTitle">Remote-Zuschauer (LAN)</div>
-          <div class="hint" data-i18n="liveShareHint">Token lokal erzeugt – gleicher SSE-Stream, schreibgeschützte Live-Ansicht ohne DuckDB-Sidebar.</div>
-          <div style="margin-top:6px"><span class="muted" data-i18n="liveShareUrl">Viewer-URL:</span> <code id="liveShareUrl">…</code></div>
+          <div class="hint" data-i18n="liveShareHint">Token lokal erzeugt – gleicher SSE-Stream, schreibgeschützte Live-Ansicht ohne DuckDB-Sidebar. Nur LAN – kein Internet/NAT-Relay.</div>
+          <div style="margin-top:6px;display:flex;flex-wrap:wrap;align-items:center;gap:8px">
+            <span class="muted" data-i18n="liveShareUrl">Viewer-URL:</span>
+            <code id="liveShareUrl" style="flex:1 1 220px">…</code>
+            <button type="button" id="liveShareCopy" class="btn" data-i18n="liveShareCopy">Link kopieren</button>
+          </div>
         </div>
       </section>
 
@@ -633,8 +640,8 @@ const STR = {
   liveRaceTimeLeft:"Restzeit", liveRaceFlag:"Flagge", liveFlagYellow:"Gelb", liveFlagNone:"—",
   liveRelLeader:"Leader", liveRelAhead:"Voraus", liveRelBehind:"Hinter dir",
   liveThPlace:"Platz", liveThDriver:"Fahrer", liveThLast:"Letzte", liveThGap:"Abstand",
-  liveShareTitle:"Remote-Zuschauer (LAN)", liveShareHint:"Token lokal erzeugt – gleicher SSE-Stream, schreibgeschützte Live-Ansicht ohne DuckDB-Sidebar.",
-  liveShareUrl:"Viewer-URL:", liveFuelAddNext:"Nächster Stopp +",
+  liveShareTitle:"Remote-Zuschauer (LAN)", liveShareHint:"Token lokal erzeugt – gleicher SSE-Stream, schreibgeschützte Live-Ansicht ohne DuckDB-Sidebar. Nur LAN – kein Internet/NAT-Relay.",
+  liveShareUrl:"Viewer-URL:", liveShareCopy:"Link kopieren", liveShareCopied:"Kopiert!", liveFuelAddNext:"Nächster Stopp +",
   liveStatusLMU:"Live · LMU verbunden", liveStatusMock:"Live · Demo-Modus", liveStatusWait:"Live · Warte auf Verbindung",
   liveNoStandings:"Keine Klassierung verfügbar (Warten auf Scoring-Daten)."
  },
@@ -756,8 +763,8 @@ const STR = {
   liveRaceTimeLeft:"Time left", liveRaceFlag:"Flag", liveFlagYellow:"Yellow", liveFlagNone:"—",
   liveRelLeader:"Leader", liveRelAhead:"Ahead", liveRelBehind:"Behind",
   liveThPlace:"Place", liveThDriver:"Driver", liveThLast:"Last", liveThGap:"Gap",
-  liveShareTitle:"Remote viewer (LAN)", liveShareHint:"Token generated locally – same SSE stream, read-only live view without DuckDB sidebar.",
-  liveShareUrl:"Viewer URL:", liveFuelAddNext:"Next stop add",
+  liveShareTitle:"Remote viewer (LAN)", liveShareHint:"Token generated locally – same SSE stream, read-only live view without DuckDB sidebar. LAN only – no Internet/NAT relay yet.",
+  liveShareUrl:"Viewer URL:", liveShareCopy:"Copy link", liveShareCopied:"Copied!", liveFuelAddNext:"Next stop add",
   liveStatusLMU:"Live · LMU connected", liveStatusMock:"Live · Demo mode", liveStatusWait:"Live · Waiting for connection",
   liveNoStandings:"No standings available (waiting for scoring data)."
  },
@@ -879,8 +886,8 @@ const STR = {
   liveRaceTimeLeft:"Temps restant", liveRaceFlag:"Drapeau", liveFlagYellow:"Jaune", liveFlagNone:"—",
   liveRelLeader:"Leader", liveRelAhead:"Devant", liveRelBehind:"Derrière",
   liveThPlace:"Place", liveThDriver:"Pilote", liveThLast:"Dernier", liveThGap:"Écart",
-  liveShareTitle:"Visionneuse distante (LAN)", liveShareHint:"Token généré localement – même flux SSE, vue live en lecture seule sans sidebar DuckDB.",
-  liveShareUrl:"URL visionneuse :", liveFuelAddNext:"À ajouter au prochain arrêt",
+  liveShareTitle:"Visionneuse distante (LAN)", liveShareHint:"Token généré localement – même flux SSE, vue live en lecture seule sans sidebar DuckDB. LAN uniquement – pas encore de relais Internet/NAT.",
+  liveShareUrl:"URL visionneuse :", liveShareCopy:"Copier le lien", liveShareCopied:"Copié !", liveFuelAddNext:"À ajouter au prochain arrêt",
   liveStatusLMU:"Live · LMU connecté", liveStatusMock:"Live · Mode démo", liveStatusWait:"Live · En attente de connexion",
   liveNoStandings:"Pas de classement disponible (en attente des données scoring)."
  }
@@ -1661,17 +1668,10 @@ function seedLiveFuelFromPayload(payload){
     STATE.live.stintFuelStart=Math.max(fuel.liters+(fuel.per_lap_estimate||2.1)*3, fuel.liters);
 }
 function defaultLiveLapSec(payload){
-  const laps=payload.laps||{};
+  const laps=payload.laps||{}, sess=payload.session||{};
+  if(window.LiveDefaults) return LiveDefaults.defaultLiveLapSec(laps, sess);
   if(laps.last_seconds>30) return laps.last_seconds;
   if(laps.best_seconds>30) return laps.best_seconds;
-  const sess=payload.session||{};
-  if(sess.session_time_remaining>0 && sess.max_laps && laps.lap_number>0){
-    const rem=sess.max_laps-laps.lap_number;
-    if(rem>0){
-      const est=sess.session_time_remaining/rem;
-      if(est>30) return est;
-    }
-  }
   return 222;
 }
 async function loadLiveShareInfo(){
@@ -1679,9 +1679,17 @@ async function loadLiveShareInfo(){
   try{
     const r=await apiGet("/api/live/share");
     STATE.live.shareUrl=r.viewUrl||null;
-    const box=document.getElementById("liveShareBox"), urlEl=document.getElementById("liveShareUrl");
-    if(box&&urlEl&&r.viewUrl){ box.style.display=""; urlEl.textContent=r.viewUrl; }
+    const urlEl=document.getElementById("liveShareUrl");
+    if(urlEl&&r.viewUrl) urlEl.textContent=r.viewUrl;
   }catch(e){}
+}
+function copyLiveShareUrl(){
+  const url=STATE.live.shareUrl||document.getElementById("liveShareUrl")?.textContent||"";
+  if(!url||url==="…") return;
+  const btn=document.getElementById("liveShareCopy");
+  const done=()=>{ if(btn){ const prev=btn.textContent; btn.textContent=t("liveShareCopied"); setTimeout(()=>{ btn.textContent=t("liveShareCopy"); applyI18n(); }, 1600); } };
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done).catch(()=>{});
+  else { const ta=document.createElement("textarea"); ta.value=url; document.body.appendChild(ta); ta.select(); try{ document.execCommand("copy"); done(); }catch(e){} ta.remove(); }
 }
 function trackLiveFuel(payload){
   const lap=payload.laps&&payload.laps.lap_number, fuel=payload.fuel&&payload.fuel.liters;
@@ -1783,14 +1791,18 @@ function renderLiveFuel(payload){
 }
 function startLiveStream(){
   if(STATE.live.es){ try{STATE.live.es.close();}catch(e){} STATE.live.es=null; }
-  const mode=STATE.live.mode||"auto";
-  let url=API+"/api/live/stream?mode="+encodeURIComponent(mode)+"&interval=100";
-  if(VIEW_TOKEN) url+="&token="+encodeURIComponent(VIEW_TOKEN);
+  let url=API+"/api/live/stream?interval=100";
+  if(VIEW_MODE||VIEW_TOKEN){
+    if(VIEW_TOKEN) url+="&token="+encodeURIComponent(VIEW_TOKEN);
+  }else{
+    url+="&mode="+encodeURIComponent(STATE.live.mode||"auto");
+  }
   STATE.live.es=new EventSource(url);
   STATE.live.es.onmessage=(ev)=>{ try{ const p=JSON.parse(ev.data); renderLive(p); }catch(e){} };
   STATE.live.es.onerror=()=>{ updateLmuLed({connection:{state:"waiting",message:"Stream disconnected"},source:""}); };
 }
 function setLiveMode(mode){
+  if(VIEW_MODE) return;
   STATE.live.mode=mode;
   document.getElementById("liveModeAuto").classList.toggle("active",mode==="auto");
   document.getElementById("liveModeMock").classList.toggle("active",mode==="mock");
@@ -1799,6 +1811,7 @@ function setLiveMode(mode){
 }
 document.getElementById("liveModeAuto").onclick=()=>setLiveMode("auto");
 document.getElementById("liveModeMock").onclick=()=>setLiveMode("mock");
+document.getElementById("liveShareCopy").onclick=copyLiveShareUrl;
 document.getElementById("lmuConnLed").onclick=()=>switchTab("live");
 ["lfManualPerLap","lfTotalLaps","lfRemMin","lfLapSec"].forEach(id=>{ const e=document.getElementById(id); if(e) e.addEventListener("input",()=>{ if(id==="lfLapSec") e.dataset.userSet="1"; if(STATE.live.last) renderLiveFuel(STATE.live.last); }); });
 if(VIEW_MODE){ document.getElementById("app").style.display=""; switchTab("live"); }
