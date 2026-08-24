@@ -24,8 +24,10 @@ a pit-stop/energy calculator and a setup comparison.
 - 🛞 **Tires & brakes** – temperature (inner/middle/outer per wheel), pressure, remaining tread/wear, brake temperatures + hints on pressure/camber/balance.
 - 🔧 **Setup & Pace** – compares two of your sessions: what was changed in the setup and how the best time changed, plus setup hints derived from telemetry. Includes a section linking to external **setup providers**.
 - ⛽ **Pit-stop calculator** – from race length, tire sets, drivers and the measured pace/consumption: stint lengths, target virtual energy per lap, fastest overall-time strategy, driver allocation (accounts for both energy **and** tire wear). Plus a **lift & coast track map**: shows the braking zones with the greatest fuel-saving potential (① = best zone), with dynamic lift distance based on entry speed and selectable strategies.
-- ⏺ **Live** – automatically loads the new recording after each stint; while a recording is running (file locked) the last completed session is shown.
-- 🌐 **Language** – interface switchable between **German and English** with one click (top right).
+- 📡 **Live (in-race)** – real-time telemetry from the official LMU shared memory (`LMU_Data`) or **demo mode** without the game: speed, RPM, gear, pedals, laps/sectors, fuel, tires/brakes, position/gaps. The **header LED** shows connection status (LMU / demo / waiting).
+- ⛽ **Fuel pit strategy (Live)** – stint/lap consumption, liters still needed to finish, refill table per candidate stop lap (recommended stop highlighted). Formulas shown explicitly in the UI.
+- ⏺ **Auto-reload** – automatically loads the new DuckDB recording after each stint; while a recording is running (file locked) the last completed session is shown.
+- 🌐 **Language** – interface switchable between **German, English and French** with one click (top right).
 - 🪟 **Clean interface** – **collapsible sidebar**, **delta graph** also in the comparison tab, and links to **GitHub** and the **YouTube channel** in the header. Delta comparisons consistently ignore out/in laps as a reference.
 
 ## Requirements
@@ -60,6 +62,26 @@ automatically obtains **Node.js** (if needed) and the **DuckDB CLI**, starts the
 The telemetry folder is found automatically via the Steam libraries. For a different path:
 ```
 node lmu-bridge.js --dir="D:\path\to\Le Mans Ultimate\UserData\Telemetry"
+```
+
+### Live tab & demo
+
+- **Race-engineer view** – timing tower, live sectors, mini-map, fuel pit strategy from official `LMU_Data` (Windows) or **demo mode** (8-car WEC field at Circuit de la Sarthe).
+- **Auto** (default): on Windows reads `LMU_Data` while Le Mans Ultimate is running; otherwise falls back to demo data.
+- **Demo**: realistic mock telemetry for testing without LMU (works on any OS).
+- Live API: `GET /api/live` or Server-Sent Events at `/api/live/stream`.
+
+**Try the LAN viewer (demo):**
+```
+node lmu-bridge.js --live-mode=mock --port=8777
+```
+Open the app → **Live** tab → switch to **Demo** → **Copy link** at the bottom → on another machine on the same network open `/view?token=…`. The viewer is read-only (no sidebar, no mode toggles).
+
+**LAN only:** The share token currently works on your local network only (`--host=0.0.0.0`). **Internet/NAT relay is not implemented yet.**
+
+Unit tests:
+```
+npm test
 ```
 
 ## How it works

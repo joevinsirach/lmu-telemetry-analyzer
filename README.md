@@ -24,8 +24,11 @@ einen Boxenstopp-/Energie-Rechner und einen Setup-Vergleich.
 - 🛞 **Reifen & Bremsen** – Temperatur (innen/mitte/außen je Rad), Druck, Restprofil/Verschleiß, Bremstemperaturen + Hinweise zu Druck/Sturz/Balance.
 - 🔧 **Setup & Pace** – vergleicht zwei deiner Sessions: was am Setup geändert wurde und wie sich die Bestzeit verändert hat, plus Setup-Hinweise aus der Telemetrie. Inkl. einer Sektion mit Links zu externen **Setup-Anbietern**.
 - ⛽ **Boxenstopp-Rechner** – aus Rennlänge, Reifensätzen, Fahrern und der gemessenen Pace/Verbrauch: Stint-Längen, Ziel-Virtual-Energy pro Runde, schnellste Gesamtzeit-Strategie, Fahrer-Einteilung (berücksichtigt Energie **und** Reifenverschleiß). Plus **Lift-&-Coast-Streckenkarte**: zeigt die Anbremszonen mit dem größten Spritspar-Potenzial (① = beste Zone), mit dynamischer Lift-Distanz je nach Eintrittsgeschwindigkeit und wählbaren Strategien.
-- ⏺ **Live** – lädt nach jedem Stint automatisch die neue Aufnahme; während eine Aufnahme läuft (Datei gesperrt) wird die letzte fertige Session gezeigt.
-- 🌐 **Sprache** – Oberfläche per Klick umschaltbar zwischen **Deutsch und Englisch** (oben rechts).
+- 📡 **Live (In-Race)** – Echtzeit-Telemetrie aus dem offiziellen LMU-Shared-Memory (`LMU_Data`) oder **Demo-Modus** ohne laufendes Spiel: Race-Engineer-Ansicht mit Timing-Tower, Live-Sektoren, Mini-Streckenkarte, Position/Gaps und Sprit-Boxenstrategie. Die **LED in der Kopfzeile** zeigt den Verbindungsstatus (LMU / Demo / Warten).
+- 🔗 **Live teilen (LAN, Vorbereitung)** – lokal erzeugter Share-Token + schreibgeschützte Viewer-URL `/view?token=…` (gleicher SSE-Stream, ohne DuckDB-Sidebar). Funktioniert derzeit im **LAN** (`--host=0.0.0.0`); Internet/NAT-Relay ist der nächste Schritt.
+- ⛽ **Sprit-Boxenstrategie (Live)** – Verbrauch pro Stint/Tour, fehlende Liter bis zum Rennende, Auffüll-Tabelle je Stopp-Tour (empfohlener Stopp hervorgehoben). Formeln transparent in der UI.
+- ⏺ **Auto-Reload** – lädt nach jedem Stint automatisch die neue DuckDB-Aufnahme; während eine Aufnahme läuft (Datei gesperrt) wird die letzte fertige Session gezeigt.
+- 🌐 **Sprache** – Oberfläche per Klick umschaltbar zwischen **Deutsch, Englisch und Französisch** (oben rechts).
 - 🪟 **Aufgeräumte Oberfläche** – **einklappbare Sidebar**, **Delta-Grafik** auch im Vergleich-Tab und Links zu **GitHub** und zum **YouTube-Kanal** in der Kopfzeile. Delta-Vergleiche ignorieren Out-/In-Laps konsequent als Referenz.
 
 ## Voraussetzungen
@@ -62,6 +65,25 @@ Der Telemetrie-Ordner wird automatisch über die Steam-Bibliotheken gefunden. Ab
 node lmu-bridge.js --dir="D:\Pfad\zu\Le Mans Ultimate\UserData\Telemetry"
 ```
 
+### Live-Tab & Demo
+
+- **Auto** (Standard): unter Windows wird `LMU_Data` gelesen, solange Le Mans Ultimate läuft; sonst Demo-Daten.
+- **Demo**: überzeugende Mock-Telemetrie (8 WEC-Fahrzeuge, Circuit de la Sarthe) zum Testen ohne LMU.
+- Live-Daten: `GET /api/live` oder Server-Sent Events unter `/api/live/stream`.
+
+**LAN-Zuschauer testen (Demo):**
+```
+node lmu-bridge.js --live-mode=mock --port=8777
+```
+Browser öffnen → Tab **Live** → **Demo** wählen → unten **Link kopieren** → auf einem zweiten Rechner im selben Netz `/view?token=…` öffnen. Die Visionneuse ist schreibgeschützt (keine Sidebar, kein Modus-Umschalter).
+
+**Nur LAN:** Der Share-Token funktioniert derzeit nur im lokalen Netzwerk (`--host=0.0.0.0`). Ein Relay über Internet/NAT ist **noch nicht** implementiert.
+
+Tests:
+```
+npm test
+```
+
 ## Wie es funktioniert
 
 LMU schreibt die Telemetrie als **DuckDB-Datenbank** – eine Tabelle pro Kanal/Event (`value` bzw.
@@ -75,6 +97,12 @@ Vanilla JS, eigene Canvas-Charts, keine externen Libraries).
 
 Es werden **keine Daten hochgeladen**. Bestzeiten-Referenzen und der Session-Verlauf werden nur lokal im
 Browser (`localStorage`) gespeichert. Die Telemetriedateien bleiben auf deinem Rechner.
+
+## Français (aperçu)
+
+- **Onglet Live** : vue ingénieur de course (timing tower, secteurs live, mini-carte, stratégie carburant) via `LMU_Data` (Windows) ou **mode démo**.
+- **Partage LAN (bêta)** : token local + URL `/view?token=…` pour un collègue sur le même réseau. **Pas encore de relais Internet/NAT** – fonctionne uniquement en LAN pour l'instant.
+- Langue **FR** disponible en haut à droite (avec DE/EN).
 
 ## Lizenz
 

@@ -11,12 +11,14 @@ const https = require("https");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const crypto = require("crypto");
 const { execFileSync, execFile, exec, spawn } = require("child_process");
 
 const ARG = Object.fromEntries(process.argv.slice(2).map(a => {
   const m = a.match(/^--([^=]+)=(.*)$/); return m ? [m[1], m[2]] : [a.replace(/^--/, ""), true];
 }));
 const PORT = parseInt(ARG.port || process.env.LMU_PORT || "8777", 10);
+const HOST = ARG.host || process.env.LMU_HOST || "127.0.0.1";
 // Bei .exe (pkg) liegen Daten neben der EXE; im Node-Lauf neben dem Skript.
 const BASE = process.pkg ? path.dirname(process.execPath) : __dirname;
 // macOS: Documents/Desktop/Downloads sind TCC-geschützt. Chrome-Profil und DuckDB
@@ -29,8 +31,41 @@ const DUCKDB = path.join(DATA_DIR, "duckdbcli", process.platform === "win32" ? "
 const HTML = path.join(__dirname, "lmu-telemetry-analyzer.html"); // im pkg-Snapshot eingebettet
 const CHROME_PROFILE = path.join(DATA_DIR, "chrome-profile");
 const REPO = "mzluzifer/lmu-telemetry-analyzer";
-const APP_VERSION = "1.10.0";
+const APP_VERSION = "1.12.3";
+const { LiveTelemetryService, MODES } = require("./lmu-live");
+const liveService = new LiveTelemetryService({ mode: ARG["live-mode"] || process.env.LMU_LIVE_MODE || MODES.auto });
+const FUEL_STRATEGY = path.join(__dirname, "fuel-strategy.js");
+const SHARE_TOKEN_FILE = path.join(DATA_DIR, "live-share-token.json");
 let HTML_BUF = null;
+let VIEW_HTML_BUF = null;
+
+function loadOrCreateShareToken() {
+  try {
+    if (fs.existsSync(SHARE_TOKEN_FILE)) {
+      const j = JSON.parse(fs.readFileSync(SHARE_TOKEN_FILE, "utf8"));
+      if (j && j.token) return j.token;
+    }
+  } catch (_) {}
+  const token = crypto.randomBytes(16).toString("hex");
+  try {
+    fs.writeFileSync(SHARE_TOKEN_FILE, JSON.stringify({ token, created: Date.now() }, null, 2));
+  } catch (_) {}
+  return token;
+}
+
+const LIVE_SHARE_TOKEN = loadOrCreateShareToken();
+
+function shareTokenValid(token) {
+  return typeof token === "string" && token.length >= 16 && token === LIVE_SHARE_TOKEN;
+}
+
+function localOriginAllowed(origin) {
+  if (!origin) return false;
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return true;
+  if (/^https?:\/\/(192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})(:\d+)?$/.test(origin))
+    return true;
+  return false;
+}
 function loadHtml() {
   if (HTML_BUF) return HTML_BUF;
   try {
@@ -43,6 +78,15 @@ function loadHtml() {
     HTML_BUF = fs.readFileSync(dest);
     return HTML_BUF;
   }
+}
+
+function loadViewHtml() {
+  if (VIEW_HTML_BUF) return VIEW_HTML_BUF;
+  const base = loadHtml().toString("utf8");
+  VIEW_HTML_BUF = Buffer.from(
+    base.replace("<body>", '<body class="live-view">').replace(/poll\(\);[\s\S]*?setInterval\(poll, POLL_MS\);/, "")
+  );
+  return VIEW_HTML_BUF;
 }
 
 // --- Kein Konsolenfenster -------------------------------------------------
@@ -365,14 +409,37 @@ function isLockErr(msg) {
   return /lock|in use|conflicting|being used|could not set|already open|another process|verwendet wird|zugreifen|cannot open file|io error/i.test(msg);
 }
 
+function pickLanIp() {
+  const nets = os.networkInterfaces();
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name] || []) {
+      if (net && net.family === "IPv4" && !net.internal) return net.address;
+    }
+  }
+  return "127.0.0.1";
+}
+
 /* ---- HTTP ---- */
 async function handleRequest(req, res) {
   const u = new URL(req.url, "http://localhost");
   // CORS nur für lokale Origins – sonst könnte jede besuchte Website die
   // Telemetrie auslesen oder die Bridge per /api/quit beenden.
   const origin = req.headers.origin || "";
-  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin))
-    res.setHeader("Access-Control-Allow-Origin", origin);
+  if (localOriginAllowed(origin)) res.setHeader("Access-Control-Allow-Origin", origin);
+  if (u.pathname === "/view") {
+    const token = u.searchParams.get("token") || "";
+    if (!token) {
+      res.writeHead(401, { "content-type": "text/html; charset=utf-8" });
+      return res.end("<h1>401 – share token required</h1>");
+    }
+    if (!shareTokenValid(token)) {
+      res.writeHead(403, { "content-type": "text/html; charset=utf-8" });
+      return res.end("<h1>403 – invalid share token</h1>");
+    }
+    const html = loadViewHtml();
+    res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    return res.end(html);
+  }
   if (u.pathname === "/" || u.pathname === "/index.html") {
     const html = loadHtml();
     res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
@@ -382,8 +449,93 @@ async function handleRequest(req, res) {
     res.writeHead(204, { "cache-control": "public, max-age=86400" });
     return res.end();
   }
+  if (u.pathname === "/fuel-strategy.js") {
+    try {
+      const js = fs.readFileSync(FUEL_STRATEGY);
+      res.writeHead(200, { "content-type": "application/javascript; charset=utf-8", "cache-control": "no-cache" });
+      return res.end(js);
+    } catch (e) {
+      res.writeHead(404); return res.end("not found");
+    }
+  }
+  if (u.pathname === "/live-defaults.js") {
+    try {
+      const js = fs.readFileSync(path.join(__dirname, "live-defaults.js"));
+      res.writeHead(200, { "content-type": "application/javascript; charset=utf-8", "cache-control": "no-cache" });
+      return res.end(js);
+    } catch (e) {
+      res.writeHead(404); return res.end("not found");
+    }
+  }
+  if (u.pathname === "/api/live/share") {
+    const lanIp = HOST === "0.0.0.0" ? pickLanIp() : HOST;
+    const baseUrl = "http://" + (lanIp === "0.0.0.0" ? "127.0.0.1" : lanIp) + ":" + PORT;
+    return json(res, 200, {
+      token: LIVE_SHARE_TOKEN,
+      viewUrl: baseUrl + "/view?token=" + LIVE_SHARE_TOKEN,
+      streamUrl: baseUrl + "/api/live/stream?token=" + LIVE_SHARE_TOKEN,
+      lanOnly: true,
+      host: HOST,
+      port: PORT,
+    });
+  }
+  if (u.pathname === "/api/live") {
+    const token = u.searchParams.get("token");
+    const isViewer = token && shareTokenValid(token);
+    if (token && !isViewer) return json(res, 403, { error: "Invalid share token" });
+    if (!isViewer) {
+      const mode = u.searchParams.get("mode");
+      if (mode === "mock" || mode === "shm" || mode === "auto") liveService.setMode(mode);
+    }
+    return json(res, 200, liveService.snapshot());
+  }
+  if (u.pathname === "/api/live/mode") {
+    if (req.method === "POST") {
+      const token = u.searchParams.get("token") || req.headers["x-share-token"];
+      if (token) return json(res, 403, { error: "Mode changes not allowed for share viewers" });
+      let body = "";
+      for await (const chunk of req) body += chunk;
+      try {
+        const j = JSON.parse(body || "{}");
+        if (j.mode === "mock" || j.mode === "shm" || j.mode === "auto") liveService.setMode(j.mode);
+      } catch (_) {}
+    }
+    const snap = liveService.snapshot();
+    return json(res, 200, { mode: liveService.mode, connection: snap.connection, source: snap.source });
+  }
+  if (u.pathname === "/api/live/stream") {
+    const token = u.searchParams.get("token");
+    const isViewer = token && shareTokenValid(token);
+    if (token && !isViewer) {
+      res.writeHead(403, { "content-type": "text/plain; charset=utf-8" });
+      return res.end("Invalid share token");
+    }
+    res.writeHead(200, {
+      "content-type": "text/event-stream; charset=utf-8",
+      "cache-control": "no-cache",
+      connection: "keep-alive",
+    });
+    res.write(": connected\n\n");
+    if (!isViewer) {
+      const mode = u.searchParams.get("mode");
+      if (mode === "mock" || mode === "shm" || mode === "auto") liveService.setMode(mode);
+    }
+    const tickMs = Math.max(50, Math.min(500, parseInt(u.searchParams.get("interval") || "100", 10) || 100));
+    const timer = setInterval(() => {
+      if (res.writableEnded) return;
+      try {
+        const payload = liveService.snapshot();
+        res.write("data: " + JSON.stringify(payload) + "\n\n");
+      } catch (_) {}
+    }, tickMs);
+    req.on("close", () => { clearInterval(timer); try { res.end(); } catch (_) {} });
+    return;
+  }
   if (u.pathname === "/api/config") {
-    return json(res, 200, { telDir: TEL_DIR, port: PORT, duckdb: fs.existsSync(DUCKDB), version: APP_VERSION });
+    return json(res, 200, {
+      telDir: TEL_DIR, port: PORT, host: HOST, duckdb: fs.existsSync(DUCKDB), version: APP_VERSION,
+      live: { platform: process.platform, mode: liveService.mode, shareEnabled: true },
+    });
   }
   if (u.pathname === "/api/version") {
     return new Promise(resolve => {
@@ -461,11 +613,12 @@ server.on("error", err => {
   console.error(err);
   process.exit(1);
 });
-// Nur an Loopback binden – die Bridge ist eine lokale App, kein LAN-Dienst.
-server.listen(PORT, "127.0.0.1", () => {
+// Bind to loopback by default; use --host=0.0.0.0 for LAN viewers (share token required).
+server.listen(PORT, HOST, () => {
   console.log("======================================================");
   console.log("  LMU Telemetrie-Analyse v" + APP_VERSION);
-  console.log("  ▶  Eigenes App-Fenster (Adresse: http://localhost:" + PORT + ")");
+  console.log("  ▶  http://" + (HOST === "0.0.0.0" ? "127.0.0.1" : HOST) + ":" + PORT);
+  if (HOST === "0.0.0.0") console.log("  LAN:  http://" + pickLanIp() + ":" + PORT + "/view?token=" + LIVE_SHARE_TOKEN);
   console.log("  Telemetrie:     " + (TEL_DIR || "NICHT GEFUNDEN – mit --dir=... angeben"));
   console.log("  DuckDB CLI:     " + (fs.existsSync(DUCKDB) ? "ok" : "FEHLT"));
   console.log("  (Beenden: App-Fenster schließen, ⏻-Button oder Task-Manager.)");
