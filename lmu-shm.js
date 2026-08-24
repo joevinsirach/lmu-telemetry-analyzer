@@ -12,6 +12,33 @@ function readCString(buf, off, len) {
   return decodeBytes(buf.subarray(off, off + len));
 }
 
+function parseStandings(buf, numVehicles, playerIdx) {
+  const O = OFFSETS;
+  const standings = [];
+  const count = Math.min(Math.max(0, numVehicles | 0), O.MAX_MAPPED_VEHICLES);
+  for (let i = 0; i < count; i++) {
+    const base = O.vehScoring.base + i * O.vehScoring.stride;
+    const place = buf.readUInt8(base + O.vehScoring.place);
+    if (!place) continue;
+    const driverName = readCString(buf, base + O.vehScoring.driverName, 32);
+    if (!driverName) continue;
+    standings.push({
+      idx: i,
+      place,
+      driverName,
+      lastLapTime: buf.readDoubleLE(base + O.vehScoring.lastLapTime),
+      bestLapTime: buf.readDoubleLE(base + O.vehScoring.bestLapTime),
+      timeBehindLeader: buf.readDoubleLE(base + O.vehScoring.timeBehindLeader),
+      lapsBehindLeader: buf.readInt32LE(base + O.vehScoring.lapsBehindLeader),
+      timeBehindNext: buf.readDoubleLE(base + O.vehScoring.timeBehindNext),
+      lapDist: buf.readDoubleLE(base + O.vehScoring.lapDist),
+      isPlayer: i === playerIdx,
+    });
+  }
+  standings.sort((a, b) => a.place - b.place);
+  return standings;
+}
+
 function parseSnapshot(buf) {
   const O = OFFSETS;
   const scBase = O.scoringInfo.base;
@@ -22,21 +49,27 @@ function parseSnapshot(buf) {
   const playerIdx = buf.readUInt8(teBase + O.telemetry.playerVehicleIdx);
   const playerHasVehicle = buf.readUInt8(teBase + O.telemetry.playerHasVehicle) !== 0;
 
+  const numVehicles = buf.readInt32LE(scBase + O.scoringInfo.numVehicles);
   const scoringInfo = {
     track: readCString(buf, scBase + O.scoringInfo.trackName, 64),
     session: buf.readInt32LE(scBase + O.scoringInfo.session),
     currentET: buf.readDoubleLE(scBase + O.scoringInfo.currentET),
     endET: buf.readDoubleLE(scBase + O.scoringInfo.endET),
     maxLaps: buf.readInt32LE(scBase + O.scoringInfo.maxLaps),
+    lapDist: buf.readDoubleLE(scBase + O.scoringInfo.lapDist),
+    numVehicles,
     inRealtime: buf.readUInt8(scBase + O.scoringInfo.inRealtime) !== 0,
     playerName: readCString(buf, scBase + O.scoringInfo.playerName, 32),
     ambientTemp: buf.readDoubleLE(scBase + O.scoringInfo.ambientTemp),
     trackTemp: buf.readDoubleLE(scBase + O.scoringInfo.trackTemp),
     sessionTimeRemaining: buf.readFloatLE(scBase + O.scoringInfo.sessionTimeRemaining),
+    yellowFlagState: buf.readInt8(scBase + O.scoringInfo.yellowFlagState),
   };
 
+  const standings = parseStandings(buf, numVehicles || activeVehicles, playerIdx);
+
   if (!playerHasVehicle || playerIdx >= activeVehicles) {
-    return { gameVersion, playerHasVehicle: false, scoringInfo };
+    return { gameVersion, playerHasVehicle: false, scoringInfo, standings };
   }
 
   const vehBase = teBase + O.telemetry.telemInfo + playerIdx * O.telemetry.stride;
@@ -88,6 +121,7 @@ function parseSnapshot(buf) {
   const score = {
     driverName: readCString(buf, scoreBase + O.vehScoring.driverName, 32),
     sector: buf.readInt8(scoreBase + O.vehScoring.sector),
+    lapDist: buf.readDoubleLE(scoreBase + O.vehScoring.lapDist),
     bestLapTime: buf.readDoubleLE(scoreBase + O.vehScoring.bestLapTime),
     lastLapTime: buf.readDoubleLE(scoreBase + O.vehScoring.lastLapTime),
     bestSector1: buf.readDoubleLE(scoreBase + O.vehScoring.bestSector1),
@@ -95,11 +129,12 @@ function parseSnapshot(buf) {
     curSector1: buf.readDoubleLE(scoreBase + O.vehScoring.curSector1),
     curSector2: buf.readDoubleLE(scoreBase + O.vehScoring.curSector2),
     place: buf.readUInt8(scoreBase + O.vehScoring.place),
+    timeBehindNext: buf.readDoubleLE(scoreBase + O.vehScoring.timeBehindNext),
     timeBehindLeader: buf.readDoubleLE(scoreBase + O.vehScoring.timeBehindLeader),
     lapsBehindLeader: buf.readInt32LE(scoreBase + O.vehScoring.lapsBehindLeader),
   };
 
-  return { gameVersion, playerHasVehicle: true, scoringInfo, telem, score };
+  return { gameVersion, playerHasVehicle: true, scoringInfo, telem, score, standings, playerIdx };
 }
 
 class WindowsSharedMemoryReader {
@@ -179,4 +214,4 @@ class WindowsSharedMemoryReader {
   }
 }
 
-module.exports = { parseSnapshot, WindowsSharedMemoryReader, OFFSETS };
+module.exports = { parseSnapshot, parseStandings, WindowsSharedMemoryReader, OFFSETS };

@@ -17,13 +17,15 @@
     "playerName": 116,
     "ambientTemp": 228,
     "trackTemp": 236,
-    "sessionTimeRemaining": 340
+    "sessionTimeRemaining": 340,
+    "yellowFlagState": 109
   },
   "vehScoring": {
     "base": 2192,
     "stride": 584,
     "driverName": 4,
     "sector": 102,
+    "lapDist": 104,
     "bestLapTime": 144,
     "lastLapTime": 168,
     "bestSector1": 128,
@@ -31,6 +33,7 @@
     "curSector1": 176,
     "curSector2": 184,
     "place": 199,
+    "timeBehindNext": 232,
     "timeBehindLeader": 244,
     "lapsBehindLeader": 252
   },

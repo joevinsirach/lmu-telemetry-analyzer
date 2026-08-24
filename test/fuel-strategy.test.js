@@ -27,6 +27,11 @@ test("fuelPerLapFromSamples falls back to manual override", () => {
   assert.equal(fuelPerLapFromSamples([], 2.5), 2.5);
 });
 
+test("fuelPerLapFromSamples falls back to default when no samples", () => {
+  assert.equal(fuelPerLapFromSamples([], null, 2.1), 2.1);
+  assert.equal(fuelPerLapFromSamples([], null, null), 2.1);
+});
+
 test("fuelConsumedStint", () => {
   assert.equal(fuelConsumedStint(90, 42.5), 47.5);
 });

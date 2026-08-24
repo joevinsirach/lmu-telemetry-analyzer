@@ -39,6 +39,28 @@
   .liveinputs label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:flex;flex-direction:column;gap:4px}
   tr.recpit td{background:#10261a}
   tr.recpit td:first-child{box-shadow:inset 3px 0 0 var(--good)}
+  .live-racehdr{padding:12px 16px}
+  .live-racehdr .racegrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+  .live-racehdr .racegrid .stat{padding:8px 10px}
+  .live-racehdr .race-title{font-size:15px;font-weight:700;color:var(--txt);margin:0 0 8px}
+  .live-racehdr .race-sub{font-size:12px;color:var(--muted)}
+  .live-racehdr .flag-yellow{color:var(--warn);font-weight:700}
+  .live-grid2{display:grid;grid-template-columns:minmax(220px,1fr) minmax(260px,1.2fr);gap:16px;margin-bottom:16px}
+  @media (max-width:900px){.live-grid2{grid-template-columns:1fr}}
+  .live-sector td.sector-cur{background:#1a2433;box-shadow:inset 0 -2px 0 var(--accent)}
+  .live-sector td.sector-best{color:#c678ff;font-weight:700}
+  .live-sector td.sector-slower{color:var(--bad)}
+  .live-sector td.sector-faster{color:var(--good)}
+  tr.live-player td{font-weight:600}
+  tr.live-player td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+  .live-share{margin-top:10px;padding:10px 12px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;font-size:12px}
+  .live-share code{font-family:Consolas,monospace;color:var(--cyan);word-break:break-all}
+  body.live-view aside,body.live-view .tab:not([data-tab="live"]),body.live-view #btnReload,body.live-view #sbToggle{display:none!important}
+  body.live-view .layout{grid-template-columns:1fr}
+  body.live-view #conn{display:none!important}
+  body.live-view section[data-panel="live"]{display:block!important}
+  body.live-view .tabs .tab[data-tab="live"]{display:none}
+  body.live-view #app{display:block!important}
   .langsw{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
   .langsw button{border:0;border-radius:0;padding:6px 10px;font-size:12px;background:var(--panel2);color:var(--muted)}
   .langsw button.active{background:var(--accent);color:#1a1205;font-weight:700}
@@ -199,6 +221,7 @@
       </div>
 
       <section data-panel="live" style="display:none">
+        <div class="card live-racehdr" id="liveRaceHdr"></div>
         <div class="card">
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
             <h2 style="margin:0" data-i18n="liveConnTitle">Verbindung &amp; Session</h2>
@@ -210,6 +233,27 @@
           </div>
           <div class="grid2" id="liveConnStats"></div>
           <div class="hint" id="liveConnHint" style="margin-top:8px"></div>
+          <div class="live-share" id="liveShareBox" style="display:none">
+            <div class="sec-title" data-i18n="liveShareTitle">Remote-Zuschauer (LAN)</div>
+            <div class="hint" data-i18n="liveShareHint">Token lokal erzeugt – gleicher SSE-Stream, schreibgeschützte Live-Ansicht ohne DuckDB-Sidebar.</div>
+            <div style="margin-top:6px"><span class="muted" data-i18n="liveShareUrl">Viewer-URL:</span> <code id="liveShareUrl">…</code></div>
+          </div>
+        </div>
+        <div class="live-grid2">
+          <div class="card">
+            <h2 data-i18n="liveMapTitle">Streckenkarte (live)</h2>
+            <div class="chartwrap"><canvas id="cLiveMap" height="180"></canvas></div>
+            <div class="hint" id="liveMapHint" data-i18n="liveMapHint">Position aus Lap-Distanz – Farben wie im Analyse-Tab.</div>
+          </div>
+          <div class="card">
+            <h2 data-i18n="liveSectorsTitle">Sektoren (live vs. Best)</h2>
+            <div class="scrollx" id="liveSectorTable"></div>
+          </div>
+        </div>
+        <div class="card">
+          <h2 data-i18n="liveTowerTitle">Timing-Tower &amp; Klassierung</h2>
+          <div class="grid2" id="liveRelative" style="margin-bottom:10px"></div>
+          <div class="scrollx" id="liveStandingsWrap"></div>
         </div>
         <div class="card">
           <h2 data-i18n="liveDriveTitle">Fahrt &amp; Eingaben</h2>
@@ -389,11 +433,14 @@
    ========================================================================= */
 const API = location.origin.startsWith("http") ? "" : "http://localhost:8777";
 const POLL_MS = 5000;
+const VIEW_MODE = document.body.classList.contains("live-view") || /\/view(?:\?|$)/.test(location.pathname);
+const VIEW_TOKEN = new URLSearchParams(location.search).get("token") || "";
 
 const STATE = { sessions:[], cur:null, model:null, refLap:null, cmpLap:null,
                 refP:null, cmpP:null, ana:null, follow:true, loadedKey:null,
                 refSource:"session", uploadedRef:null, refInfo:null, newestLocked:false,
-                live:{mode:"auto", es:null, last:null, stintFuelStart:null, lastLapNo:null, lastLapFuel:null, lapSamples:[]} };
+                activeTab: VIEW_MODE ? "live" : "improve",
+                live:{mode:"auto", es:null, last:null, stintFuelStart:null, lastLapNo:null, lastLapFuel:null, lapSamples:[], shareUrl:null} };
 
 /* ---------- API ---------- */
 async function apiGet(path, signal){
@@ -535,7 +582,17 @@ const STR = {
   liveFuelUsed:"Verbraucht (Stint)", liveFuelPerLap:"Verbrauch / Tour", liveFuelMissing:"Fehlt bis Ziel", liveFuelCanFinish:"Ziel ohne Stopp?",
   liveFuelLapsLeft:"Runden übrig", liveFuelLapsOnTank:"Tours mit Tank", liveFuelRecPit:"Empfohlener Stopp",
   liveYes:"Ja", liveNo:"Nein", liveFormula:(c,m,a)=>`Verbraucht = ${c} L · Fehlend = max(0, ${m} − ${a} L im Tank) · Auffüllen = Bedarf bis Ziel − Sprit bei Einfahrt (≤ Tankkapazität)`,
-  liveRecBadge:"empfohlen"
+  liveRecBadge:"empfohlen",
+  liveMapTitle:"Streckenkarte (live)", liveMapHint:"Position aus Lap-Distanz – Farben wie im Analyse-Tab.",
+  liveSectorsTitle:"Sektoren (live vs. Best)", liveTowerTitle:"Timing-Tower & Klassierung",
+  liveRacePlace:"Platz", liveRaceGapAhead:"Voraus", liveRaceGapBehind:"Hinter dir", liveRaceGapLeader:"Leader",
+  liveRaceTimeLeft:"Restzeit", liveRaceFlag:"Flagge", liveFlagYellow:"Gelb", liveFlagNone:"—",
+  liveRelLeader:"Leader", liveRelAhead:"Voraus", liveRelBehind:"Hinter dir",
+  liveThPlace:"Platz", liveThDriver:"Fahrer", liveThLast:"Letzte", liveThGap:"Abstand",
+  liveShareTitle:"Remote-Zuschauer (LAN)", liveShareHint:"Token lokal erzeugt – gleicher SSE-Stream, schreibgeschützte Live-Ansicht ohne DuckDB-Sidebar.",
+  liveShareUrl:"Viewer-URL:", liveFuelAddNext:"Nächster Stopp +",
+  liveStatusLMU:"Live · LMU verbunden", liveStatusMock:"Live · Demo-Modus", liveStatusWait:"Live · Warte auf Verbindung",
+  liveNoStandings:"Keine Klassierung verfügbar (Warten auf Scoring-Daten)."
  },
  en:{
   reload:"↻ Refresh", session:"Session", refSource:"Reference source", refLap:"Reference lap (best)", cmpLap:"Comparison lap",
@@ -648,7 +705,17 @@ const STR = {
   liveFuelUsed:"Used (stint)", liveFuelPerLap:"Use / lap", liveFuelMissing:"Short to finish", liveFuelCanFinish:"Finish without stop?",
   liveFuelLapsLeft:"Laps left", liveFuelLapsOnTank:"Laps on fuel", liveFuelRecPit:"Recommended stop",
   liveYes:"Yes", liveNo:"No", liveFormula:(c,m,a)=>`Used = ${c} L · Missing = max(0, ${m} − ${a} L in tank) · Add = need to finish − fuel at entry (≤ tank capacity)`,
-  liveRecBadge:"recommended"
+  liveRecBadge:"recommended",
+  liveMapTitle:"Track map (live)", liveMapHint:"Position from lap distance – same colours as the analysis tab.",
+  liveSectorsTitle:"Sectors (live vs best)", liveTowerTitle:"Timing tower & standings",
+  liveRacePlace:"Place", liveRaceGapAhead:"Ahead", liveRaceGapBehind:"Behind", liveRaceGapLeader:"Leader",
+  liveRaceTimeLeft:"Time left", liveRaceFlag:"Flag", liveFlagYellow:"Yellow", liveFlagNone:"—",
+  liveRelLeader:"Leader", liveRelAhead:"Ahead", liveRelBehind:"Behind",
+  liveThPlace:"Place", liveThDriver:"Driver", liveThLast:"Last", liveThGap:"Gap",
+  liveShareTitle:"Remote viewer (LAN)", liveShareHint:"Token generated locally – same SSE stream, read-only live view without DuckDB sidebar.",
+  liveShareUrl:"Viewer URL:", liveFuelAddNext:"Next stop add",
+  liveStatusLMU:"Live · LMU connected", liveStatusMock:"Live · Demo mode", liveStatusWait:"Live · Waiting for connection",
+  liveNoStandings:"No standings available (waiting for scoring data)."
  },
  fr:{
   reload:"↻ Actualiser", session:"Session", refSource:"Source de référence", refLap:"Tour de référence (meilleur)", cmpLap:"Tour de comparaison",
@@ -761,7 +828,17 @@ const STR = {
   liveFuelUsed:"Consommé (relais)", liveFuelPerLap:"Conso / tour", liveFuelMissing:"Manquant pour finir", liveFuelCanFinish:"Finir sans arrêt ?",
   liveFuelLapsLeft:"Tours restants", liveFuelLapsOnTank:"Tours avec le réservoir", liveFuelRecPit:"Arrêt recommandé",
   liveYes:"Oui", liveNo:"Non", liveFormula:(c,m,a)=>`Consommé = ${c} L · Manquant = max(0, ${m} − ${a} L en réserve) · Ajout = besoin jusqu'à la fin − essence à l'entrée (≤ capacité)`,
-  liveRecBadge:"recommandé"
+  liveRecBadge:"recommandé",
+  liveMapTitle:"Carte du circuit (live)", liveMapHint:"Position via distance au tour – mêmes couleurs que l'onglet analyse.",
+  liveSectorsTitle:"Secteurs (live vs meilleur)", liveTowerTitle:"Timing tower & classement",
+  liveRacePlace:"Place", liveRaceGapAhead:"Devant", liveRaceGapBehind:"Derrière", liveRaceGapLeader:"Leader",
+  liveRaceTimeLeft:"Temps restant", liveRaceFlag:"Drapeau", liveFlagYellow:"Jaune", liveFlagNone:"—",
+  liveRelLeader:"Leader", liveRelAhead:"Devant", liveRelBehind:"Derrière",
+  liveThPlace:"Place", liveThDriver:"Pilote", liveThLast:"Dernier", liveThGap:"Écart",
+  liveShareTitle:"Visionneuse distante (LAN)", liveShareHint:"Token généré localement – même flux SSE, vue live en lecture seule sans sidebar DuckDB.",
+  liveShareUrl:"URL visionneuse :", liveFuelAddNext:"À ajouter au prochain arrêt",
+  liveStatusLMU:"Live · LMU connecté", liveStatusMock:"Live · Mode démo", liveStatusWait:"Live · En attente de connexion",
+  liveNoStandings:"Pas de classement disponible (en attente des données scoring)."
  }
 };
 function t(k,...a){ let v=(STR[LANG]&&STR[LANG][k]); if(v==null)v=STR.de[k]; if(v==null)return k; return typeof v==="function"?v(...a):v; }
@@ -1397,6 +1474,12 @@ function showRecordingBanner(newest){
   showConn(`<div class="banner">${t("recBanner",escapeHtml(prettyName(newest.file)),tm)}</div>`);
 }
 function showConn(html){ document.getElementById("conn").innerHTML=html||""; }
+function updateConnBannerVisibility(){
+  const conn=document.getElementById("conn");
+  if(!conn) return;
+  const onLive=STATE.activeTab==="live" || VIEW_MODE;
+  conn.style.display=onLive?"none":"";
+}
 function showBridgeHelp(info){
   let h=`<div class="banner err"><b>${t("helpTitle")}</b><br>`;
   if(info.offline) h+=t("helpOffline",escapeHtml(info.msg||""));
@@ -1405,8 +1488,10 @@ function showBridgeHelp(info){
   h+='</div>';
   showConn(h);
   document.getElementById("app").style.display="";
-  if(!STATE.loadedKey) switchTab("live");
-  setStatus(info.empty?t("waitingRec"):t("connecting"));
+  if(!STATE.loadedKey && !VIEW_MODE) switchTab("live");
+  if(!(STATE.live.last && (STATE.live.last.connection.state==="connected" || STATE.live.last.source==="mock")))
+    setStatus(info.empty?t("waitingRec"):t("connecting"));
+  updateConnBannerVisibility();
 }
 document.getElementById("btnReload").onclick=()=>{ if(STATE.loadedKey) loadSession(STATE.loadedKey); else poll(); };
 
@@ -1425,10 +1510,119 @@ function updateLmuLed(payload){
   const st=payload.connection&&payload.connection.state||"waiting";
   const src=payload.source||"";
   el.classList.remove("on","mock","wait");
-  if(st==="connected"&&src==="lmu"){ el.classList.add("on"); lbl.textContent=t("liveConnLMU"); }
-  else if(st==="connected"||src==="mock"){ el.classList.add("mock"); lbl.textContent=t("liveConnMock"); }
-  else { el.classList.add("wait"); lbl.textContent=t("liveConnWait"); }
+  if(st==="connected"&&src==="lmu"){ el.classList.add("on"); lbl.textContent=t("liveConnLMU"); setStatus(t("liveStatusLMU")); }
+  else if(st==="connected"||src==="mock"){ el.classList.add("mock"); lbl.textContent=t("liveConnMock"); setStatus(t("liveStatusMock")); }
+  else { el.classList.add("wait"); lbl.textContent=t("liveConnWait"); setStatus(t("liveStatusWait")); }
   el.title=(payload.connection&&payload.connection.message)||lbl.textContent;
+}
+function fmtLiveGap(sec,laps){
+  if(laps>0) return "L"+laps;
+  if(sec==null||!isFinite(sec)) return "—";
+  if(sec<=0) return "—";
+  return "+"+sec.toFixed(3);
+}
+function fmtRemTime(sec){
+  if(sec==null||!isFinite(sec)||sec<=0) return "—";
+  const m=Math.floor(sec/60), s=Math.floor(sec%60);
+  return m+":"+String(s).padStart(2,"0");
+}
+function renderLiveRaceHdr(payload){
+  const el=document.getElementById("liveRaceHdr"); if(!el) return;
+  const sess=payload.session||{}, pos=payload.position||{}, flags=payload.flags||{};
+  const flagTxt=flags.yellow?t("liveFlagYellow"):t("liveFlagNone");
+  el.innerHTML=`<div class="race-title">${escapeHtml(sess.track||"—")} · ${escapeHtml(sess.session_type||"")}${flags.yellow?' <span class="flag-yellow">'+flagTxt+'</span>':''}</div>`
+    +`<div class="racegrid">`
+    +pitKpi(t("liveRacePlace"), pos.place!=null?"#"+pos.place:"—", payload.vehicle&&payload.vehicle.driver?escapeHtml(payload.vehicle.driver):"")
+    +pitKpi(t("liveRaceGapLeader"), fmtLiveGap(pos.gap_leader, pos.laps_behind_leader), t("liveRelLeader"))
+    +pitKpi(t("liveRaceGapAhead"), pos.gap_ahead!=null?"+"+pos.gap_ahead.toFixed(3)+" s":"—", "")
+    +pitKpi(t("liveRaceGapBehind"), pos.gap_behind!=null?"+"+pos.gap_behind.toFixed(3)+" s":"—", "")
+    +pitKpi(t("liveRaceTimeLeft"), fmtRemTime(sess.session_time_remaining), sess.max_laps?("max "+sess.max_laps+" laps"):"")
+    +pitKpi(t("liveRaceFlag"), flagTxt, flags.yellow_state||"")
+    +`</div>`;
+}
+function sectorLiveCell(label, curSec, bestSec, isCur){
+  let cls=isCur?" sector-cur":"";
+  if(curSec!=null&&bestSec!=null&&curSec>0&&bestSec>0){
+    const d=curSec-bestSec;
+    if(d>0.05) cls+=" sector-slower";
+    else if(d<-0.05) cls+=" sector-faster";
+    else if(Math.abs(d)<=0.05) cls+=" sector-best";
+  }
+  return `<td class="${cls.trim()}">${curSec!=null&&curSec>0?curSec.toFixed(3):"—"}</td>`;
+}
+function renderLiveSectors(payload){
+  const el=document.getElementById("liveSectorTable"); if(!el) return;
+  const laps=payload.laps||{}, sec=laps.sectors||{}, best=laps.best_sectors||{}, cur=laps.sector||0;
+  const cs=sec, bs=best;
+  el.innerHTML=`<table class="pit setuptbl live-sector" style="font-size:12.5px"><thead><tr><th></th><th>S1</th><th>S2</th><th>S3</th></tr></thead><tbody>`
+    +`<tr><td>${t("lapN", laps.lap_number||"?")}</td>${sectorLiveCell("s1",cs.s1_seconds,bs.s1_seconds,cur===1)}${sectorLiveCell("s2",cs.s2_seconds,bs.s2_seconds,cur===2)}${sectorLiveCell("s3",cs.s3_seconds,bs.s3_seconds,cur===3)}</tr>`
+    +`<tr><td>⭐ ${t("theoBest")}</td><td class="sector-best">${bs.s1||"—"}</td><td class="sector-best">${bs.s2||"—"}</td><td class="sector-best">${bs.s3||"—"}</td></tr>`
+    +`</tbody></table>`;
+}
+function renderLiveStandings(payload){
+  const relEl=document.getElementById("liveRelative"), wrap=document.getElementById("liveStandingsWrap");
+  const standings=payload.standings||[], relative=payload.relative||[];
+  if(relEl){
+    relEl.innerHTML=relative.slice(0,3).map(r=>{
+      const lbl=r.relation==="leader"?t("liveRelLeader"):r.relation==="ahead"?t("liveRelAhead"):t("liveRelBehind");
+      return pitKpi("#"+r.place+" "+escapeHtml(r.driver||""), r.last_lap||"—", lbl+" · "+(r.gap_leader||"—"));
+    }).join("") || `<div class="hint">${t("liveNoStandings")}</div>`;
+  }
+  if(!wrap) return;
+  if(!standings.length){ wrap.innerHTML=`<div class="hint">${t("liveNoStandings")}</div>`; return; }
+  const playerPlace=(payload.position&&payload.position.place)||null;
+  const show=standings.length>12
+    ? standings.filter(r=> playerPlace!=null && Math.abs(r.place-playerPlace)<=3).concat(standings.filter(r=>r.place<=3)).sort((a,b)=>a.place-b.place)
+    : standings;
+  const seen=new Set();
+  const rows=show.filter(r=>{ if(seen.has(r.place)) return false; seen.add(r.place); return true; });
+  wrap.innerHTML=`<table class="pit setuptbl" style="font-size:12.5px"><thead><tr><th>${t("liveThPlace")}</th><th>${t("liveThDriver")}</th><th>${t("liveThLast")}</th><th>${t("liveThGap")}</th></tr></thead><tbody>`
+    +rows.map(r=>`<tr class="${r.is_player||r.place===playerPlace?'live-player':''}"><td>#${r.place}</td><td>${escapeHtml(r.driver||"—")}</td><td>${r.last_lap||"—"}</td><td>${r.gap_leader||"—"}</td></tr>`).join("")
+    +`</tbody></table>`;
+}
+function synthLiveTrack(N){
+  const lat=new Float64Array(N), lon=new Float64Array(N);
+  for(let i=0;i<N;i++){
+    const a=(i/(N-1))*Math.PI*2;
+    lat[i]=48.0+0.012*Math.sin(a)+0.004*Math.sin(a*3);
+    lon[i]=0.2+0.018*Math.cos(a)+0.006*Math.cos(a*2);
+  }
+  return {lat, lon, L:1};
+}
+function drawLiveMiniMap(payload){
+  const cv=document.getElementById("cLiveMap"); if(!cv) return;
+  const prog=payload.track_progress||{};
+  const frac=prog.fraction!=null?prog.fraction:null;
+  const p=(STATE.refP&&STATE.refP.lat&&STATE.refP.lon)?STATE.refP:synthLiveTrack(240);
+  const colorFn=()=>"#46506a";
+  drawTrackMap(cv,p,colorFn,{markerFrac:frac,lw:4,dot:6,pad:24,zoneText:false});
+}
+function seedLiveFuelFromPayload(payload){
+  const fuel=payload.fuel||{};
+  if(!STATE.live.lapSamples.length && Array.isArray(fuel.lap_samples) && fuel.lap_samples.length)
+    STATE.live.lapSamples=fuel.lap_samples.slice();
+  if(STATE.live.stintFuelStart==null && fuel.liters!=null)
+    STATE.live.stintFuelStart=Math.max(fuel.liters+(fuel.per_lap_estimate||2.1)*3, fuel.liters);
+}
+function defaultLiveLapSec(payload){
+  const laps=payload.laps||{};
+  if(laps.last_seconds>0) return laps.last_seconds;
+  if(laps.best_seconds>0) return laps.best_seconds;
+  const sess=payload.session||{};
+  if(sess.session_time_remaining>0 && sess.max_laps && laps.lap_number>0){
+    const rem=sess.max_laps-laps.lap_number;
+    if(rem>0) return sess.session_time_remaining/rem;
+  }
+  return null;
+}
+async function loadLiveShareInfo(){
+  if(VIEW_MODE) return;
+  try{
+    const r=await apiGet("/api/live/share");
+    STATE.live.shareUrl=r.viewUrl||null;
+    const box=document.getElementById("liveShareBox"), urlEl=document.getElementById("liveShareUrl");
+    if(box&&urlEl&&r.viewUrl){ box.style.display=""; urlEl.textContent=r.viewUrl; }
+  }catch(e){}
 }
 function trackLiveFuel(payload){
   const lap=payload.laps&&payload.laps.lap_number, fuel=payload.fuel&&payload.fuel.liters;
@@ -1444,7 +1638,12 @@ function renderLive(payload){
   if(!payload) return;
   STATE.live.last=payload;
   updateLmuLed(payload);
+  seedLiveFuelFromPayload(payload);
   trackLiveFuel(payload);
+  renderLiveRaceHdr(payload);
+  renderLiveSectors(payload);
+  renderLiveStandings(payload);
+  drawLiveMiniMap(payload);
   const sess=payload.session||{}, veh=payload.vehicle||{}, inp=payload.inputs||{}, laps=payload.laps||{}, fuel=payload.fuel||{}, pos=payload.position||{};
   document.getElementById("liveConnStats").innerHTML=
     pitKpi(t("liveKConn"), payload.source==="lmu"?t("liveConnLMU"):t("liveConnMock"), escapeHtml(payload.connection&&payload.connection.message||""))+
@@ -1487,12 +1686,12 @@ function renderLiveFuel(payload){
   const fuel=payload.fuel||{}, laps=payload.laps||{}, sess=payload.session||{};
   const manual=parseFloat(document.getElementById("lfManualPerLap").value);
   const manualPerLap=manual>0?manual:null;
-  const perLap=FS.fuelPerLapFromSamples(STATE.live.lapSamples, manualPerLap);
+  const perLap=FS.fuelPerLapFromSamples(STATE.live.lapSamples, manualPerLap, fuel.per_lap_estimate);
   const consumed=FS.fuelConsumedStint(STATE.live.stintFuelStart, fuel.liters);
   let remLaps=parseInt(document.getElementById("lfTotalLaps").value,10);
   const remMin=parseFloat(document.getElementById("lfRemMin").value);
   let lapSec=parseFloat(document.getElementById("lfLapSec").value);
-  if(!lapSec&&laps.current_seconds>0) lapSec=laps.current_seconds;
+  if(!lapSec||lapSec<30) lapSec=defaultLiveLapSec(payload);
   if(sess.max_laps&&laps.lap_number&&(!remLaps||remLaps<1)) remLaps=Math.max(1, sess.max_laps-laps.lap_number);
   if((!remLaps||remLaps<1)&&remMin>0&&lapSec>0) remLaps=Math.ceil(remMin*60/lapSec);
   if(remLaps>0 && !document.getElementById("lfTotalLaps").value) document.getElementById("lfTotalLaps").value=remLaps;
@@ -1507,16 +1706,18 @@ function renderLiveFuel(payload){
     tankCapacity: fuel.capacity_liters||90,
     fuelAtStintStart: STATE.live.stintFuelStart||fuel.liters,
     manualFuelPerLap: manualPerLap,
+    defaultFuelPerLap: fuel.per_lap_estimate,
     lapSamples: STATE.live.lapSamples,
     minPitLap:curLap+1,
     maxPitLap:curLap+(remLaps>0?remLaps:20),
   });
   const rem=summary.remainingLaps;
+  const recRow=(summary.pitRows||[]).find(r=>r.pitLap===summary.recommendedPitLap);
   document.getElementById("liveFuelKpis").innerHTML=
     pitKpi(t("liveFuelUsed"), consumed.toFixed(1)+" L", t("liveFuelPerLap")+": "+perLap.toFixed(2)+" L")+
     pitKpi(t("liveFuelMissing"), summary.missingToFinish.toFixed(1)+" L", t("liveFuelLapsLeft")+": "+(rem!=null?rem:"—"))+
     pitKpi(t("liveFuelCanFinish"), summary.canFinishWithoutPit?t("liveYes"):t("liveNo"), t("liveFuelLapsOnTank")+": "+(summary.lapsOnFuel!=null?summary.lapsOnFuel.toFixed(1):"—"))+
-    pitKpi(t("liveFuelRecPit"), summary.recommendedPitLap?("T"+summary.recommendedPitLap):"—", summary.recommendedPitLap?"":t("liveNo"));
+    pitKpi(t("liveFuelRecPit"), summary.recommendedPitLap?("T"+summary.recommendedPitLap):"—", recRow? (t("liveFuelAddNext")+": "+recRow.addLiters.toFixed(1)+" L") : t("liveNo"));
   document.getElementById("liveFuelFormula").textContent=t("liveFormula", consumed.toFixed(1), summary.neededTotal.toFixed(1), (fuel.liters||0).toFixed(1));
   const tb=document.querySelector("#liveFuelPitTable tbody");
   tb.innerHTML=(summary.pitRows||[]).map(r=>`<tr class="${r.pitLap===summary.recommendedPitLap?'recpit':''}${!r.feasible?' invalid':''}">
@@ -1527,7 +1728,9 @@ function renderLiveFuel(payload){
 function startLiveStream(){
   if(STATE.live.es){ try{STATE.live.es.close();}catch(e){} STATE.live.es=null; }
   const mode=STATE.live.mode||"auto";
-  STATE.live.es=new EventSource(API+"/api/live/stream?mode="+encodeURIComponent(mode)+"&interval=100");
+  let url=API+"/api/live/stream?mode="+encodeURIComponent(mode)+"&interval=100";
+  if(VIEW_TOKEN) url+="&token="+encodeURIComponent(VIEW_TOKEN);
+  STATE.live.es=new EventSource(url);
   STATE.live.es.onmessage=(ev)=>{ try{ const p=JSON.parse(ev.data); renderLive(p); }catch(e){} };
   STATE.live.es.onerror=()=>{ updateLmuLed({connection:{state:"waiting",message:"Stream disconnected"},source:""}); };
 }
@@ -1542,7 +1745,10 @@ document.getElementById("liveModeAuto").onclick=()=>setLiveMode("auto");
 document.getElementById("liveModeMock").onclick=()=>setLiveMode("mock");
 document.getElementById("lmuConnLed").onclick=()=>switchTab("live");
 ["lfManualPerLap","lfTotalLaps","lfRemMin","lfLapSec"].forEach(id=>{ const e=document.getElementById(id); if(e) e.addEventListener("input",()=>{ if(STATE.live.last) renderLiveFuel(STATE.live.last); }); });
+if(VIEW_MODE){ document.getElementById("app").style.display=""; switchTab("live"); }
+else loadLiveShareInfo();
 startLiveStream();
+updateConnBannerVisibility();
 
 function renderDiag(){
   const m=STATE.model;
@@ -2033,9 +2239,13 @@ function renderSetupHints(){
 function steeringCorrections(m,lap){ const cs=findChan(m.channels,ALIAS.steer); if(!cs)return 0; const a=Math.floor(lap.t0*cs.freq),b=Math.ceil(lap.t1*cs.freq); let corr=0,lastSign=0; for(let i=a+1;i<b&&i<cs.nData;i++){ const d=cs.data[i]-cs.data[i-1], sign=Math.sign(d); if(sign!==0&&sign!==lastSign&&Math.abs(d)>1.5){ corr++; lastSign=sign; } } return corr; }
 
 /* ---------- Tabs ---------- */
-function switchTab(name){ document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.tab===name));
+function switchTab(name){
+  STATE.activeTab=name;
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.tab===name));
   document.querySelectorAll("section[data-panel]").forEach(s=>s.style.display=s.dataset.panel===name?"":"none");
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{redrawAll(); renderAllMaps(); if(name==="pit")renderPit(); if(name==="tyres")renderTyres(); if(name==="setup")renderSetup(); if(name==="session")renderSession(); if(name==="live")renderLive(STATE.live.last);})); }
+  updateConnBannerVisibility();
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{redrawAll(); renderAllMaps(); if(name==="pit")renderPit(); if(name==="tyres")renderTyres(); if(name==="setup")renderSetup(); if(name==="session")renderSession(); if(name==="live"){ renderLive(STATE.live.last); drawLiveMiniMap(STATE.live.last||{}); }}));
+}
 document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>switchTab(t.dataset.tab));
 addEventListener("resize",()=>{redrawAll(); if(STATE.refP){renderAllMaps(); renderPitMap();}});
 
@@ -2083,7 +2293,7 @@ if(window.ResizeObserver){
   if(hdr) new ResizeObserver(()=>{ syncHdrH(); if(STATE.refP){ redrawAll(); renderAllMaps(); } }).observe(hdr);
 }
 poll();
-setInterval(poll, POLL_MS);
+if(!VIEW_MODE) setInterval(poll, POLL_MS);
 </script>
 </body>
 </html>

@@ -2,33 +2,69 @@
 
 const { normalizeTelemetry } = require("./lmu-normalize");
 
+const MOCK_DRIVERS = [
+  "A. Davidson", "B. Hartley", "C. Albuquerque", "Joevin SIRACH", "E. Nasr",
+  "F. Vesti", "G. Menezes", "H. Kobayashi", "I. Calderón", "J. Lynn",
+  "K. Pieters", "L. Vanthoor", "M. Jensen", "N. Müller", "O. Pla",
+  "P. Scherer", "Q. Martins", "R. Taylor", "S. Buemi", "T. Bernhard",
+];
+
 class MockTelemetrySource {
   constructor() {
     this.state = {
       elapsed: 0,
       lapStart: 0,
       lapNumber: 7,
-      lapDist: 0,
+      lapDist: 4200,
       trackLength: 13600,
       bestLap: 222.456,
       lastLap: 223.891,
       bestS1: 41.123,
       bestS2: 82.456,
-      sector: 1,
-      sector1Time: 0,
+      sector: 2,
+      sector1Time: 41.2,
       sector2Time: 0,
       fuel: 42.5,
       fuelCapacity: 90,
       maxLaps: 50,
       sessionTimeRemaining: 7200,
       seed: 42,
+      yellowFlagState: 0,
     };
     this._last = Date.now();
+    this._fuelLapSamples = [
+      { lap: 4, fuelStart: 48.7, fuelEnd: 46.6 },
+      { lap: 5, fuelStart: 46.6, fuelEnd: 44.5 },
+      { lap: 6, fuelStart: 44.5, fuelEnd: 42.5 },
+    ];
+    this._standings = this._buildStandings();
   }
 
   _rand() {
     this.state.seed = (this.state.seed * 16807 + 0) % 2147483647;
     return (this.state.seed & 0xfffffff) / 2147483647;
+  }
+
+  _buildStandings() {
+    const playerPlace = 4;
+    const rows = [];
+    for (let place = 1; place <= 20; place++) {
+      const isPlayer = place === playerPlace;
+      const gap = place === 1 ? 0 : (place - 1) * 1.8 + this._rand() * 0.4;
+      rows.push({
+        idx: place - 1,
+        place,
+        driverName: isPlayer ? "Joevin SIRACH" : MOCK_DRIVERS[place - 1],
+        lastLapTime: 220 + this._rand() * 6 + (place - 1) * 0.05,
+        bestLapTime: 218 + this._rand() * 4 + (place - 1) * 0.04,
+        timeBehindLeader: gap,
+        lapsBehindLeader: 0,
+        timeBehindNext: place === 1 ? 0 : 0.8 + this._rand() * 0.5,
+        lapDist: Math.max(0, this.state.lapDist - (playerPlace - place) * 180),
+        isPlayer,
+      });
+    }
+    return rows.sort((a, b) => a.place - b.place);
   }
 
   snapshot() {
@@ -48,8 +84,10 @@ class MockTelemetrySource {
     const steering = Math.max(-1, Math.min(1, 0.65 * Math.sin(phase * 3.2)));
     const clutch = rpm < 4200 ? 0.05 : 0;
 
+    const prevLap = this.state.lapNumber;
     this.state.lapDist += speedMs * dt;
     if (this.state.lapDist >= this.state.trackLength) {
+      const fuelEnd = this.state.fuel;
       this.state.lapNumber += 1;
       this.state.lastLap = 220 + this._rand() * 6;
       if (this.state.lastLap < this.state.bestLap) this.state.bestLap = this.state.lastLap;
@@ -58,7 +96,14 @@ class MockTelemetrySource {
       this.state.sector = 1;
       this.state.sector1Time = 0;
       this.state.sector2Time = 0;
-      this.state.fuel = Math.max(0, this.state.fuel - (2.0 + this._rand() * 0.3));
+      const fuelStart = fuelEnd + (2.0 + this._rand() * 0.3);
+      this.state.fuel = Math.max(0, fuelEnd - (2.0 + this._rand() * 0.3));
+      this._fuelLapSamples.push({
+        lap: prevLap,
+        fuelStart,
+        fuelEnd: this.state.fuel,
+      });
+      if (this._fuelLapSamples.length > 24) this._fuelLapSamples.shift();
     }
 
     const lapTime = this.state.elapsed - this.state.lapStart;
@@ -71,6 +116,7 @@ class MockTelemetrySource {
     }
 
     const gear = speedMs < 35 ? 2 : speedMs < 55 ? 3 : speedMs < 75 ? 4 : speedMs < 95 ? 5 : 6;
+    this._standings = this._buildStandings();
     const raw = this._buildRaw({ speedMs, rpm, gear, throttle, brake, steering, clutch, lapTime });
 
     return normalizeTelemetry({
@@ -98,8 +144,15 @@ class MockTelemetrySource {
       });
     }
 
+    const fuelPerLap =
+      this._fuelLapSamples.reduce((sum, row) => sum + Math.max(0, row.fuelStart - row.fuelEnd), 0) /
+      Math.max(1, this._fuelLapSamples.length);
+
     return {
       playerHasVehicle: true,
+      trackLength: s.trackLength,
+      fuelPerLapEstimate: fuelPerLap,
+      fuelLapSamples: this._fuelLapSamples.slice(),
       scoringInfo: {
         track: "Circuit de la Sarthe",
         session: 10,
@@ -107,10 +160,13 @@ class MockTelemetrySource {
         ambientTemp: 18.5,
         trackTemp: 28,
         maxLaps: s.maxLaps,
+        lapDist: s.lapDist,
+        numVehicles: 20,
         sessionTimeRemaining: Math.max(0, s.sessionTimeRemaining - s.elapsed * 0.02),
         endET: s.elapsed + s.sessionTimeRemaining,
         currentET: s.elapsed,
         playerName: "Joevin SIRACH",
+        yellowFlagState: s.yellowFlagState,
       },
       telem: {
         vehicleName: "Toyota GR010 Hybrid",
@@ -140,6 +196,7 @@ class MockTelemetrySource {
       score: {
         driverName: "Joevin SIRACH",
         sector: s.sector,
+        lapDist: s.lapDist,
         bestLapTime: s.bestLap,
         lastLapTime: s.lastLap,
         bestSector1: s.bestS1,
@@ -149,7 +206,9 @@ class MockTelemetrySource {
         place: 4,
         timeBehindLeader: 12.456,
         lapsBehindLeader: 0,
+        timeBehindNext: 1.24,
       },
+      standings: this._standings,
     };
   }
 }

@@ -24,7 +24,8 @@ einen Boxenstopp-/Energie-Rechner und einen Setup-Vergleich.
 - 🛞 **Reifen & Bremsen** – Temperatur (innen/mitte/außen je Rad), Druck, Restprofil/Verschleiß, Bremstemperaturen + Hinweise zu Druck/Sturz/Balance.
 - 🔧 **Setup & Pace** – vergleicht zwei deiner Sessions: was am Setup geändert wurde und wie sich die Bestzeit verändert hat, plus Setup-Hinweise aus der Telemetrie. Inkl. einer Sektion mit Links zu externen **Setup-Anbietern**.
 - ⛽ **Boxenstopp-Rechner** – aus Rennlänge, Reifensätzen, Fahrern und der gemessenen Pace/Verbrauch: Stint-Längen, Ziel-Virtual-Energy pro Runde, schnellste Gesamtzeit-Strategie, Fahrer-Einteilung (berücksichtigt Energie **und** Reifenverschleiß). Plus **Lift-&-Coast-Streckenkarte**: zeigt die Anbremszonen mit dem größten Spritspar-Potenzial (① = beste Zone), mit dynamischer Lift-Distanz je nach Eintrittsgeschwindigkeit und wählbaren Strategien.
-- 📡 **Live (In-Race)** – Echtzeit-Telemetrie aus dem offiziellen LMU-Shared-Memory (`LMU_Data`) oder **Demo-Modus** ohne laufendes Spiel: Speed, RPM, Gang, Pedale, Runden/Sektoren, Sprit, Reifen/Bremsen, Position/Gaps. Die **LED in der Kopfzeile** zeigt den Verbindungsstatus (LMU / Demo / Warten).
+- 📡 **Live (In-Race)** – Echtzeit-Telemetrie aus dem offiziellen LMU-Shared-Memory (`LMU_Data`) oder **Demo-Modus** ohne laufendes Spiel: Race-Engineer-Ansicht mit Timing-Tower, Live-Sektoren, Mini-Streckenkarte, Position/Gaps und Sprit-Boxenstrategie. Die **LED in der Kopfzeile** zeigt den Verbindungsstatus (LMU / Demo / Warten).
+- 🔗 **Live teilen (LAN, Vorbereitung)** – lokal erzeugter Share-Token + schreibgeschützte Viewer-URL `/view?token=…` (gleicher SSE-Stream, ohne DuckDB-Sidebar). Funktioniert derzeit im **LAN** (`--host=0.0.0.0`); Internet/NAT-Relay ist der nächste Schritt.
 - ⛽ **Sprit-Boxenstrategie (Live)** – Verbrauch pro Stint/Tour, fehlende Liter bis zum Rennende, Auffüll-Tabelle je Stopp-Tour (empfohlener Stopp hervorgehoben). Formeln transparent in der UI.
 - ⏺ **Auto-Reload** – lädt nach jedem Stint automatisch die neue DuckDB-Aufnahme; während eine Aufnahme läuft (Datei gesperrt) wird die letzte fertige Session gezeigt.
 - 🌐 **Sprache** – Oberfläche per Klick umschaltbar zwischen **Deutsch, Englisch und Französisch** (oben rechts).
@@ -69,6 +70,7 @@ node lmu-bridge.js --dir="D:\Pfad\zu\Le Mans Ultimate\UserData\Telemetry"
 - **Auto** (Standard): unter Windows wird `LMU_Data` gelesen, solange Le Mans Ultimate läuft; sonst Demo-Daten.
 - **Demo**: überzeugende Mock-Telemetrie zum Testen ohne LMU (funktioniert auf allen Betriebssystemen).
 - Live-Daten: `GET /api/live` oder Server-Sent Events unter `/api/live/stream`.
+- **LAN-Zuschauer (ohne WAN-Relay):** Bridge mit `--host=0.0.0.0` starten, Token/URL unter Live-Tab oder `GET /api/live/share`. Viewer öffnet `/view?token=…` auf einem anderen Rechner im selben Netz.
 
 Tests für die Sprit-Strategie-Mathematik:
 ```
@@ -91,8 +93,8 @@ Browser (`localStorage`) gespeichert. Die Telemetriedateien bleiben auf deinem R
 
 ## Français (aperçu)
 
-- **Onglet Live** : télémétrie en course via la mémoire partagée officielle `LMU_Data` (Windows) ou **mode démo** sans le jeu.
-- **Stratégie carburant** : consommé sur le relais, litres manquants pour finir, tableau d'appoint par tour d'arrêt aux stands.
+- **Onglet Live** : vue ingénieur de course (timing tower, secteurs live, mini-carte, stratégie carburant) via `LMU_Data` (Windows) ou **mode démo**.
+- **Partage LAN (bêta)** : token local + URL `/view?token=…` pour un collègue sur le même réseau (`--host=0.0.0.0`). Pas encore de relais Internet/NAT.
 - Langue **FR** disponible en haut à droite (avec DE/EN).
 
 ## Lizenz

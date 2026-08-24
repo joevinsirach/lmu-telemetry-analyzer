@@ -13,21 +13,28 @@ function clamp(n, lo, hi) {
   return Math.max(lo, Math.min(hi, n));
 }
 
+const DEFAULT_FUEL_PER_LAP = 2.1;
+
 /**
  * Estimate liters per lap from completed lap fuel deltas.
  * @param {Array<{lap:number,fuelStart:number,fuelEnd:number}>} lapSamples
  * @param {number|null} manualOverride L/tour when live data insufficient
+ * @param {number|null} defaultPerLap fallback when no samples (e.g. ~2.1 L/tour)
  */
-function fuelPerLapFromSamples(lapSamples, manualOverride) {
+function fuelPerLapFromSamples(lapSamples, manualOverride, defaultPerLap) {
   const manual = manualOverride != null && manualOverride > 0 ? finite(manualOverride) : null;
+  const fallback =
+    defaultPerLap != null && defaultPerLap > 0
+      ? finite(defaultPerLap)
+      : DEFAULT_FUEL_PER_LAP;
   const samples = (lapSamples || []).filter(
     (s) => s && s.fuelStart > s.fuelEnd && s.fuelEnd >= 0 && s.fuelStart > 0
   );
-  if (!samples.length) return manual;
+  if (!samples.length) return manual != null ? manual : fallback;
   const perLap = samples.map((s) => s.fuelStart - s.fuelEnd);
   const avg = perLap.reduce((a, b) => a + b, 0) / perLap.length;
-  if (!(avg > 0)) return manual;
-  return manual != null ? (avg * 0.65 + manual * 0.35) : avg;
+  if (!(avg > 0)) return manual != null ? manual : fallback;
+  return manual != null ? avg * 0.65 + manual * 0.35 : avg;
 }
 
 /**
@@ -183,7 +190,11 @@ function buildPitStopTable(params) {
 }
 
 function summarizeFuelStrategy(input) {
-  const fuelPerLap = fuelPerLapFromSamples(input.lapSamples, input.manualFuelPerLap);
+  const fuelPerLap = fuelPerLapFromSamples(
+    input.lapSamples,
+    input.manualFuelPerLap,
+    input.defaultFuelPerLap
+  );
   const rem = remainingLaps({
     currentLap: input.currentLap,
     totalLaps: input.totalLaps,
@@ -224,6 +235,7 @@ function summarizeFuelStrategy(input) {
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     finite,
+    DEFAULT_FUEL_PER_LAP,
     fuelPerLapFromSamples,
     fuelConsumedStint,
     remainingLaps,
