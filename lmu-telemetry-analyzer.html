@@ -52,9 +52,10 @@
   .live-sector td.sector-faster{color:var(--good);font-weight:600}
   .live-sector td.sector-close{color:var(--warn);font-weight:600}
   .live-sector td.sector-slower{color:var(--bad)}
-  .live-control-grid{display:grid;grid-template-columns:minmax(240px,.95fr) minmax(320px,1.4fr);gap:12px;margin-bottom:12px}
-  .live-bottom-grid{display:grid;grid-template-columns:minmax(280px,.9fr) minmax(340px,1.1fr);gap:12px;margin-bottom:12px}
-  @media (max-width:1050px){.live-control-grid,.live-bottom-grid{grid-template-columns:1fr}}
+  .live-control-grid{display:grid;grid-template-columns:minmax(260px,1.25fr) minmax(190px,.8fr) minmax(240px,1fr);gap:12px;margin-bottom:12px}
+  .live-bottom-grid{display:grid;grid-template-columns:minmax(200px,.7fr) minmax(280px,.95fr) minmax(320px,1.05fr);gap:12px;margin-bottom:12px}
+  @media (max-width:1100px){.live-control-grid{grid-template-columns:1fr 1fr}.live-control-grid .live-col-drive{grid-column:1/-1}}
+  @media (max-width:900px){.live-control-grid,.live-bottom-grid{grid-template-columns:1fr}}
   .live-col{display:flex;flex-direction:column;gap:12px;min-width:0}
   .card.live-compact{padding:10px 12px;margin-bottom:0}
   .card.live-compact h2{margin:0 0 8px;font-size:11px}
@@ -246,20 +247,18 @@
         <div class="live-control-grid">
           <div class="live-col">
             <div class="card live-compact">
-              <h2 data-i18n="liveMapTitle">Streckenkarte (live)</h2>
-              <div class="chartwrap"><canvas id="cLiveMap" height="130"></canvas></div>
+              <h2 data-i18n="liveTowerTitle">Timing-Tower &amp; Klassierung</h2>
+              <div class="grid2" id="liveRelative" style="margin-bottom:8px"></div>
+              <div class="scrollx" id="liveStandingsWrap"></div>
             </div>
+          </div>
+          <div class="live-col">
             <div class="card live-compact">
               <h2 data-i18n="liveSectorsTitle">Sektoren (live vs. Best)</h2>
               <div class="scrollx" id="liveSectorTable"></div>
             </div>
           </div>
-          <div class="live-col live-col-main">
-            <div class="card live-compact">
-              <h2 data-i18n="liveTowerTitle">Timing-Tower &amp; Klassierung</h2>
-              <div class="grid2" id="liveRelative" style="margin-bottom:8px"></div>
-              <div class="scrollx" id="liveStandingsWrap"></div>
-            </div>
+          <div class="live-col live-col-drive">
             <div class="card live-compact">
               <h2 data-i18n="liveDriveTitle">Fahrt &amp; Eingaben</h2>
               <div class="grid2" id="liveDriveStats"></div>
@@ -274,6 +273,10 @@
           </div>
         </div>
         <div class="live-bottom-grid">
+          <div class="card live-compact">
+            <h2 data-i18n="liveMapTitle">Streckenkarte (live)</h2>
+            <div class="chartwrap"><canvas id="cLiveMap" height="120"></canvas></div>
+          </div>
           <div class="card live-compact">
             <h2 data-i18n="liveTyresTitle">Reifen &amp; Bremsen (live)</h2>
             <div class="wheelgrid" id="liveWheelGrid"></div>
