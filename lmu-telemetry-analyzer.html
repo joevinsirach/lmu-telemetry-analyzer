@@ -49,8 +49,22 @@
   @media (max-width:900px){.live-grid2{grid-template-columns:1fr}}
   .live-sector td.sector-cur{background:#1a2433;box-shadow:inset 0 -2px 0 var(--accent)}
   .live-sector td.sector-best{color:#c678ff;font-weight:700}
+  .live-sector td.sector-faster{color:var(--good);font-weight:600}
+  .live-sector td.sector-close{color:var(--warn);font-weight:600}
   .live-sector td.sector-slower{color:var(--bad)}
-  .live-sector td.sector-faster{color:var(--good)}
+  .live-control-grid{display:grid;grid-template-columns:minmax(240px,.95fr) minmax(320px,1.4fr);gap:12px;margin-bottom:12px}
+  .live-bottom-grid{display:grid;grid-template-columns:minmax(280px,.9fr) minmax(340px,1.1fr);gap:12px;margin-bottom:12px}
+  @media (max-width:1050px){.live-control-grid,.live-bottom-grid{grid-template-columns:1fr}}
+  .live-col{display:flex;flex-direction:column;gap:12px;min-width:0}
+  .card.live-compact{padding:10px 12px;margin-bottom:0}
+  .card.live-compact h2{margin:0 0 8px;font-size:11px}
+  .live-topbar{padding:10px 14px;margin-bottom:12px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
+  .live-topbar .race-title{font-size:15px;font-weight:700;margin:0;flex:1 1 220px}
+  .live-topbar .race-meta{font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:8px 14px}
+  .live-topbar .race-meta span{white-space:nowrap}
+  body.live-tab-active aside{display:none!important}
+  body.live-tab-active .layout{grid-template-columns:1fr}
+  body.live-tab-active #sbToggle{opacity:.45}
   tr.live-player td{font-weight:600}
   tr.live-player td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
   .live-share{margin-top:10px;padding:10px 12px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;font-size:12px}
@@ -221,79 +235,78 @@
       </div>
 
       <section data-panel="live" style="display:none">
-        <div class="card live-racehdr" id="liveRaceHdr"></div>
-        <div class="card">
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-            <h2 style="margin:0" data-i18n="liveConnTitle">Verbindung &amp; Session</h2>
-            <span style="flex:1"></span>
-            <div class="langsw">
-              <button id="liveModeAuto" class="active" data-i18n="liveModeAuto">Auto</button>
-              <button id="liveModeMock" data-i18n="liveModeMock">Demo</button>
+        <div class="card live-topbar" id="liveRaceHdr">
+          <div class="race-title" id="liveRaceTitle">—</div>
+          <div class="race-meta" id="liveRaceMeta"></div>
+          <div class="langsw" id="liveModeSwitch">
+            <button id="liveModeAuto" class="active" data-i18n="liveModeAuto">Auto</button>
+            <button id="liveModeMock" data-i18n="liveModeMock">Demo</button>
+          </div>
+        </div>
+        <div class="live-control-grid">
+          <div class="live-col">
+            <div class="card live-compact">
+              <h2 data-i18n="liveMapTitle">Streckenkarte (live)</h2>
+              <div class="chartwrap"><canvas id="cLiveMap" height="130"></canvas></div>
+            </div>
+            <div class="card live-compact">
+              <h2 data-i18n="liveSectorsTitle">Sektoren (live vs. Best)</h2>
+              <div class="scrollx" id="liveSectorTable"></div>
             </div>
           </div>
-          <div class="grid2" id="liveConnStats"></div>
-          <div class="hint" id="liveConnHint" style="margin-top:8px"></div>
-          <div class="live-share" id="liveShareBox" style="display:none">
-            <div class="sec-title" data-i18n="liveShareTitle">Remote-Zuschauer (LAN)</div>
-            <div class="hint" data-i18n="liveShareHint">Token lokal erzeugt – gleicher SSE-Stream, schreibgeschützte Live-Ansicht ohne DuckDB-Sidebar.</div>
-            <div style="margin-top:6px"><span class="muted" data-i18n="liveShareUrl">Viewer-URL:</span> <code id="liveShareUrl">…</code></div>
+          <div class="live-col live-col-main">
+            <div class="card live-compact">
+              <h2 data-i18n="liveTowerTitle">Timing-Tower &amp; Klassierung</h2>
+              <div class="grid2" id="liveRelative" style="margin-bottom:8px"></div>
+              <div class="scrollx" id="liveStandingsWrap"></div>
+            </div>
+            <div class="card live-compact">
+              <h2 data-i18n="liveDriveTitle">Fahrt &amp; Eingaben</h2>
+              <div class="grid2" id="liveDriveStats"></div>
+              <div class="grid2" id="liveLapStats" style="margin-top:8px"></div>
+              <div class="liveinputs" style="margin-top:10px">
+                <label><span data-i18n="liveThrottle">Gas</span><div class="bartrack"><i id="liveBarThr" style="width:0%"></i></div></label>
+                <label><span data-i18n="liveBrake">Bremse</span><div class="bartrack brk"><i id="liveBarBrk" style="width:0%"></i></div></label>
+                <label><span data-i18n="liveClutch">Kupplung</span><div class="bartrack"><i id="liveBarClu" style="width:0%"></i></div></label>
+                <label><span data-i18n="liveSteer">Lenkung</span><div class="bartrack"><i id="liveBarStr" style="width:50%"></i></div></label>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="live-grid2">
-          <div class="card">
-            <h2 data-i18n="liveMapTitle">Streckenkarte (live)</h2>
-            <div class="chartwrap"><canvas id="cLiveMap" height="180"></canvas></div>
-            <div class="hint" id="liveMapHint" data-i18n="liveMapHint">Position aus Lap-Distanz – Farben wie im Analyse-Tab.</div>
+        <div class="live-bottom-grid">
+          <div class="card live-compact">
+            <h2 data-i18n="liveTyresTitle">Reifen &amp; Bremsen (live)</h2>
+            <div class="wheelgrid" id="liveWheelGrid"></div>
           </div>
-          <div class="card">
-            <h2 data-i18n="liveSectorsTitle">Sektoren (live vs. Best)</h2>
-            <div class="scrollx" id="liveSectorTable"></div>
+          <div class="card live-compact">
+            <h2 data-i18n="liveFuelTitle">Sprit-Boxenstrategie</h2>
+            <div class="hint" data-i18n="liveFuelHint">Verbrauch aus Live-Telemetrie (Tour-Delta) oder manueller Override. Die Formeln sind unten ausgewiesen.</div>
+            <div class="pitgrid" style="margin-top:8px">
+              <label><span data-i18n="liveFuelManual">Sprit / Tour Override (L)</span><input id="lfManualPerLap" type="number" step="0.1" min="0" placeholder="auto"></label>
+              <label><span data-i18n="liveFuelTotalLaps">Restliche Runden (gesamt)</span><input id="lfTotalLaps" type="number" min="1" step="1"></label>
+              <label><span data-i18n="liveFuelRemTime">Restzeit (Min, optional)</span><input id="lfRemMin" type="number" min="0" step="1"></label>
+              <label><span data-i18n="liveFuelLapTime">Ø Rundenzeit (s)</span><input id="lfLapSec" type="number" min="1" step="0.1"></label>
+            </div>
+            <div class="grid2" id="liveFuelKpis" style="margin-top:10px"></div>
+            <div class="hint" id="liveFuelFormula" style="margin-top:6px"></div>
+            <div class="scrollx" style="margin-top:8px">
+              <table id="liveFuelPitTable" class="pit"><thead><tr>
+                <th data-i18n="livePitColLap">Stopp-Tour</th>
+                <th data-i18n="livePitColUntil">Tours bis Stopp</th>
+                <th data-i18n="livePitColEntry">Sprit bei Einfahrt</th>
+                <th data-i18n="livePitColNeed">Bedarf bis Ziel</th>
+                <th data-i18n="livePitColAdd">Auffüllen</th>
+                <th data-i18n="thOk">OK</th>
+              </tr></thead><tbody></tbody></table>
+            </div>
           </div>
         </div>
-        <div class="card">
-          <h2 data-i18n="liveTowerTitle">Timing-Tower &amp; Klassierung</h2>
-          <div class="grid2" id="liveRelative" style="margin-bottom:10px"></div>
-          <div class="scrollx" id="liveStandingsWrap"></div>
-        </div>
-        <div class="card">
-          <h2 data-i18n="liveDriveTitle">Fahrt &amp; Eingaben</h2>
-          <div class="grid2" id="liveDriveStats"></div>
-          <div class="liveinputs" style="margin-top:12px">
-            <label><span data-i18n="liveThrottle">Gas</span><div class="bartrack"><i id="liveBarThr" style="width:0%"></i></div></label>
-            <label><span data-i18n="liveBrake">Bremse</span><div class="bartrack brk"><i id="liveBarBrk" style="width:0%"></i></div></label>
-            <label><span data-i18n="liveClutch">Kupplung</span><div class="bartrack"><i id="liveBarClu" style="width:0%"></i></div></label>
-            <label><span data-i18n="liveSteer">Lenkung</span><div class="bartrack"><i id="liveBarStr" style="width:50%"></i></div></label>
-          </div>
-        </div>
-        <div class="card">
-          <h2 data-i18n="liveLapsTitle">Runden &amp; Position</h2>
-          <div class="grid2" id="liveLapStats"></div>
-        </div>
-        <div class="card">
-          <h2 data-i18n="liveTyresTitle">Reifen &amp; Bremsen (live)</h2>
-          <div class="wheelgrid" id="liveWheelGrid"></div>
-        </div>
-        <div class="card">
-          <h2 data-i18n="liveFuelTitle">Sprit-Boxenstrategie</h2>
-          <div class="hint" data-i18n="liveFuelHint">Verbrauch aus Live-Telemetrie (Tour-Delta) oder manueller Override. Die Formeln sind unten ausgewiesen.</div>
-          <div class="pitgrid" style="margin-top:10px">
-            <label><span data-i18n="liveFuelManual">Sprit / Tour Override (L)</span><input id="lfManualPerLap" type="number" step="0.1" min="0" placeholder="auto"></label>
-            <label><span data-i18n="liveFuelTotalLaps">Restliche Runden (gesamt)</span><input id="lfTotalLaps" type="number" min="1" step="1"></label>
-            <label><span data-i18n="liveFuelRemTime">Restzeit (Min, optional)</span><input id="lfRemMin" type="number" min="0" step="1"></label>
-            <label><span data-i18n="liveFuelLapTime">Ø Rundenzeit (s)</span><input id="lfLapSec" type="number" min="1" step="0.1"></label>
-          </div>
-          <div class="grid2" id="liveFuelKpis" style="margin-top:12px"></div>
-          <div class="hint" id="liveFuelFormula" style="margin-top:8px"></div>
-          <div class="scrollx" style="margin-top:12px">
-            <table id="liveFuelPitTable" class="pit"><thead><tr>
-              <th data-i18n="livePitColLap">Stopp-Tour</th>
-              <th data-i18n="livePitColUntil">Tours bis Stopp</th>
-              <th data-i18n="livePitColEntry">Sprit bei Einfahrt</th>
-              <th data-i18n="livePitColNeed">Bedarf bis Ziel</th>
-              <th data-i18n="livePitColAdd">Auffüllen</th>
-              <th data-i18n="thOk">OK</th>
-            </tr></thead><tbody></tbody></table>
-          </div>
+        <div id="liveConnStats" hidden></div>
+        <div id="liveConnHint" hidden></div>
+        <div class="live-share" id="liveShareBox" style="display:none">
+          <div class="sec-title" data-i18n="liveShareTitle">Remote-Zuschauer (LAN)</div>
+          <div class="hint" data-i18n="liveShareHint">Token lokal erzeugt – gleicher SSE-Stream, schreibgeschützte Live-Ansicht ohne DuckDB-Sidebar.</div>
+          <div style="margin-top:6px"><span class="muted" data-i18n="liveShareUrl">Viewer-URL:</span> <code id="liveShareUrl">…</code></div>
         </div>
       </section>
 
@@ -453,7 +466,35 @@ async function apiGet(path, signal){
 function fmtTime(s){ if(s==null||!isFinite(s))return "—"; const m=Math.floor(s/60),sec=s-m*60; return m>0? m+":"+sec.toFixed(3).padStart(6,"0") : sec.toFixed(3); }
 function fmtDelta(s){ return (s>=0?"+":"−")+Math.abs(s).toFixed(3); }
 function escapeHtml(s){ return (s==null?"":String(s)).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c])); }
-function setStatus(s){ document.getElementById("status").textContent=s; }
+function setStatus(s){
+  const el=document.getElementById("status");
+  if(STATE.activeTab==="live"||VIEW_MODE){
+    if(isLiveConnected()){ el.textContent=liveStatusText(STATE.live.last); return; }
+    if(s===t("connecting")||s===t("waitingRec")) return;
+    const errPre=t("errPrefix","");
+    if(typeof s==="string" && errPre && s.startsWith(errPre.replace("%s",""))){ el.textContent=s; return; }
+    if(STATE.live.last){ el.textContent=liveStatusText(STATE.live.last); return; }
+  }
+  el.textContent=s;
+}
+function isLiveConnected(){
+  const p=STATE.live&&STATE.live.last;
+  return !!(p && (p.connection.state==="connected" || p.source==="mock"));
+}
+function liveStatusText(payload){
+  if(!payload) return t("liveStatusWait");
+  const st=payload.connection&&payload.connection.state||"waiting";
+  const src=payload.source||"";
+  if(st==="connected"&&src==="lmu") return t("liveStatusLMU");
+  if(st==="connected"||src==="mock") return t("liveStatusMock");
+  return t("liveStatusWait");
+}
+function updateLiveTabChrome(){
+  const onLive=STATE.activeTab==="live" || VIEW_MODE;
+  document.body.classList.toggle("live-tab-active", onLive);
+  updateConnBannerVisibility();
+  if(onLive && STATE.live.last) setStatus(liveStatusText(STATE.live.last));
+}
 function setLoading(on){ document.body.classList.toggle("loading", !!on); }
 function arrMax(a, fn){ let m=-Infinity; for(let i=0;i<a.length;i++){ const v=fn?fn(a[i]):a[i]; if(v>m)m=v; } return m; }
 function arrMin(a, fn){ let m=Infinity; for(let i=0;i<a.length;i++){ const v=fn?fn(a[i]):a[i]; if(v<m)m=v; } return m; }
@@ -855,7 +896,7 @@ function setLang(l){
   applyStaticI18n();
   if(STATE.model){ renderMeta(); renderWeather(); refreshRefSrc(); recompute(); renderDiag();
     renderSession(); renderTyres(); renderSetup(); pitPrefill(STATE.model); renderPit();
-    setStatus(t("loaded", STATE.model.laps.length, STATE.model.laps.filter(l=>l.complete).length)); }
+    if(STATE.activeTab!=="live"&&!VIEW_MODE) setStatus(t("loaded", STATE.model.laps.length, STATE.model.laps.filter(l=>l.complete).length)); }
   else if(STATE.sessions&&STATE.sessions.length){ buildSessionSelect(); }
   if(STATE.live&&STATE.live.last) renderLive(STATE.live.last);
 }
@@ -1489,7 +1530,7 @@ function showBridgeHelp(info){
   showConn(h);
   document.getElementById("app").style.display="";
   if(!STATE.loadedKey && !VIEW_MODE) switchTab("live");
-  if(!(STATE.live.last && (STATE.live.last.connection.state==="connected" || STATE.live.last.source==="mock")))
+  if(!(STATE.activeTab==="live"||VIEW_MODE) && !(STATE.live.last && isLiveConnected()))
     setStatus(info.empty?t("waitingRec"):t("connecting"));
   updateConnBannerVisibility();
 }
@@ -1510,10 +1551,11 @@ function updateLmuLed(payload){
   const st=payload.connection&&payload.connection.state||"waiting";
   const src=payload.source||"";
   el.classList.remove("on","mock","wait");
-  if(st==="connected"&&src==="lmu"){ el.classList.add("on"); lbl.textContent=t("liveConnLMU"); setStatus(t("liveStatusLMU")); }
-  else if(st==="connected"||src==="mock"){ el.classList.add("mock"); lbl.textContent=t("liveConnMock"); setStatus(t("liveStatusMock")); }
-  else { el.classList.add("wait"); lbl.textContent=t("liveConnWait"); setStatus(t("liveStatusWait")); }
+  if(st==="connected"&&src==="lmu"){ el.classList.add("on"); lbl.textContent=t("liveConnLMU"); }
+  else if(st==="connected"||src==="mock"){ el.classList.add("mock"); lbl.textContent=t("liveConnMock"); }
+  else { el.classList.add("wait"); lbl.textContent=t("liveConnWait"); }
   el.title=(payload.connection&&payload.connection.message)||lbl.textContent;
+  if(STATE.activeTab==="live"||VIEW_MODE) document.getElementById("status").textContent=liveStatusText(payload);
 }
 function fmtLiveGap(sec,laps){
   if(laps>0) return "L"+laps;
@@ -1527,35 +1569,46 @@ function fmtRemTime(sec){
   return m+":"+String(s).padStart(2,"0");
 }
 function renderLiveRaceHdr(payload){
-  const el=document.getElementById("liveRaceHdr"); if(!el) return;
-  const sess=payload.session||{}, pos=payload.position||{}, flags=payload.flags||{};
+  const titleEl=document.getElementById("liveRaceTitle"), metaEl=document.getElementById("liveRaceMeta");
+  if(!titleEl||!metaEl) return;
+  const sess=payload.session||{}, pos=payload.position||{}, flags=payload.flags||{}, veh=payload.vehicle||{};
   const flagTxt=flags.yellow?t("liveFlagYellow"):t("liveFlagNone");
-  el.innerHTML=`<div class="race-title">${escapeHtml(sess.track||"—")} · ${escapeHtml(sess.session_type||"")}${flags.yellow?' <span class="flag-yellow">'+flagTxt+'</span>':''}</div>`
-    +`<div class="racegrid">`
-    +pitKpi(t("liveRacePlace"), pos.place!=null?"#"+pos.place:"—", payload.vehicle&&payload.vehicle.driver?escapeHtml(payload.vehicle.driver):"")
-    +pitKpi(t("liveRaceGapLeader"), fmtLiveGap(pos.gap_leader, pos.laps_behind_leader), t("liveRelLeader"))
-    +pitKpi(t("liveRaceGapAhead"), pos.gap_ahead!=null?"+"+pos.gap_ahead.toFixed(3)+" s":"—", "")
-    +pitKpi(t("liveRaceGapBehind"), pos.gap_behind!=null?"+"+pos.gap_behind.toFixed(3)+" s":"—", "")
-    +pitKpi(t("liveRaceTimeLeft"), fmtRemTime(sess.session_time_remaining), sess.max_laps?("max "+sess.max_laps+" laps"):"")
-    +pitKpi(t("liveRaceFlag"), flagTxt, flags.yellow_state||"")
-    +`</div>`;
+  titleEl.innerHTML=`${escapeHtml(sess.track||"—")} · ${escapeHtml(sess.session_type||"")}${flags.yellow?' <span class="flag-yellow">'+flagTxt+'</span>':""}`;
+  metaEl.innerHTML=[
+    `<span><b>${escapeHtml(veh.driver||"—")}</b>${veh.name?(" · "+escapeHtml(veh.name)):""}</span>`,
+    `<span>${t("liveRacePlace")}: ${pos.place!=null?"#"+pos.place:"—"}</span>`,
+    `<span>${t("liveRaceGapLeader")}: ${fmtLiveGap(pos.gap_leader, pos.laps_behind_leader)}</span>`,
+    `<span>${t("liveRaceGapAhead")}: ${pos.gap_ahead!=null?"+"+pos.gap_ahead.toFixed(3)+" s":"—"}</span>`,
+    `<span>${t("liveRaceGapBehind")}: ${pos.gap_behind!=null?"+"+pos.gap_behind.toFixed(3)+" s":"—"}</span>`,
+    `<span>${t("liveRaceTimeLeft")}: ${fmtRemTime(sess.session_time_remaining)}</span>`,
+  ].join("");
 }
-function sectorLiveCell(label, curSec, bestSec, isCur){
-  let cls=isCur?" sector-cur":"";
-  if(curSec!=null&&bestSec!=null&&curSec>0&&bestSec>0){
-    const d=curSec-bestSec;
-    if(d>0.05) cls+=" sector-slower";
-    else if(d<-0.05) cls+=" sector-faster";
-    else if(Math.abs(d)<=0.05) cls+=" sector-best";
-  }
+function sectorDeltaClass(curSec, bestSec){
+  if(curSec==null||bestSec==null||!(curSec>0)||!(bestSec>0)) return "";
+  const d=curSec-bestSec;
+  if(d<-0.05) return " sector-faster";
+  if(Math.abs(d)<=0.05) return " sector-best";
+  if(d<=0.15) return " sector-close";
+  return " sector-slower";
+}
+function sectorLiveCell(curSec, bestSec, isCur){
+  const cls=(isCur?" sector-cur":"")+sectorDeltaClass(curSec, bestSec);
   return `<td class="${cls.trim()}">${curSec!=null&&curSec>0?curSec.toFixed(3):"—"}</td>`;
+}
+function bestSectorSec(best, key){
+  if(best[key+"_seconds"]>0) return best[key+"_seconds"];
+  const raw=best[key];
+  if(!raw||raw==="--:--.---") return null;
+  const p=String(raw).split(":");
+  if(p.length===2) return parseFloat(p[0])*60+parseFloat(p[1]);
+  return parseFloat(raw)||null;
 }
 function renderLiveSectors(payload){
   const el=document.getElementById("liveSectorTable"); if(!el) return;
   const laps=payload.laps||{}, sec=laps.sectors||{}, best=laps.best_sectors||{}, cur=laps.sector||0;
   const cs=sec, bs=best;
   el.innerHTML=`<table class="pit setuptbl live-sector" style="font-size:12.5px"><thead><tr><th></th><th>S1</th><th>S2</th><th>S3</th></tr></thead><tbody>`
-    +`<tr><td>${t("lapN", laps.lap_number||"?")}</td>${sectorLiveCell("s1",cs.s1_seconds,bs.s1_seconds,cur===1)}${sectorLiveCell("s2",cs.s2_seconds,bs.s2_seconds,cur===2)}${sectorLiveCell("s3",cs.s3_seconds,bs.s3_seconds,cur===3)}</tr>`
+    +`<tr><td>${t("lapN", laps.lap_number||"?")}</td>${sectorLiveCell(cs.s1_seconds,bestSectorSec(bs,"s1"),cur===1)}${sectorLiveCell(cs.s2_seconds,bestSectorSec(bs,"s2"),cur===2)}${sectorLiveCell(cs.s3_seconds,bestSectorSec(bs,"s3"),cur===3)}</tr>`
     +`<tr><td>⭐ ${t("theoBest")}</td><td class="sector-best">${bs.s1||"—"}</td><td class="sector-best">${bs.s2||"—"}</td><td class="sector-best">${bs.s3||"—"}</td></tr>`
     +`</tbody></table>`;
 }
@@ -1606,14 +1659,17 @@ function seedLiveFuelFromPayload(payload){
 }
 function defaultLiveLapSec(payload){
   const laps=payload.laps||{};
-  if(laps.last_seconds>0) return laps.last_seconds;
-  if(laps.best_seconds>0) return laps.best_seconds;
+  if(laps.last_seconds>30) return laps.last_seconds;
+  if(laps.best_seconds>30) return laps.best_seconds;
   const sess=payload.session||{};
   if(sess.session_time_remaining>0 && sess.max_laps && laps.lap_number>0){
     const rem=sess.max_laps-laps.lap_number;
-    if(rem>0) return sess.session_time_remaining/rem;
+    if(rem>0){
+      const est=sess.session_time_remaining/rem;
+      if(est>30) return est;
+    }
   }
-  return null;
+  return 222;
 }
 async function loadLiveShareInfo(){
   if(VIEW_MODE) return;
@@ -1645,13 +1701,6 @@ function renderLive(payload){
   renderLiveStandings(payload);
   drawLiveMiniMap(payload);
   const sess=payload.session||{}, veh=payload.vehicle||{}, inp=payload.inputs||{}, laps=payload.laps||{}, fuel=payload.fuel||{}, pos=payload.position||{};
-  document.getElementById("liveConnStats").innerHTML=
-    pitKpi(t("liveKConn"), payload.source==="lmu"?t("liveConnLMU"):t("liveConnMock"), escapeHtml(payload.connection&&payload.connection.message||""))+
-    pitKpi(t("liveKTrack"), escapeHtml(sess.track||"—"), escapeHtml(sess.session_type||""))+
-    pitKpi(t("liveKSession"), sess.in_realtime?t("liveYes"):t("liveNo"), sess.session_time_remaining!=null?Math.round(sess.session_time_remaining/60)+" min":"")+
-    pitKpi(t("liveKCar"), escapeHtml(veh.name||"—"), escapeHtml(veh.model||""))+
-    pitKpi(t("liveKDriver"), escapeHtml(veh.driver||"—"), pos.place?("#"+pos.place):"");
-  document.getElementById("liveConnHint").textContent="";
   document.getElementById("liveDriveStats").innerHTML=
     pitKpi(t("liveKSpeed"), (veh.speed_kmh!=null?veh.speed_kmh.toFixed(0)+" km/h":"—"), "")+
     pitKpi(t("liveKRpm"), veh.rpm!=null?Math.round(veh.rpm)+"":"—", veh.max_rpm?("/ "+Math.round(veh.max_rpm)):"")+
@@ -1691,11 +1740,15 @@ function renderLiveFuel(payload){
   let remLaps=parseInt(document.getElementById("lfTotalLaps").value,10);
   const remMin=parseFloat(document.getElementById("lfRemMin").value);
   let lapSec=parseFloat(document.getElementById("lfLapSec").value);
-  if(!lapSec||lapSec<30) lapSec=defaultLiveLapSec(payload);
+  const lapInput=document.getElementById("lfLapSec");
+  if(!Number.isFinite(lapSec)||lapSec<30){
+    lapSec=defaultLiveLapSec(payload);
+    if(!lapInput.dataset.userSet) lapInput.value=lapSec.toFixed(1);
+  }
   if(sess.max_laps&&laps.lap_number&&(!remLaps||remLaps<1)) remLaps=Math.max(1, sess.max_laps-laps.lap_number);
   if((!remLaps||remLaps<1)&&remMin>0&&lapSec>0) remLaps=Math.ceil(remMin*60/lapSec);
   if(remLaps>0 && !document.getElementById("lfTotalLaps").value) document.getElementById("lfTotalLaps").value=remLaps;
-  if(lapSec>0 && !document.getElementById("lfLapSec").value) document.getElementById("lfLapSec").value=lapSec.toFixed(1);
+  if(lapSec>0 && !lapInput.dataset.userSet && (!lapInput.value||parseFloat(lapInput.value)<30)) lapInput.value=lapSec.toFixed(1);
   const curLap=laps.lap_number||0;
   const summary=FS.summarizeFuelStrategy({
     currentLap:curLap,
@@ -1744,11 +1797,11 @@ function setLiveMode(mode){
 document.getElementById("liveModeAuto").onclick=()=>setLiveMode("auto");
 document.getElementById("liveModeMock").onclick=()=>setLiveMode("mock");
 document.getElementById("lmuConnLed").onclick=()=>switchTab("live");
-["lfManualPerLap","lfTotalLaps","lfRemMin","lfLapSec"].forEach(id=>{ const e=document.getElementById(id); if(e) e.addEventListener("input",()=>{ if(STATE.live.last) renderLiveFuel(STATE.live.last); }); });
+["lfManualPerLap","lfTotalLaps","lfRemMin","lfLapSec"].forEach(id=>{ const e=document.getElementById(id); if(e) e.addEventListener("input",()=>{ if(id==="lfLapSec") e.dataset.userSet="1"; if(STATE.live.last) renderLiveFuel(STATE.live.last); }); });
 if(VIEW_MODE){ document.getElementById("app").style.display=""; switchTab("live"); }
 else loadLiveShareInfo();
 startLiveStream();
-updateConnBannerVisibility();
+updateLiveTabChrome();
 
 function renderDiag(){
   const m=STATE.model;
@@ -2243,7 +2296,7 @@ function switchTab(name){
   STATE.activeTab=name;
   document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.tab===name));
   document.querySelectorAll("section[data-panel]").forEach(s=>s.style.display=s.dataset.panel===name?"":"none");
-  updateConnBannerVisibility();
+  updateLiveTabChrome();
   requestAnimationFrame(()=>requestAnimationFrame(()=>{redrawAll(); renderAllMaps(); if(name==="pit")renderPit(); if(name==="tyres")renderTyres(); if(name==="setup")renderSetup(); if(name==="session")renderSession(); if(name==="live"){ renderLive(STATE.live.last); drawLiveMiniMap(STATE.live.last||{}); }}));
 }
 document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>switchTab(t.dataset.tab));

@@ -31,7 +31,7 @@ const DUCKDB = path.join(DATA_DIR, "duckdbcli", process.platform === "win32" ? "
 const HTML = path.join(__dirname, "lmu-telemetry-analyzer.html"); // im pkg-Snapshot eingebettet
 const CHROME_PROFILE = path.join(DATA_DIR, "chrome-profile");
 const REPO = "mzluzifer/lmu-telemetry-analyzer";
-const APP_VERSION = "1.12.0";
+const APP_VERSION = "1.12.1";
 const { LiveTelemetryService, MODES } = require("./lmu-live");
 const liveService = new LiveTelemetryService({ mode: ARG["live-mode"] || process.env.LMU_LIVE_MODE || MODES.auto });
 const FUEL_STRATEGY = path.join(__dirname, "fuel-strategy.js");

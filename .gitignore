@@ -8,6 +8,7 @@ duckdb_cli.zip
 # Logs & temporäre Dateien
 *.log
 _*
+live-share-token.json
 
 # Browser-Profil des App-Fensters (Edge/Chrome --app-Modus)
 .app-profile/

@@ -26,6 +26,7 @@ class MockTelemetrySource {
       sector2Time: 0,
       fuel: 42.5,
       fuelCapacity: 90,
+      lapStartFuel: 44.7,
       maxLaps: 50,
       sessionTimeRemaining: 7200,
       seed: 42,
@@ -88,6 +89,7 @@ class MockTelemetrySource {
     this.state.lapDist += speedMs * dt;
     if (this.state.lapDist >= this.state.trackLength) {
       const fuelEnd = this.state.fuel;
+      const fuelStart = this.state.lapStartFuel != null ? this.state.lapStartFuel : fuelEnd + 2.1;
       this.state.lapNumber += 1;
       this.state.lastLap = 220 + this._rand() * 6;
       if (this.state.lastLap < this.state.bestLap) this.state.bestLap = this.state.lastLap;
@@ -96,14 +98,16 @@ class MockTelemetrySource {
       this.state.sector = 1;
       this.state.sector1Time = 0;
       this.state.sector2Time = 0;
-      const fuelStart = fuelEnd + (2.0 + this._rand() * 0.3);
       this.state.fuel = Math.max(0, fuelEnd - (2.0 + this._rand() * 0.3));
       this._fuelLapSamples.push({
         lap: prevLap,
         fuelStart,
         fuelEnd: this.state.fuel,
       });
+      this.state.lapStartFuel = this.state.fuel;
       if (this._fuelLapSamples.length > 24) this._fuelLapSamples.shift();
+    } else if (this.state.lapStartFuel == null) {
+      this.state.lapStartFuel = this.state.fuel;
     }
 
     const lapTime = this.state.elapsed - this.state.lapStart;
