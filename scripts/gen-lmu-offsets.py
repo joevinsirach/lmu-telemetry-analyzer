@@ -72,6 +72,8 @@ payload = {
         "lapStartET": off(LMUVehicleTelemetry, "mLapStartET"),
         "elapsedTime": off(LMUVehicleTelemetry, "mElapsedTime"),
         "vehicleName": off(LMUVehicleTelemetry, "mVehicleName"),
+        "vehicleModel": off(LMUVehicleTelemetry, "mVehicleModel"),
+        "maxGears": off(LMUVehicleTelemetry, "mMaxGears"),
         "trackName": off(LMUVehicleTelemetry, "mTrackName"),
         "localVelX": off(LMUVehicleTelemetry, "mLocalVel") + off(LMUVect3, "x"),
         "localVelZ": off(LMUVehicleTelemetry, "mLocalVel") + 16,

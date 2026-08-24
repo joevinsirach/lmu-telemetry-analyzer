@@ -29,7 +29,10 @@ const DUCKDB = path.join(DATA_DIR, "duckdbcli", process.platform === "win32" ? "
 const HTML = path.join(__dirname, "lmu-telemetry-analyzer.html"); // im pkg-Snapshot eingebettet
 const CHROME_PROFILE = path.join(DATA_DIR, "chrome-profile");
 const REPO = "mzluzifer/lmu-telemetry-analyzer";
-const APP_VERSION = "1.10.0";
+const APP_VERSION = "1.11.0";
+const { LiveTelemetryService, MODES } = require("./lmu-live");
+const liveService = new LiveTelemetryService({ mode: ARG["live-mode"] || process.env.LMU_LIVE_MODE || MODES.auto });
+const FUEL_STRATEGY = path.join(__dirname, "fuel-strategy.js");
 let HTML_BUF = null;
 function loadHtml() {
   if (HTML_BUF) return HTML_BUF;
@@ -382,8 +385,57 @@ async function handleRequest(req, res) {
     res.writeHead(204, { "cache-control": "public, max-age=86400" });
     return res.end();
   }
+  if (u.pathname === "/fuel-strategy.js") {
+    try {
+      const js = fs.readFileSync(FUEL_STRATEGY);
+      res.writeHead(200, { "content-type": "application/javascript; charset=utf-8", "cache-control": "no-cache" });
+      return res.end(js);
+    } catch (e) {
+      res.writeHead(404); return res.end("not found");
+    }
+  }
+  if (u.pathname === "/api/live") {
+    const mode = u.searchParams.get("mode");
+    if (mode === "mock" || mode === "shm" || mode === "auto") liveService.setMode(mode);
+    return json(res, 200, liveService.snapshot());
+  }
+  if (u.pathname === "/api/live/mode") {
+    if (req.method === "POST") {
+      let body = "";
+      for await (const chunk of req) body += chunk;
+      try {
+        const j = JSON.parse(body || "{}");
+        if (j.mode === "mock" || j.mode === "shm" || j.mode === "auto") liveService.setMode(j.mode);
+      } catch (_) {}
+    }
+    const snap = liveService.snapshot();
+    return json(res, 200, { mode: liveService.mode, connection: snap.connection, source: snap.source });
+  }
+  if (u.pathname === "/api/live/stream") {
+    res.writeHead(200, {
+      "content-type": "text/event-stream; charset=utf-8",
+      "cache-control": "no-cache",
+      connection: "keep-alive",
+    });
+    res.write(": connected\n\n");
+    const mode = u.searchParams.get("mode");
+    if (mode === "mock" || mode === "shm" || mode === "auto") liveService.setMode(mode);
+    const tickMs = Math.max(50, Math.min(500, parseInt(u.searchParams.get("interval") || "100", 10) || 100));
+    const timer = setInterval(() => {
+      if (res.writableEnded) return;
+      try {
+        const payload = liveService.snapshot();
+        res.write("data: " + JSON.stringify(payload) + "\n\n");
+      } catch (_) {}
+    }, tickMs);
+    req.on("close", () => { clearInterval(timer); try { res.end(); } catch (_) {} });
+    return;
+  }
   if (u.pathname === "/api/config") {
-    return json(res, 200, { telDir: TEL_DIR, port: PORT, duckdb: fs.existsSync(DUCKDB), version: APP_VERSION });
+    return json(res, 200, {
+      telDir: TEL_DIR, port: PORT, duckdb: fs.existsSync(DUCKDB), version: APP_VERSION,
+      live: { platform: process.platform, mode: liveService.mode },
+    });
   }
   if (u.pathname === "/api/version") {
     return new Promise(resolve => {

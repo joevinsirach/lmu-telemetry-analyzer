@@ -45,6 +45,8 @@
     "lapStartET": 24,
     "elapsedTime": 12,
     "vehicleName": 32,
+    "vehicleModel": 796,
+    "maxGears": 605,
     "trackName": 96,
     "localVelX": 184,
     "localVelZ": 200,

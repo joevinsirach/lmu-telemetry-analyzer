@@ -24,8 +24,10 @@ einen Boxenstopp-/Energie-Rechner und einen Setup-Vergleich.
 - 🛞 **Reifen & Bremsen** – Temperatur (innen/mitte/außen je Rad), Druck, Restprofil/Verschleiß, Bremstemperaturen + Hinweise zu Druck/Sturz/Balance.
 - 🔧 **Setup & Pace** – vergleicht zwei deiner Sessions: was am Setup geändert wurde und wie sich die Bestzeit verändert hat, plus Setup-Hinweise aus der Telemetrie. Inkl. einer Sektion mit Links zu externen **Setup-Anbietern**.
 - ⛽ **Boxenstopp-Rechner** – aus Rennlänge, Reifensätzen, Fahrern und der gemessenen Pace/Verbrauch: Stint-Längen, Ziel-Virtual-Energy pro Runde, schnellste Gesamtzeit-Strategie, Fahrer-Einteilung (berücksichtigt Energie **und** Reifenverschleiß). Plus **Lift-&-Coast-Streckenkarte**: zeigt die Anbremszonen mit dem größten Spritspar-Potenzial (① = beste Zone), mit dynamischer Lift-Distanz je nach Eintrittsgeschwindigkeit und wählbaren Strategien.
-- ⏺ **Live** – lädt nach jedem Stint automatisch die neue Aufnahme; während eine Aufnahme läuft (Datei gesperrt) wird die letzte fertige Session gezeigt.
-- 🌐 **Sprache** – Oberfläche per Klick umschaltbar zwischen **Deutsch und Englisch** (oben rechts).
+- 📡 **Live (In-Race)** – Echtzeit-Telemetrie aus dem offiziellen LMU-Shared-Memory (`LMU_Data`) oder **Demo-Modus** ohne laufendes Spiel: Speed, RPM, Gang, Pedale, Runden/Sektoren, Sprit, Reifen/Bremsen, Position/Gaps. Die **LED in der Kopfzeile** zeigt den Verbindungsstatus (LMU / Demo / Warten).
+- ⛽ **Sprit-Boxenstrategie (Live)** – Verbrauch pro Stint/Tour, fehlende Liter bis zum Rennende, Auffüll-Tabelle je Stopp-Tour (empfohlener Stopp hervorgehoben). Formeln transparent in der UI.
+- ⏺ **Auto-Reload** – lädt nach jedem Stint automatisch die neue DuckDB-Aufnahme; während eine Aufnahme läuft (Datei gesperrt) wird die letzte fertige Session gezeigt.
+- 🌐 **Sprache** – Oberfläche per Klick umschaltbar zwischen **Deutsch, Englisch und Französisch** (oben rechts).
 - 🪟 **Aufgeräumte Oberfläche** – **einklappbare Sidebar**, **Delta-Grafik** auch im Vergleich-Tab und Links zu **GitHub** und zum **YouTube-Kanal** in der Kopfzeile. Delta-Vergleiche ignorieren Out-/In-Laps konsequent als Referenz.
 
 ## Voraussetzungen
@@ -62,6 +64,17 @@ Der Telemetrie-Ordner wird automatisch über die Steam-Bibliotheken gefunden. Ab
 node lmu-bridge.js --dir="D:\Pfad\zu\Le Mans Ultimate\UserData\Telemetry"
 ```
 
+### Live-Tab & Demo
+
+- **Auto** (Standard): unter Windows wird `LMU_Data` gelesen, solange Le Mans Ultimate läuft; sonst Demo-Daten.
+- **Demo**: überzeugende Mock-Telemetrie zum Testen ohne LMU (funktioniert auf allen Betriebssystemen).
+- Live-Daten: `GET /api/live` oder Server-Sent Events unter `/api/live/stream`.
+
+Tests für die Sprit-Strategie-Mathematik:
+```
+npm test
+```
+
 ## Wie es funktioniert
 
 LMU schreibt die Telemetrie als **DuckDB-Datenbank** – eine Tabelle pro Kanal/Event (`value` bzw.
@@ -75,6 +88,12 @@ Vanilla JS, eigene Canvas-Charts, keine externen Libraries).
 
 Es werden **keine Daten hochgeladen**. Bestzeiten-Referenzen und der Session-Verlauf werden nur lokal im
 Browser (`localStorage`) gespeichert. Die Telemetriedateien bleiben auf deinem Rechner.
+
+## Français (aperçu)
+
+- **Onglet Live** : télémétrie en course via la mémoire partagée officielle `LMU_Data` (Windows) ou **mode démo** sans le jeu.
+- **Stratégie carburant** : consommé sur le relais, litres manquants pour finir, tableau d'appoint par tour d'arrêt aux stands.
+- Langue **FR** disponible en haut à droite (avec DE/EN).
 
 ## Lizenz
 
