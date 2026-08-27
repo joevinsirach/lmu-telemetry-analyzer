@@ -1,82 +1,86 @@
-# LMU Telemetrie-Analyse
+# LMU Télémétrie Analyse
 
-🌐 **Deutsch** · [English](README.en.md)
+🌐 **Français** · [English](README.en.md)
 
-Eine schlanke, lokale Web-App zur Analyse der **Le Mans Ultimate**-Telemetrie. Sie liest die vom Spiel
-aufgezeichneten **DuckDB-Telemetriedateien** (`UserData\Telemetry\*.duckdb`), lädt automatisch die neueste
-Aufnahme und zeigt dir, **wo du auf der Strecke Zeit verlierst** – plus Reifen-/Bremsen-Analyse,
-einen Boxenstopp-/Energie-Rechner und einen Setup-Vergleich.
+Une application web légère et locale pour analyser la télémétrie de **Le Mans Ultimate**. Elle lit les
+**fichiers de télémétrie DuckDB** enregistrés par le jeu (`UserData\Telemetry\*.duckdb`), charge
+automatiquement le dernier enregistrement et te montre **où tu perds du temps sur la piste** – avec en
+plus une analyse pneus/freins, un calculateur d'arrêts aux stands/énergie et une comparaison de setups.
 
-> Reine Lokal-App – läuft offline, keine Cloud, kein Account. Eine kleine Node-„Bridge" liest die
-> DuckDB-Dateien über die mitgelieferte DuckDB-CLI und liefert die HTML-Oberfläche unter `http://localhost:8777` aus.
+> Application 100 % locale – fonctionne hors ligne, pas de cloud, pas de compte. Un petit « pont » Node
+> lit les fichiers DuckDB via la CLI DuckDB fournie et sert l'interface HTML sur `http://localhost:8777`.
 
-## Features
+## Fonctionnalités
 
-- 🎯 **Wo verliere ich Zeit?** – Zeitdelta über die Runde, automatisch erkannte Verlustzonen mit konkreten Tipps (Bremspunkt, Mindestgeschwindigkeit, Gasannahme).
-- 📈 **Vergleich** – Speed / Gas / Bremse / Lenkung / Gang zweier Runden überlagert.
-- 🗺️ **Interaktive Streckenkarte** (groß, oben; auch im Vergleich- und Reifen-Tab) – mit der Maus über die Strecke fahren zeigt **Speed, Delta, Gas und Bremse** an dieser Stelle; umschaltbar Delta- (Gewinn/Verlust) oder Tempo-Färbung; im Reifen-Tab nach **Bremstemperatur** (Ø 4 Bremsen) eingefärbt; synchron mit den Charts. **Alle Streckenkarten sind zoombar** (Mausrad zoomen, ziehen zum Verschieben, Doppelklick = zurücksetzen).
-- 📂 **Referenz-Lap hochladen** – eigene **MoTeC `.ld`-Datei** als Referenzrunde laden und deine Runden dagegen vergleichen.
-- ⏱️ **Sektor-Zeiten** – S1/S2/S3 pro Runde, beste Sektoren hervorgehoben, theoretische Bestzeit.
-- 🌦️ **Wetter & Strecke** – Bedingungen, Luft-/Streckentemperatur, Wind, Nässe.
-- 🧭 **Gewinn/Verlust-Streckenkarte** – immer sichtbare Mini-Karte (Sidebar), grün = Zeit gewonnen, rot = verloren.
-- 📋 **Letzte Session** – Tabelle aller Runden: Zeit, Δ zur Bestzeit, Top-Speed, VE-/Sprit-/Reifenverbrauch pro Runde.
-- 🔄 **Versionscheck** – meldet automatisch, wenn auf GitHub ein neueres Release verfügbar ist.
-- 🛞 **Reifen & Bremsen** – Temperatur (innen/mitte/außen je Rad), Druck, Restprofil/Verschleiß, Bremstemperaturen + Hinweise zu Druck/Sturz/Balance.
-- 🔧 **Setup & Pace** – vergleicht zwei deiner Sessions: was am Setup geändert wurde und wie sich die Bestzeit verändert hat, plus Setup-Hinweise aus der Telemetrie. Inkl. einer Sektion mit Links zu externen **Setup-Anbietern**.
-- ⛽ **Boxenstopp-Rechner** – aus Rennlänge, Reifensätzen, Fahrern und der gemessenen Pace/Verbrauch: Stint-Längen, Ziel-Virtual-Energy pro Runde, schnellste Gesamtzeit-Strategie, Fahrer-Einteilung (berücksichtigt Energie **und** Reifenverschleiß). Plus **Lift-&-Coast-Streckenkarte**: zeigt die Anbremszonen mit dem größten Spritspar-Potenzial (① = beste Zone), mit dynamischer Lift-Distanz je nach Eintrittsgeschwindigkeit und wählbaren Strategien.
-- ⏺ **Live** – lädt nach jedem Stint automatisch die neue Aufnahme; während eine Aufnahme läuft (Datei gesperrt) wird die letzte fertige Session gezeigt.
-- 🌐 **Sprache** – Oberfläche per Klick umschaltbar zwischen **Deutsch und Englisch** (oben rechts).
-- 🪟 **Aufgeräumte Oberfläche** – **einklappbare Sidebar**, **Delta-Grafik** auch im Vergleich-Tab und Links zu **GitHub** und zum **YouTube-Kanal** in der Kopfzeile. Delta-Vergleiche ignorieren Out-/In-Laps konsequent als Referenz.
+- 🎯 **Où est-ce que je perds du temps ?** – Delta de temps sur le tour, zones de perte détectées automatiquement avec des conseils concrets (point de freinage, vitesse minimale, remise des gaz).
+- 📈 **Comparaison** – Vitesse / accélérateur / frein / direction / rapport de deux tours superposés.
+- 🗺️ **Carte de piste interactive** (grande, en haut ; aussi dans les onglets Comparaison et Pneus) – survoler la piste avec la souris affiche **vitesse, delta, accélérateur et frein** à cet endroit ; coloration commutable entre delta (gain/perte) ou vitesse ; dans l'onglet Pneus, coloration par **température de frein** (moyenne des 4 freins) ; synchronisée avec les graphiques. **Toutes les cartes de piste sont zoomables** (molette pour zoomer, glisser pour déplacer, double-clic pour réinitialiser).
+- 📂 **Import d'un tour de référence** – charge ton propre fichier **MoTeC `.ld`** comme tour de référence et compare tes tours par rapport à celui-ci.
+- ⏱️ **Temps aux secteurs** – S1/S2/S3 par tour, meilleurs secteurs mis en évidence, meilleur temps théorique.
+- 🌦️ **Météo & piste** – conditions, température air/piste, vent, humidité.
+- 🧭 **Carte de piste gain/perte** – mini-carte toujours visible (barre latérale), vert = temps gagné, rouge = temps perdu.
+- 📋 **Dernière session** – tableau de tous les tours : temps, Δ par rapport au meilleur temps, vitesse de pointe, consommation d'énergie virtuelle/carburant/pneus par tour.
+- 🔄 **Vérification de version** – t'avertit automatiquement quand une nouvelle version est disponible sur GitHub.
+- 🛞 **Pneus & freins** – température (intérieur/milieu/extérieur par roue), pression, profil restant/usure, températures de freins + conseils sur pression/carrossage/équilibrage.
+- 🔧 **Setup & rythme** – compare deux de tes sessions : ce qui a changé dans le setup et comment le meilleur temps a évolué, plus des conseils de setup basés sur la télémétrie. Inclut une section avec des liens vers des **fournisseurs de setups** externes.
+- ⛽ **Calculateur d'arrêts aux stands** – à partir de la longueur de course, des jeux de pneus, des pilotes et du rythme/de la consommation mesurés : durée des relais, énergie virtuelle cible par tour, stratégie au temps total le plus rapide, répartition des pilotes (tient compte à la fois de l'énergie **et** de l'usure des pneus). Plus une **carte de piste lift & coast** : montre les zones de freinage au meilleur potentiel d'économie de carburant (① = meilleure zone), avec une distance de lever de pied dynamique selon la vitesse d'entrée et des stratégies sélectionnables.
+- ⏺ **Live** – charge automatiquement le nouvel enregistrement après chaque relais ; pendant qu'un enregistrement est en cours (fichier verrouillé), la dernière session terminée est affichée.
+- 🌐 **Langue** – interface commutable en un clic entre **français, anglais et allemand** (en haut à droite).
+- 🪟 **Interface épurée** – **barre latérale rétractable**, **graphique de delta** aussi dans l'onglet Comparaison, et un bouton d'accueil dans l'en-tête. Les comparaisons de delta ignorent systématiquement les tours d'entrée/sortie de stand comme référence.
 
-## Voraussetzungen
+## Prérequis
 
-- Windows mit **Le Mans Ultimate** (PC, ab v1.2 mit nativer Telemetrie-Aufzeichnung).
-- **Node.js** – zum Ausführen der Bridge. Wird vom Starter **automatisch installiert bzw. heruntergeladen**, falls nicht vorhanden (per winget oder portabel ohne Adminrechte).
-- Telemetrie-Aufzeichnung in LMU aktiviert (siehe unten).
+- Windows avec **Le Mans Ultimate** (PC, à partir de la v1.2 avec enregistrement de télémétrie natif).
+- **Node.js** – pour exécuter le pont. Il est **installé/téléchargé automatiquement** par le lanceur s'il est absent (via winget ou en version portable, sans droits administrateur).
+- L'enregistrement de télémétrie doit être activé dans LMU (voir ci-dessous).
 
-## Telemetrie-Aufzeichnung in LMU aktivieren
+## Activer l'enregistrement de télémétrie dans LMU
 
-In `…\Le Mans Ultimate\UserData\player\Settings.JSON`:
+Dans `…\Le Mans Ultimate\UserData\player\Settings.JSON` :
 
 ```json
 "Automatically Record Telemetry": true
 ```
 
-(LMU vorher schließen.) Alternativ im Spiel unter *Optionen → Tastenbelegung* die Funktion
-**„Telemetry Recording"** auf eine Taste legen und pro Stint manuell starten. Danach entstehen
-`.duckdb`-Dateien in `UserData\Telemetry`.
+(Ferme LMU avant.) Alternative : dans le jeu, sous *Options → Configuration des touches*, assigne la
+fonction **« Telemetry Recording »** à une touche et démarre-la manuellement à chaque relais. Des
+fichiers `.duckdb` apparaissent ensuite dans `UserData\Telemetry`.
 
-## Starten
+## Démarrage
 
-**Am einfachsten – ohne Konsolenfenster:** **`LMU-Telemetry-Analyzer-Vx.x.x.exe`** doppelklicken. Die App startet
-komplett im Hintergrund (**kein schwarzes Kommandozeilenfenster**) und öffnet den Browser automatisch.
-Beenden über den **⏻-Button** oben rechts in der App. (DuckDB-CLI wird beim ersten Start geladen, falls
-nicht daneben vorhanden. Meldungen schreibt die App in `lmu-telemetrie.log` neben der EXE.)
+**Le plus simple – sans fenêtre de console :** double-clique sur **`LMU-Telemetry-Analyzer-Vx.x.x.exe`**.
+L'application démarre entièrement en arrière-plan (**pas de fenêtre noire en ligne de commande**) et
+ouvre le navigateur automatiquement. Pour quitter, utilise le **bouton ⏻** en haut à droite de
+l'application. (La CLI DuckDB est téléchargée au premier démarrage si elle n'est pas déjà présente à
+côté. Les messages de l'application sont écrits dans `lmu-telemetrie.log`, à côté de l'exécutable.)
 
-**Aus dem Quellcode (mit Node.js):** **`Start LMU Telemetrie.cmd`** doppelklicken. Beim ersten Start
-beschafft das Skript automatisch **Node.js** (falls nötig) und die **DuckDB-CLI**, startet die Bridge und
-öffnet `http://localhost:8777` im Browser.
+**Depuis les sources (avec Node.js) :** double-clique sur **`Start LMU Telemetrie.cmd`**. Au premier
+démarrage, le script récupère automatiquement **Node.js** (si nécessaire) et la **CLI DuckDB**, démarre
+le pont et ouvre `http://localhost:8777` dans le navigateur.
 
-Der Telemetrie-Ordner wird automatisch über die Steam-Bibliotheken gefunden. Abweichender Pfad:
+Le dossier de télémétrie est trouvé automatiquement via les bibliothèques Steam. Pour un chemin
+différent :
 ```
-node lmu-bridge.js --dir="D:\Pfad\zu\Le Mans Ultimate\UserData\Telemetry"
+node lmu-bridge.js --dir="D:\chemin\vers\Le Mans Ultimate\UserData\Telemetry"
 ```
 
-## Wie es funktioniert
+## Fonctionnement
 
-LMU schreibt die Telemetrie als **DuckDB-Datenbank** – eine Tabelle pro Kanal/Event (`value` bzw.
-`value1..4` pro Rad), plus Meta-Tabellen (`metadata`, `channelsList`, `eventsList`); das komplette
-Fahrzeug-Setup steckt als JSON in `metadata`. Da ein Browser DuckDB nicht direkt lesen kann, liest die
-Bridge (`lmu-bridge.js`) die Dateien über `duckdb.exe` und stellt sie als JSON bereit. Die gesamte
-Analyse (Runden-Erkennung, Delta, Reifen, Strategie) läuft im Browser (`lmu-telemetry-analyzer.html`,
-Vanilla JS, eigene Canvas-Charts, keine externen Libraries).
+LMU écrit la télémétrie sous forme de **base de données DuckDB** – une table par canal/événement
+(`value` ou `value1..4` par roue), plus des tables de métadonnées (`metadata`, `channelsList`,
+`eventsList`) ; le setup complet du véhicule est stocké en JSON dans `metadata`. Comme un navigateur ne
+peut pas lire DuckDB directement, le pont (`lmu-bridge.js`) lit les fichiers via `duckdb.exe` et les
+fournit en JSON. Toute l'analyse (détection des tours, delta, pneus, stratégie) s'exécute dans le
+navigateur (`lmu-telemetry-analyzer.html`, JavaScript pur, graphiques Canvas maison, aucune bibliothèque
+externe).
 
-## Datenschutz
+## Confidentialité
 
-Es werden **keine Daten hochgeladen**. Bestzeiten-Referenzen und der Session-Verlauf werden nur lokal im
-Browser (`localStorage`) gespeichert. Die Telemetriedateien bleiben auf deinem Rechner.
+**Aucune donnée n'est envoyée en ligne.** Les références de meilleurs temps et l'historique des sessions
+ne sont stockés que localement dans le navigateur (`localStorage`). Les fichiers de télémétrie restent
+sur ta machine.
 
-## Lizenz
+## Licence
 
-MIT – siehe [LICENSE](LICENSE). Kein offizielles Studio-397/Motorsport-Games-Produkt; „Le Mans Ultimate"
-ist Eigentum der jeweiligen Rechteinhaber.
+MIT – voir [LICENSE](LICENSE). Ce projet n'est pas un produit officiel Studio-397/Motorsport Games ;
+« Le Mans Ultimate » est la propriété de ses ayants droit respectifs.
