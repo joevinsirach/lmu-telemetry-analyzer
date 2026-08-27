@@ -1,8 +1,8 @@
 /* ===========================================================================
    LMU Telemetrie-Bridge
    Liest die von Le Mans Ultimate aufgezeichneten DuckDB-Telemetriedateien
-   (UserData\Telemetry\*.duckdb) über die mitgelieferte duckdb.exe und stellt
-   sie als JSON bereit. Liefert außerdem die HTML-App aus (gleiche Origin).
+   (UserData\Telemetry\*.duckdb) und optional den lokalen Ordner telemetry\
+   neben der App. Beide Quellen erscheinen gleichzeitig in der Session-Liste.
    Start:  node lmu-bridge.js  [--dir="<Pfad zu UserData\Telemetry>"] [--port=8777]
    =========================================================================== */
 "use strict";
@@ -180,13 +180,14 @@ function getLatestVersion(cb) {
     .on("error", () => cb(null, ""));
 }
 
-/* ---- Telemetrie-Ordner finden ---- */
-function findTelemetryDir() {
+/* ---- Telemetrie-Ordner finden (LMU-Spiel + lokaler Ordner telemetry/) ---- */
+function samePath(a, b) {
+  if (!a || !b) return false;
+  try { return path.resolve(a).toLowerCase() === path.resolve(b).toLowerCase(); } catch { return false; }
+}
+function findLmuTelemetryDir() {
   if (ARG.dir) return ARG.dir;
   if (process.env.LMU_TELEMETRY_DIR) return process.env.LMU_TELEMETRY_DIR;
-  const srcBase = process.env.LMU_APP_SRC || BASE;
-  const localTel = path.join(srcBase, "telemetry");
-  try { if (fs.existsSync(localTel)) return localTel; } catch {}
   const libs = [];
   const vdfs = [
     "C:\\Program Files (x86)\\Steam\\steamapps\\libraryfolders.vdf",
@@ -205,7 +206,20 @@ function findTelemetryDir() {
   }
   return null;
 }
-let TEL_DIR = findTelemetryDir();
+function findManualTelemetryDir() {
+  const srcBase = process.env.LMU_APP_SRC || BASE;
+  const localTel = path.join(srcBase, "telemetry");
+  try { if (fs.existsSync(localTel)) return localTel; } catch {}
+  return null;
+}
+function findTelemetryDirs() {
+  let lmuDir = findLmuTelemetryDir();
+  const manualDir = findManualTelemetryDir();
+  if (lmuDir && manualDir && samePath(lmuDir, manualDir)) lmuDir = null;
+  return { lmuDir, manualDir };
+}
+const TEL = findTelemetryDirs();
+const TEL_DIR = TEL.lmuDir || TEL.manualDir;
 
 /* ---- Gewünschte Kanäle (Name -> Ziel-Frequenz Hz fürs Downsampling) ---- */
 const WANT_CH = {
@@ -342,17 +356,46 @@ function sessionTimeFromName(file) {
   return m ? Date.parse(`${m[1]}:${m[2]}:${m[3]}`) || 0 : 0;
 }
 
+function listDirSessions(dir, src) {
+  if (!dir) return [];
+  try {
+    return fs.readdirSync(dir).filter(f => /\.duckdb$/i.test(f)).map(f => {
+      const st = fs.statSync(path.join(dir, f));
+      return { file: f, size: st.size, mtime: st.mtimeMs, sessionTime: sessionTimeFromName(f), src };
+    });
+  } catch (e) {
+    console.error("Telemetrie-Ordner unlesbar (" + src + "):", dir, e.message);
+    return [];
+  }
+}
 function listSessions() {
-  if (!TEL_DIR) return { error: "Telemetrie-Ordner nicht gefunden", telDir: null, sessions: [] };
+  if (!TEL.lmuDir && !TEL.manualDir)
+    return { error: "Telemetrie-Ordner nicht gefunden", telDir: null, lmuDir: null, manualDir: null, sessions: [] };
   let files = [];
   try {
-    files = fs.readdirSync(TEL_DIR).filter(f => /\.duckdb$/i.test(f)).map(f => {
-      const st = fs.statSync(path.join(TEL_DIR, f));
-      return { file: f, size: st.size, mtime: st.mtimeMs, sessionTime: sessionTimeFromName(f) };
-    }).sort((a, b) => b.mtime - a.mtime || b.sessionTime - a.sessionTime || b.file.localeCompare(a.file))
+    files = [...listDirSessions(TEL.lmuDir, "lmu"), ...listDirSessions(TEL.manualDir, "manual")]
+      .sort((a, b) => b.mtime - a.mtime || b.sessionTime - a.sessionTime || b.file.localeCompare(a.file) || a.src.localeCompare(b.src))
       .map(({ sessionTime, ...session }) => session);
-  } catch (e) { return { error: String(e.message), telDir: TEL_DIR, sessions: [] }; }
-  return { telDir: TEL_DIR, sessions: files };
+  } catch (e) {
+    return { error: String(e.message), telDir: TEL_DIR, lmuDir: TEL.lmuDir, manualDir: TEL.manualDir, sessions: [] };
+  }
+  return { telDir: TEL_DIR, lmuDir: TEL.lmuDir, manualDir: TEL.manualDir, sessions: files };
+}
+function resolveSessionFile(name, src) {
+  const bySrc = src === "manual" ? TEL.manualDir : src === "lmu" ? TEL.lmuDir : null;
+  const order = [bySrc, TEL.lmuDir, TEL.manualDir].filter(Boolean);
+  const seen = new Set();
+  for (const dir of order) {
+    const key = path.resolve(dir).toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const full = path.join(dir, name);
+    if (fs.existsSync(full)) {
+      const resolvedSrc = (TEL.manualDir && samePath(dir, TEL.manualDir)) ? "manual" : "lmu";
+      return { full, src: resolvedSrc, dir };
+    }
+  }
+  return null;
 }
 
 function sqlStr(s) { return "'" + String(s).replace(/'/g, "''") + "'"; }
@@ -361,8 +404,20 @@ function duckLockMsg(e) {
   const stderr = e && e.stderr ? e.stderr.toString() : "";
   return stderr || String((e && e.message) || e);
 }
+function isInvalidDb(msg) {
+  return /not a valid DuckDB database/i.test(msg);
+}
 function isLockErr(msg) {
-  return /lock|in use|conflicting|being used|could not set|already open|another process|verwendet wird|zugreifen|cannot open file|io error/i.test(msg);
+  if (isInvalidDb(msg)) return false;
+  // Kein pauschales "IO Error": DuckDB nutzt das auch für kaputte Dateien.
+  return /lock|in use|conflicting|being used|could not set|already open|another process|verwendet wird|zugreifen|cannot open file/i.test(msg);
+}
+function sessionOpenError(res, msg) {
+  if (isLockErr(msg))
+    return json(res, 423, { locked: true, error: "Aufnahme läuft – Datei ist gesperrt" });
+  if (isInvalidDb(msg))
+    return json(res, 422, { error: "Keine gültige DuckDB-Telemetriedatei" });
+  return json(res, 500, { error: msg.slice(0, 800) });
 }
 
 /* ---- HTTP ---- */
@@ -371,7 +426,7 @@ async function handleRequest(req, res) {
   // CORS nur für lokale Origins – sonst könnte jede besuchte Website die
   // Telemetrie auslesen oder die Bridge per /api/quit beenden.
   const origin = req.headers.origin || "";
-  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin))
+  if (/^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(origin))
     res.setHeader("Access-Control-Allow-Origin", origin);
   if (u.pathname === "/" || u.pathname === "/index.html") {
     const html = loadHtml();
@@ -383,7 +438,7 @@ async function handleRequest(req, res) {
     return res.end();
   }
   if (u.pathname === "/api/config") {
-    return json(res, 200, { telDir: TEL_DIR, port: PORT, duckdb: fs.existsSync(DUCKDB), version: APP_VERSION });
+    return json(res, 200, { telDir: TEL_DIR, lmuDir: TEL.lmuDir, manualDir: TEL.manualDir, port: PORT, duckdb: fs.existsSync(DUCKDB), version: APP_VERSION });
   }
   if (u.pathname === "/api/version") {
     return new Promise(resolve => {
@@ -404,45 +459,49 @@ async function handleRequest(req, res) {
   }
   if (u.pathname === "/api/session") {
     const name = u.searchParams.get("file") || "";
+    const src = u.searchParams.get("src") || "";
     if (!name || /[\\/]/.test(name) || !/\.duckdb$/i.test(name)) return json(res, 400, { error: "Ungültiger Dateiname" });
-    if (!TEL_DIR) return json(res, 500, { error: "Telemetrie-Ordner unbekannt" });
-    const full = path.join(TEL_DIR, name);
-    if (!fs.existsSync(full)) return json(res, 404, { error: "Datei nicht gefunden" });
+    if (src && src !== "lmu" && src !== "manual") return json(res, 400, { error: "Ungültige Quelle" });
+    if (!TEL.lmuDir && !TEL.manualDir) return json(res, 500, { error: "Telemetrie-Ordner unbekannt" });
+    const resolved = resolveSessionFile(name, src);
+    if (!resolved) return json(res, 404, { error: "Datei nicht gefunden" });
     try {
       const t0 = Date.now();
-      const data = await loadSession(full);
+      const data = await loadSession(resolved.full);
       data.loadMs = Date.now() - t0;
+      data.src = resolved.src;
+      data.telDir = resolved.dir;
       return json(res, 200, data);
     } catch (e) {
       const msg = duckLockMsg(e);
       console.error("[/api/session] Fehler:", msg.slice(0, 1000));
-      if (isLockErr(msg))
-        return json(res, 423, { locked: true, error: "Aufnahme läuft – Datei ist gesperrt" });
-      return json(res, 500, { error: msg.slice(0, 800) });
+      return sessionOpenError(res, msg);
     }
   }
   if (u.pathname === "/api/setup") {
     const name = u.searchParams.get("file") || "";
+    const src = u.searchParams.get("src") || "";
     if (!name || /[\\/]/.test(name) || !/\.duckdb$/i.test(name)) return json(res, 400, { error: "Ungültiger Dateiname" });
-    if (!TEL_DIR) return json(res, 500, { error: "Telemetrie-Ordner unbekannt" });
-    const full = path.join(TEL_DIR, name);
-    if (!fs.existsSync(full)) return json(res, 404, { error: "Datei nicht gefunden" });
+    if (src && src !== "lmu" && src !== "manual") return json(res, 400, { error: "Ungültige Quelle" });
+    if (!TEL.lmuDir && !TEL.manualDir) return json(res, 500, { error: "Telemetrie-Ordner unbekannt" });
+    const resolved = resolveSessionFile(name, src);
+    if (!resolved) return json(res, 404, { error: "Datei nicht gefunden" });
+    const full = resolved.full;
     try {
       return json(res, 200, { setup: await loadSetup(full) });
     } catch (e) {
       const msg = duckLockMsg(e);
-      if (isLockErr(msg))
-        return json(res, 423, { locked: true, error: "Aufnahme läuft – Datei ist gesperrt" });
-      return json(res, 500, { error: msg.slice(0, 500) });
+      return sessionOpenError(res, msg);
     }
   }
   res.writeHead(404); res.end("not found");
 }
-const server = http.createServer((req, res) => {
+function onRequest(req, res) {
   handleRequest(req, res).catch(e => {
     try { json(res, 500, { error: String(e.message || e) }); } catch (_) {}
   });
-});
+}
+const server = http.createServer(onRequest);
 function json(res, code, obj) {
   if (res.headersSent) return;
   res.writeHead(code, { "content-type": "application/json; charset=utf-8" });
@@ -451,7 +510,7 @@ function json(res, code, obj) {
 
 ensureDuckDB();
 loadHtml();
-server.on("error", err => {
+function onListenError(err) {
   if (err.code === "EADDRINUSE") {
     console.error("Port " + PORT + " bereits belegt – öffne die laufende Instanz.");
     if (!ARG["no-open"]) openApp();
@@ -460,15 +519,24 @@ server.on("error", err => {
   }
   console.error(err);
   process.exit(1);
-});
-// Nur an Loopback binden – die Bridge ist eine lokale App, kein LAN-Dienst.
+}
+server.on("error", onListenError);
+// Nur Loopback – IPv4 und IPv6. Chromium löst localhost oft als ::1 auf;
+// ohne IPv6-Bind schlägt fetch() mit ERR_CONNECTION_REFUSED fehl.
 server.listen(PORT, "127.0.0.1", () => {
   console.log("======================================================");
   console.log("  LMU Telemetrie-Analyse v" + APP_VERSION);
   console.log("  ▶  Eigenes App-Fenster (Adresse: http://localhost:" + PORT + ")");
-  console.log("  Telemetrie:     " + (TEL_DIR || "NICHT GEFUNDEN – mit --dir=... angeben"));
+  console.log("  Telemetrie LMU: " + (TEL.lmuDir || "nicht gefunden"));
+  console.log("  Telemetrie man.: " + (TEL.manualDir || "kein Ordner telemetry/"));
   console.log("  DuckDB CLI:     " + (fs.existsSync(DUCKDB) ? "ok" : "FEHLT"));
   console.log("  (Beenden: App-Fenster schließen, ⏻-Button oder Task-Manager.)");
   console.log("======================================================");
   if (!ARG["no-open"]) setTimeout(openApp, 800);
 });
+const server6 = http.createServer(onRequest);
+server6.on("error", err => {
+  if (err.code === "EADDRINUSE" || err.code === "EADDRNOTAVAIL" || err.code === "EAFNOSUPPORT") return;
+  console.error(err);
+});
+server6.listen(PORT, "::1");

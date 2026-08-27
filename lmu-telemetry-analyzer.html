@@ -47,11 +47,25 @@
   }
   aside{background:var(--panel);border-right:1px solid var(--line);overflow:auto;padding:12px}
   main{overflow:auto;padding:16px 18px}
+  aside,main{scrollbar-width:thin;scrollbar-color:#2a3344 transparent}
+  aside::-webkit-scrollbar,main::-webkit-scrollbar{width:6px}
+  aside::-webkit-scrollbar-track,main::-webkit-scrollbar-track{background:transparent}
+  aside::-webkit-scrollbar-thumb,main::-webkit-scrollbar-thumb{background:#2a3344;border-radius:6px}
+  aside::-webkit-scrollbar-thumb:hover,main::-webkit-scrollbar-thumb:hover{background:#3d4b5c}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:16px;box-shadow:var(--shadow)}
   .card h2{font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin:0 0 12px}
   .sec-title{font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin:4px 0 8px}
   label.fld{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:10px 0 4px}
   select{width:100%;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:7px;padding:7px 8px;font-size:13px}
+  #sessionSel.src-lmu{box-shadow:inset 3px 0 0 var(--cyan)}
+  #sessionSel.src-manual{box-shadow:inset 3px 0 0 var(--accent)}
+  #sessionSel option.src-lmu{color:var(--cyan)}
+  #sessionSel option.src-manual{color:var(--accent)}
+  .session-legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin:6px 0 0}
+  .session-legend span{display:inline-flex;align-items:center;gap:5px}
+  .session-legend i{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+  .session-legend i.lmu{background:var(--cyan)}
+  .session-legend i.manual{background:var(--accent)}
   table{width:100%;border-collapse:collapse;font-size:13px}
   th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
   th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.4px}
@@ -145,6 +159,10 @@
   <aside>
     <div class="sec-title" data-i18n="session">Session</div>
     <select id="sessionSel"></select>
+    <div id="sessionLegend" class="session-legend" style="display:none">
+      <span><i class="lmu"></i> <span data-i18n="srcLmu">LMU (Spiel)</span></span>
+      <span><i class="manual"></i> <span data-i18n="srcManual">Manuell hinzugefügt</span></span>
+    </div>
     <div id="metaCard" class="card" style="margin-top:10px;padding:11px 12px"></div>
     <div id="weatherCard" class="card" style="padding:11px 12px"></div>
     <div id="miniMapCard" class="card" style="padding:11px 12px;display:none">
@@ -324,7 +342,8 @@ const POLL_MS = 5000;
 
 const STATE = { sessions:[], cur:null, model:null, refLap:null, cmpLap:null,
                 refP:null, cmpP:null, ana:null, follow:true, loadedKey:null,
-                refSource:"session", uploadedRef:null, refInfo:null, newestLocked:false };
+                refSource:"session", uploadedRef:null, refInfo:null, newestLocked:false,
+                telDir:null, lmuDir:null, manualDir:null };
 
 /* ---------- API ---------- */
 async function apiGet(path, signal){
@@ -432,6 +451,7 @@ const STR = {
   noHints:"Keine klaren Setup-Tendenzen (Datenbasis evtl. zu klein – fahr ein paar schnelle Runden am Stück).",
   noComplete:"Keine vollständige Runde.", helpOffline:(m)=>`Die App läuft, aber die Bridge antwortet nicht (${m}). Starte sie über <b>Start LMU Telemetrie.cmd</b> und öffne dann <code>http://localhost:8777</code>.`,
   helpEmpty:(d)=>`Bridge läuft ✓, aber im Ordner <span class="mono">${d}</span> liegt noch keine <code>.duckdb</code>-Aufnahme. Aktiviere in LMU die Telemetrie-Aufzeichnung und fahre einen Stint.`,
+  srcLmu:"LMU (Spiel)", srcManual:"Manuell hinzugefügt", srcLmuShort:"LMU", srcManualShort:"Manuell",
   helpTitle:"Bridge nicht erreichbar oder keine Aufnahmen gefunden.", recBanner:(n,t)=>`⏺ <b>Aufnahme läuft gerade</b> (${n}, ${t}) – die Datei ist noch gesperrt. Angezeigt wird deine <b>letzte abgeschlossene Session</b>. Sobald du den Stint beendest oder in die Box fährst, lädt die App die neue Aufnahme automatisch.`,
   diagConn:(dir,file,st,len)=>`Bridge: <span class="ok">verbunden</span> · Ordner: <span class="mono">${dir}</span><br>Datei: <b>${file}</b> · Kanal-Startzeit: ${st} s · Strecke ${len} m`,
   errLoad:(m)=>`Fehler beim Laden: ${m}`, noGps:"Keine GPS-Koordinaten in dieser Aufnahme – Streckenkarte nicht verfügbar.", mapLegend:"Linie = Referenzrunde. Magenta-Punkte markieren die größten Zeitverlust-Zonen.", noGpsShort:"Keine GPS-Daten.",
@@ -530,6 +550,7 @@ const STR = {
   noHints:"No clear setup tendencies (data may be too little – drive a few fast laps in a row).",
   noComplete:"No complete lap.", helpOffline:(m)=>`The app is running, but the bridge isn't responding (${m}). Start it via <b>Start LMU Telemetrie.cmd</b> and open <code>http://localhost:8777</code>.`,
   helpEmpty:(d)=>`Bridge running ✓, but no <code>.duckdb</code> recording in <span class="mono">${d}</span> yet. Enable telemetry recording in LMU and drive a stint.`,
+  srcLmu:"LMU (game)", srcManual:"Added manually", srcLmuShort:"LMU", srcManualShort:"Manual",
   helpTitle:"Bridge unreachable or no recordings found.", recBanner:(n,t)=>`⏺ <b>Recording in progress</b> (${n}, ${t}) – the file is still locked. Showing your <b>last completed session</b>. As soon as you finish the stint or pit, the app loads the new recording automatically.`,
   diagConn:(dir,file,st,len)=>`Bridge: <span class="ok">connected</span> · folder: <span class="mono">${dir}</span><br>File: <b>${file}</b> · channel start: ${st} s · track ${len} m`,
   errLoad:(m)=>`Error while loading: ${m}`, noGps:"No GPS coordinates in this recording – track map not available.", mapLegend:"Line = reference lap. Magenta dots mark the biggest time-loss zones.", noGpsShort:"No GPS data.",
@@ -628,6 +649,7 @@ const STR = {
   noHints:"Pas de tendance setup claire (données peut-être insuffisantes – enchaîne quelques tours rapides).",
   noComplete:"Aucun tour complet.", helpOffline:(m)=>`L'app tourne, mais le bridge ne répond pas (${m}). Lance-le puis ouvre <code>http://localhost:8777</code>.`,
   helpEmpty:(d)=>`Bridge OK ✓, mais aucun enregistrement <code>.duckdb</code> dans <span class="mono">${d}</span>. Active l'enregistrement télémétrie dans LMU et fais un relais.`,
+  srcLmu:"LMU (jeu)", srcManual:"Ajouté manuellement", srcLmuShort:"LMU", srcManualShort:"Manuel",
   helpTitle:"Bridge injoignable ou aucun enregistrement trouvé.", recBanner:(n,t)=>`⏺ <b>Enregistrement en cours</b> (${n}, ${t}) – le fichier est encore verrouillé. Affichage de ta <b>dernière session terminée</b>. Dès que tu termines le relais ou rentres aux stands, l'app charge le nouvel enregistrement.`,
   diagConn:(dir,file,st,len)=>`Bridge : <span class="ok">connecté</span> · dossier : <span class="mono">${dir}</span><br>Fichier : <b>${file}</b> · début canal : ${st} s · circuit ${len} m`,
   errLoad:(m)=>`Erreur de chargement : ${m}`, noGps:"Pas de coordonnées GPS dans cet enregistrement – carte indisponible.", mapLegend:"Ligne = tour de référence. Les points magenta marquent les plus grandes zones de perte.", noGpsShort:"Pas de données GPS.",
@@ -689,7 +711,7 @@ function buildModel(js){
   const events = js.events||{};
   const cDist = findChan(channels, ALIAS.lapdist);
   const cSpeed = findChan(channels, ALIAS.speed);
-  if(!cDist){ return { error:t("missingLapDist"), channels, meta:js.meta, events, fileName:js.file }; }
+  if(!cDist){ return { error:t("missingLapDist"), channels, meta:js.meta, events, fileName:js.file, src:js.src||"", telDir:js.telDir||"" }; }
 
   const trackLen = arrMax(cDist.data, v=>isFinite(v)?v:-Infinity);
   // channelStartTs: Lap-Dist-Resets gegen Lap-Event matchen
@@ -723,7 +745,7 @@ function buildModel(js){
     laps.push({ index:laps.length, t0, t1, lapTime, trackLen, i0, i1, maxDist:maxD, complete,
                 outlap:(b===0), inlap:(b===bounds.length-2 && bounds.length>2) });
   }
-  return { fileName:js.file, meta:js.meta||{}, channels, events, wheels:js.wheels||{}, cDist, cSpeed, trackLen, channelStartTs, laps };
+  return { fileName:js.file, src:js.src||"", telDir:js.telDir||"", meta:js.meta||{}, channels, events, wheels:js.wheels||{}, cDist, cSpeed, trackLen, channelStartTs, laps };
 }
 const WHEEL_LABELS=["VL","VR","HL","HR"];   // FL,FR,RL,RR
 function wheelVal(wh,t){ // wert je Rad zur Zeit t (sek, relativ Aufnahmestart)
@@ -1168,16 +1190,52 @@ function renderMeta(){
   const rows=[[t("mTrack"),m.TrackName],[t("mVehicle"),m.CarName],[t("mClass"),m.CarClass],[t("mSession"),m.SessionType],[t("mWeather"),m.WeatherConditions],[t("mDriver"),m.DriverName],[t("mRecording"),(m.RecordingTime||"").replace("T"," ").replace("Z","").replace(/_/g,":")]];
   el.innerHTML='<div class="meta-grid">'+rows.filter(r=>r[1]).map(r=>`<div class="k">${r[0]}</div><div>${escapeHtml(r[1])}</div>`).join("")+'</div>';
 }
+function sessionId(s){ return (s.src||"lmu")+":"+s.file; }
+function parseSessionId(id){
+  const m=String(id||"").match(/^(lmu|manual):(.+)$/);
+  return m?{src:m[1],file:m[2]}:{src:"",file:id};
+}
+function sessionQs(id){
+  const p=typeof id==="object"?{src:id.src||"",file:id.file}:parseSessionId(id);
+  return "/api/session?file="+encodeURIComponent(p.file)+(p.src?"&src="+encodeURIComponent(p.src):"");
+}
+function setupQs(file, src){
+  return "/api/setup?file="+encodeURIComponent(file)+(src?"&src="+encodeURIComponent(src):"");
+}
+function tintSessionSelect(){
+  const sel=document.getElementById("sessionSel");
+  const s=STATE.sessions.find(x=>sessionId(x)===sel.value);
+  sel.classList.toggle("src-lmu", !s || s.src!=="manual");
+  sel.classList.toggle("src-manual", !!(s && s.src==="manual"));
+}
+function updateSessionLegend(){
+  const el=document.getElementById("sessionLegend"); if(!el) return;
+  const hasLmu=!!STATE.lmuDir || STATE.sessions.some(s=>s.src==="lmu");
+  const hasManual=!!STATE.manualDir || STATE.sessions.some(s=>s.src==="manual");
+  el.style.display=(hasLmu && hasManual)?"":"none";
+}
+function telDirsLabel(info){
+  const parts=[]; const seen=new Set();
+  for(const p of [info.lmuDir, info.manualDir, info.telDir]){
+    if(!p) continue; const k=String(p).toLowerCase(); if(seen.has(k)) continue; seen.add(k); parts.push(p);
+  }
+  return parts.join("  ·  ");
+}
 function buildSessionSelect(){
   const sel=document.getElementById("sessionSel");
-  // Nur neu aufbauen, wenn sich die Liste (oder die Sprache) geändert hat –
-  // sonst schließt der 5-s-Poll ein gerade geöffnetes Dropdown.
-  const key=LANG+";"+STATE.sessions.map(s=>s.file+"|"+s.mtime).join(";");
-  if(sel.dataset.key===key){ if(STATE.loadedKey&&sel.value!==STATE.loadedKey) sel.value=STATE.loadedKey; return; }
+  const key=LANG+";"+STATE.sessions.map(s=>sessionId(s)+"|"+s.mtime).join(";");
+  if(sel.dataset.key===key){ if(STATE.loadedKey&&sel.value!==STATE.loadedKey) sel.value=STATE.loadedKey; tintSessionSelect(); return; }
   sel.dataset.key=key;
-  sel.innerHTML=STATE.sessions.map((s,i)=>{ const nm=prettyName(s.file); const t=new Date(s.mtime).toLocaleString(loc()); return `<option value="${escapeHtml(s.file)}">${escapeHtml(nm)} · ${t}</option>`; }).join("");
+  sel.innerHTML=STATE.sessions.map(s=>{
+    const nm=prettyName(s.file); const tm=new Date(s.mtime).toLocaleString(loc());
+    const tag=s.src==="manual"?t("srcManualShort"):t("srcLmuShort");
+    const cls=s.src==="manual"?"src-manual":"src-lmu";
+    return `<option class="${cls}" style="color:${s.src==="manual"?"#ff7a00":"#39d0d8"}" value="${escapeHtml(sessionId(s))}">${escapeHtml(tag)} · ${escapeHtml(nm)} · ${tm}</option>`;
+  }).join("");
   if(STATE.loadedKey) sel.value=STATE.loadedKey;
-  sel.onchange=()=>{ STATE.follow=false; setLive(false); loadSession(sel.value); };
+  sel.onchange=()=>{ STATE.follow=false; setLive(false); loadSession(sel.value); tintSessionSelect(); };
+  tintSessionSelect();
+  updateSessionLegend();
 }
 function prettyName(f){ return f.replace(/\.duckdb$/i,"").replace(/_([A-Z])_/," · $1 · ").replace(/_\d{4}-\d\d-\d\dT.*$/,""); }
 function buildLapTable(){
@@ -1205,29 +1263,33 @@ function computeTopSpeeds(m){ const cs=m.cSpeed; if(!cs)return; const f=speedToK
 
 /* ---------- Laden ---------- */
 let loadGen=0, loadCtrl=null;
-async function loadSession(file){
+async function loadSession(id){
   const gen=++loadGen;
   if(loadCtrl) try{ loadCtrl.abort(); }catch(e){}
   loadCtrl=new AbortController();
   const signal=loadCtrl.signal;
+  const parsed=typeof id==="object"?{src:id.src||"",file:id.file}:parseSessionId(id);
+  const key=sessionId(parsed);
   try{
     setLoading(true);
-    setStatus(t("loadingFile",file));
-    const js=await apiGet("/api/session?file="+encodeURIComponent(file), signal);
+    setStatus(t("loadingFile",parsed.file));
+    const js=await apiGet(sessionQs(parsed), signal);
     if(gen!==loadGen) return "stale";
     const m=buildModel(js);
     computeSectors(m); computeTopSpeeds(m); computeConsumption(m);
     await recordSetupHistory(m, signal);
     if(gen!==loadGen) return "stale";
     if(m.error){ showConn(`<div class="banner err">${m.error}</div>`); }
-    STATE.model=m; STATE.loadedKey=file;
+    STATE.model=m; STATE.loadedKey=key;
+    if(js.telDir) STATE.telDir=js.telDir;
     const best=bestLap(m.laps);
     STATE.refLap=best;
     // Vergleichsrunde: nur vollständige Runden ohne Out-/In-Lap
     let others=m.laps.filter(l=>l!==best&&l.complete&&!l.outlap&&!l.inlap).sort((a,b)=>a.lapTime-b.lapTime);
     if(!others.length) others=m.laps.filter(l=>l!==best&&l.complete).sort((a,b)=>a.lapTime-b.lapTime);
     STATE.cmpLap=others[0]||best;
-    document.getElementById("sessionSel").value=file;
+    document.getElementById("sessionSel").value=key;
+    tintSessionSelect();
     refreshRefSrc(); pitPrefill(m);
     renderMeta(); renderWeather(); renderDiag(); document.getElementById("app").style.display="";
     if(!m.error) showConn("");
@@ -1250,11 +1312,11 @@ async function poll(){
   try{
     const r=await apiGet("/api/sessions");
     if(r.error){ showBridgeHelp(r); return; }
-    STATE.sessions=r.sessions||[]; STATE.telDir=r.telDir; checkVersion();
-    if(!STATE.sessions.length){ showBridgeHelp({telDir:r.telDir, empty:true}); return; }
+    STATE.sessions=r.sessions||[]; STATE.telDir=r.telDir; STATE.lmuDir=r.lmuDir; STATE.manualDir=r.manualDir; checkVersion();
+    if(!STATE.sessions.length){ showBridgeHelp({telDir:r.telDir, lmuDir:r.lmuDir, manualDir:r.manualDir, empty:true}); return; }
     buildSessionSelect();
     const newest=STATE.sessions[0];
-    if(STATE.follow){ if(STATE.loadedKey!==newest.file || STATE.newestLocked) await followLive(); }
+    if(STATE.follow){ if(STATE.loadedKey!==sessionId(newest) || STATE.newestLocked) await followLive(); }
     else if(!STATE.loadedKey){ await followLive(); }
     document.getElementById("liveToggle").classList.toggle("on",STATE.follow);
   }catch(e){
@@ -1265,14 +1327,15 @@ async function poll(){
 }
 async function followLive(){
   const newest=STATE.sessions[0]; if(!newest) return;
-  const res=await loadSession(newest.file);
+  const newestId=sessionId(newest);
+  const res=await loadSession(newest);
   if(res==="stale") return;
   if(res==="ok"){ STATE.newestLocked=false; return; }
   if(res==="locked"){
     STATE.newestLocked=true;
-    if(!STATE.loadedKey || STATE.loadedKey===newest.file){
+    if(!STATE.loadedKey || STATE.loadedKey===newestId){
       for(let i=1;i<STATE.sessions.length;i++){
-        const r=await loadSession(STATE.sessions[i].file);
+        const r=await loadSession(STATE.sessions[i]);
         if(r==="ok"||r==="stale") break;
       }
     }
@@ -1288,18 +1351,18 @@ function showBridgeHelp(info){
   document.getElementById("app").style.display="none";
   let h=`<div class="banner err"><b>${t("helpTitle")}</b><br>`;
   if(info.offline) h+=t("helpOffline",escapeHtml(info.msg||""));
-  else if(info.empty) h+=t("helpEmpty",escapeHtml(info.telDir||""));
+  else if(info.empty) h+=t("helpEmpty",escapeHtml(telDirsLabel(info)));
   else h+=escapeHtml(info.error||"?");
   h+='</div>';
   showConn(h); setStatus(t("waitingRec"));
 }
 function setLive(on){ STATE.follow=on; document.getElementById("liveToggle").classList.toggle("on",on); document.getElementById("liveLabel").textContent=on?t("live"):t("manual"); }
-document.getElementById("liveToggle").onclick=()=>{ setLive(!STATE.follow); if(STATE.follow&&STATE.sessions[0]) loadSession(STATE.sessions[0].file); };
+document.getElementById("liveToggle").onclick=()=>{ setLive(!STATE.follow); if(STATE.follow&&STATE.sessions[0]) loadSession(STATE.sessions[0]); };
 document.getElementById("btnReload").onclick=()=>{ if(STATE.loadedKey) loadSession(STATE.loadedKey); else poll(); };
 
 function renderDiag(){
   const m=STATE.model;
-  document.getElementById("diagConn").innerHTML=t("diagConn",escapeHtml(STATE.telDir||""),escapeHtml(m.fileName),(m.channelStartTs||0).toFixed(2),(m.trackLen||0).toFixed(0));
+  document.getElementById("diagConn").innerHTML=t("diagConn",escapeHtml(m.telDir||STATE.telDir||""),escapeHtml(m.fileName),(m.channelStartTs||0).toFixed(2),(m.trackLen||0).toFixed(0));
   document.getElementById("chanCount").textContent=m.channels.length;
   const tb=document.querySelector("#diagChans tbody");
   tb.innerHTML=m.channels.map(c=>{ let mn=Infinity,mx=-Infinity; for(let k=0;k<c.nData;k++){const v=c.data[k];if(v<mn)mn=v;if(v>mx)mx=v;} return `<tr><td>${escapeHtml(c.name)}${c.synth?' <span class="pill">synth</span>':''}</td><td>${escapeHtml(c.unit)}</td><td>${c.freq}</td><td>${c.nData}</td><td>${isFinite(mn)?mn.toFixed(2):"—"}</td><td>${isFinite(mx)?mx.toFixed(2):"—"}</td></tr>`; }).join("");
@@ -1732,7 +1795,7 @@ function setupLabel(k){ const [SL,WT]=setupDicts();
   return k.replace(/^VM_|^WM_/,"").replace(/_/g," ").toLowerCase(); }
 function countSetupChanges(a,b){ if(!a||!b)return 0; let n=0; new Set([...Object.keys(a),...Object.keys(b)]).forEach(k=>{ if(a[k]!==b[k])n++; }); return n; }
 async function recordSetupHistory(m, signal){
-  try{ const r=await apiGet("/api/setup?file="+encodeURIComponent(m.fileName), signal); m.setup=r.setup; }catch(e){ if(e&&e.name==="AbortError") throw e; m.setup=null; }
+  try{ const r=await apiGet(setupQs(m.fileName, m.src), signal); m.setup=r.setup; }catch(e){ if(e&&e.name==="AbortError") throw e; m.setup=null; }
   if(!m.setup) return;
   const hist=lsGet("lmuHist",[]); const compact={}; for(const k in m.setup) compact[k]=m.setup[k].s;
   const rec={file:m.fileName,track:m.meta.TrackName,car:m.meta.CarName,date:m.meta.RecordingTime,bestLap:m.bestLap,avgLap:m.avgLap,setup:compact};
