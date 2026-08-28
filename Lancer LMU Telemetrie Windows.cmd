@@ -1,5 +1,6 @@
 ﻿@echo off
 chcp 65001 >nul
+@echo off
 REM Lanceur rapide Windows — double-clic dans l'Explorateur.
 REM Pour un démarrage SANS fenêtre de console, double-clique
 REM   sur "LMU-Telemetrie.exe" (démarre entièrement en arrière-plan).
@@ -73,6 +74,7 @@ REM ============================================================
 REM  Démarrer le pont (ouvre le navigateur automatiquement)
 REM ============================================================
 "%NODE_EXE%" lmu-bridge.js
+if %ERRORLEVEL%==2 exit /b 0
 
 echo.
 echo Le pont a été arrêté.

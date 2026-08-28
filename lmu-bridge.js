@@ -8,10 +8,11 @@
 "use strict";
 const http = require("http");
 const https = require("https");
+const net = require("net");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
-const { execFileSync, execFile, exec, spawn } = require("child_process");
+const { execFileSync, execFile, spawn } = require("child_process");
 
 const ARG = Object.fromEntries(process.argv.slice(2).map(a => {
   const m = a.match(/^--([^=]+)=(.*)$/); return m ? [m[1], m[2]] : [a.replace(/^--/, ""), true];
@@ -113,7 +114,8 @@ function openBrowserTab() {
       const child = spawn("open", args, { detached: true, stdio: "ignore" });
       child.unref();
     } else if (process.platform === "win32") {
-      exec('start "" ' + url, { windowsHide: true });
+      const child = spawn("cmd.exe", ["/c", "start", "", url], { detached: true, stdio: "ignore", windowsHide: true });
+      child.unref();
     } else {
       const child = spawn("xdg-open", [url], { detached: true, stdio: "ignore" });
       child.unref();
@@ -158,6 +160,8 @@ function openApp() {
   const profile = CHROME_PROFILE;
   try { fs.mkdirSync(profile, { recursive: true }); } catch (_) {}
   try {
+    const started = Date.now();
+    let keepRunning = false;
     const child = spawn(browser, [
       "--app=" + url,
       "--user-data-dir=" + profile,
@@ -165,7 +169,19 @@ function openApp() {
       "--no-default-browser-check",
       "--window-size=1400,900",
     ], { stdio: "ignore" });   // KEIN windowsHide: das würde Edges/Chromes GUI-Fenster verstecken (SW_HIDE)
-    child.on("exit", () => { console.log("Fenêtre de l'app fermée — arrêt du pont."); process.exit(0); });
+    child.on("exit", () => {
+      // Même profil déjà ouvert, ou verrou Chrome : le process enfant meurt tout de suite
+      // sans fenêtre. On garde le pont et on ouvre un onglet visible.
+      if (!keepRunning && Date.now() - started < 3000) {
+        keepRunning = true;
+        console.log("Fenêtre --app indisponible — ouverture dans le navigateur.");
+        openBrowserTab();
+        return;
+      }
+      if (keepRunning) return;
+      console.log("Fenêtre de l'app fermée — arrêt du pont.");
+      process.exit(0);
+    });
     child.on("error", e => { console.error("Impossible de démarrer la fenêtre de l'app :", e.message); openBrowserTab(); });
   } catch (e) { console.error("Échec du démarrage de l'app :", e.message); openBrowserTab(); }
 }
@@ -564,20 +580,7 @@ function json(res, code, obj) {
 
 ensureDuckDB();
 loadHtml();
-function onListenError(err) {
-  if (err.code === "EADDRINUSE") {
-    console.error("Le port " + PORT + " est déjà utilisé — ouverture de l'instance en cours.");
-    if (!ARG["no-open"]) openApp();
-    setTimeout(() => process.exit(0), 1200);
-    return;
-  }
-  console.error(err);
-  process.exit(1);
-}
-server.on("error", onListenError);
-// Nur Loopback – IPv4 und IPv6. Chromium löst localhost oft als ::1 auf;
-// ohne IPv6-Bind schlägt fetch() mit ERR_CONNECTION_REFUSED fehl.
-server.listen(PORT, "127.0.0.1", () => {
+function onListening() {
   console.log("======================================================");
   console.log("  LMU Analyse télémétrie v" + APP_VERSION);
   console.log("  ▶  Fenêtre d'application (adresse : http://localhost:" + PORT + ")");
@@ -587,10 +590,57 @@ server.listen(PORT, "127.0.0.1", () => {
   console.log("  (Pour quitter : ferme la fenêtre de l'app, bouton ⏻ ou Gestionnaire des tâches.)");
   console.log("======================================================");
   if (!ARG["no-open"]) setTimeout(openApp, 800);
-});
-const server6 = http.createServer(onRequest);
-server6.on("error", err => {
-  if (err.code === "EADDRINUSE" || err.code === "EADDRNOTAVAIL" || err.code === "EAFNOSUPPORT") return;
+}
+function onListenError(err) {
+  if (err.code === "EADDRINUSE") {
+    console.error("Le port " + PORT + " est déjà utilisé par un autre programme.");
+    if (!ARG["no-open"]) openBrowserTab();
+    setTimeout(() => process.exit(2), 1500);
+    return;
+  }
   console.error(err);
-});
-server6.listen(PORT, "::1");
+  process.exit(1);
+}
+function startServers() {
+  server.on("error", onListenError);
+  // Nur Loopback – IPv4 und IPv6. Chromium löst localhost oft als ::1 auf;
+  // ohne IPv6-Bind schlägt fetch() mit ERR_CONNECTION_REFUSED fehl.
+  server.listen(PORT, "127.0.0.1", onListening);
+  const server6 = http.createServer(onRequest);
+  server6.on("error", err => {
+    if (err.code === "EADDRINUSE" || err.code === "EADDRNOTAVAIL" || err.code === "EAFNOSUPPORT") return;
+    console.error(err);
+  });
+  server6.listen(PORT, "::1");
+}
+function waitPortThenStart() {
+  const t0 = Date.now();
+  (function tick() {
+    const s = net.createServer();
+    s.once("error", () => {
+      if (Date.now() - t0 > 5000) return startServers();
+      setTimeout(tick, 150);
+    });
+    s.once("listening", () => s.close(() => startServers()));
+    s.listen(PORT, "127.0.0.1");
+  })();
+}
+function quitExistingThenStart() {
+  const req = http.get("http://127.0.0.1:" + PORT + "/api/config", { timeout: 800 }, res => {
+    let d = "";
+    res.on("data", c => d += c);
+    res.on("end", () => {
+      let ours = false;
+      try { const j = JSON.parse(d); ours = j && typeof j.duckdb === "boolean"; } catch (_) {}
+      if (!ours) return startServers();
+      console.log("Une instance est déjà en cours — redémarrage...");
+      http.get("http://127.0.0.1:" + PORT + "/api/quit", { timeout: 800 }, r => {
+        r.resume();
+        waitPortThenStart();
+      }).on("error", waitPortThenStart);
+    });
+  });
+  req.on("error", () => startServers());
+  req.on("timeout", () => { req.destroy(); startServers(); });
+}
+quitExistingThenStart();
