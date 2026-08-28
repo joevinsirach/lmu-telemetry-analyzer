@@ -139,6 +139,14 @@
   body.mode-track #liveToggle,body.mode-track #sessionSel,body.mode-track #sessionLegend,
   body.mode-track .session-only{display:none !important}
   body.mode-track #weatherCard{display:none}
+  .track-only{display:none}
+  body.mode-track .track-only{display:block}
+  .track-only-i{display:none}
+  body.mode-track .track-only-i{display:inline}
+  .tbar{height:7px;border-radius:4px;background:#0b0e13;overflow:hidden;border:1px solid var(--line);min-width:70px}
+  .tbar i{display:block;height:100%;background:var(--accent2)}
+  table.pool td,table.pool th{white-space:nowrap}
+  table.pool td.num,table.pool th.num{text-align:right;font-variant-numeric:tabular-nums}
   #gateScreen{display:none;min-height:calc(100% - var(--hdr-h,53px));align-items:center;justify-content:center;padding:32px 20px}
   body.mode-home #gateScreen,body.mode-pick #gateScreen{display:flex}
   .gate-inner{width:min(860px,100%)}
@@ -255,11 +263,12 @@
         <div class="tab active" data-tab="improve" data-i18n="tabImprove">🎯 Wo verliere ich Zeit?</div>
         <div class="tab" data-tab="compare" data-i18n="tabCompare">📈 Vergleich</div>
         <div class="tab session-only" data-tab="session" data-i18n="tabSession">📋 Letzte Session</div>
-        <div class="tab session-only" data-tab="tyres" data-i18n="tabTyres">🛞 Reifen &amp; Bremsen</div>
-        <div class="tab session-only" data-tab="setup" data-i18n="tabSetup">🔧 Setup &amp; Pace</div>
-        <div class="tab session-only" data-tab="channels" data-i18n="tabChannels">📊 Alle Kanäle</div>
-        <div class="tab session-only" data-tab="pit" data-i18n="tabPit">⛽ Boxenstopp-Rechner</div>
-        <div class="tab session-only" data-tab="diag" data-i18n="tabDiag">🔩 Diagnose</div>
+        <div class="tab track-only" data-tab="trackover" data-i18n="tabTrackOver">🗺️ Strecken-Übersicht</div>
+        <div class="tab" data-tab="tyres" data-i18n="tabTyres">🛞 Reifen &amp; Bremsen</div>
+        <div class="tab" data-tab="setup" data-i18n="tabSetup">🔧 Setup &amp; Pace</div>
+        <div class="tab" data-tab="channels" data-i18n="tabChannels">📊 Alle Kanäle</div>
+        <div class="tab" data-tab="pit" data-i18n="tabPit">⛽ Boxenstopp-Rechner</div>
+        <div class="tab" data-tab="diag" data-i18n="tabDiag">🔩 Diagnose</div>
       </div>
 
       <section data-panel="improve">
@@ -306,6 +315,16 @@
         <div class="card"><h2 data-i18n="sessOverview">Session-Übersicht</h2><div class="scrollx" id="sessionTable"></div></div>
       </section>
 
+      <section data-panel="trackover" style="display:none">
+        <div class="card"><h2 data-i18n="toTitle">Strecken-Übersicht</h2><div class="grid2" id="toKpis"></div></div>
+        <div class="card"><h2 data-i18n="toByCar">Bestzeit je Fahrzeug</h2><div class="scrollx" id="toByCar"></div></div>
+        <div class="card"><h2 data-i18n="toBySess">Sessions im Pool</h2><div class="scrollx" id="toBySess"></div></div>
+        <div class="card"><h2 data-i18n="toProgress">Entwicklung über die Zeit</h2><div class="scrollx" id="toProgress"></div>
+          <div class="hint" style="margin-top:8px" data-i18n="toProgressHint"></div></div>
+        <div class="card"><h2 data-i18n="toPitData">Werte für den Boxenstopp-Rechner</h2><div class="grid2" id="toPitData"></div>
+          <div class="hint" style="margin-top:8px" data-i18n="toPitDataHint"></div></div>
+      </section>
+
       <section data-panel="tyres" style="display:none">
         <div class="card"><h2 data-i18n="tyreMapTitle">Streckenkarte – Bremstemperatur (Ø 4 Bremsen)</h2>
           <div class="chartwrap"><canvas id="cTyreMap" height="300"></canvas><div class="tooltip" id="ttTyreMap"></div></div>
@@ -322,15 +341,18 @@
 
       <section data-panel="setup" style="display:none">
         <div class="card">
-          <h2 data-i18n="setupPaceTitle">Hat eine Setup-Änderung deine Pace verändert?</h2>
-          <div class="hint" data-i18n="setupPaceHint">Vergleicht zwei deiner aufgezeichneten Sessions (gleiches Auto + Strecke): was wurde geändert und wie hat sich die Bestzeit verändert. Sessions werden beim Laden automatisch im Browser gemerkt.</div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
+          <h2 class="session-only" data-i18n="setupPaceTitle">Hat eine Setup-Änderung deine Pace verändert?</h2>
+          <h2 class="track-only" data-i18n="setupTrackT">Setups vergleichen</h2>
+          <div class="hint session-only" data-i18n="setupPaceHint">Vergleicht zwei deiner aufgezeichneten Sessions (gleiches Auto + Strecke): was wurde geändert und wie hat sich die Bestzeit verändert. Sessions werden beim Laden automatisch im Browser gemerkt.</div>
+          <div class="hint track-only" data-i18n="setupTrackNote"></div>
+          <div class="session-only" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
             <div style="flex:1;min-width:200px"><label class="fld" data-i18n="sessionA">Session A (vorher)</label><select id="setupSelA"></select></div>
             <div style="flex:1;min-width:200px"><label class="fld" data-i18n="sessionB">Session B (nachher)</label><select id="setupSelB"></select></div>
           </div>
           <div id="setupPace" style="margin-top:12px"></div>
         </div>
-        <div class="card"><h2 data-i18n="setupDiffTitle">Geänderte Setup-Parameter (A → B)</h2><div class="scrollx" id="setupDiff"></div></div>
+        <div class="card"><h2 class="session-only" data-i18n="setupDiffTitle">Geänderte Setup-Parameter (A → B)</h2>
+          <h2 class="track-only" data-i18n="setupDiffTrackT">Unterschiede im Setup</h2><div class="scrollx" id="setupDiff"></div></div>
         <div class="card"><h2 data-i18n="setupHintsTitle">Setup-Hinweise aus der Telemetrie – wo ansetzen?</h2><div id="setupHints"></div></div>
         <div class="card">
           <h2 data-i18n="setupShopsTitle">Setup-Anbieter</h2>
@@ -346,6 +368,7 @@
       <section data-panel="channels" style="display:none">
         <div class="card"><h2 data-i18n="anyChannel">Beliebigen Kanal vergleichen</h2>
           <select id="chanSel" style="max-width:340px"></select>
+          <div class="hint track-only" id="chanNote" style="margin-top:8px"></div>
           <div class="chartwrap" style="margin-top:12px"><canvas id="cChan" height="240"></canvas><div class="tooltip" id="ttChan"></div></div></div>
       </section>
 
@@ -363,8 +386,14 @@
             <label><span data-i18n="tankCapInput">Tankinhalt (L, optional)</span><input id="piTank" type="number" min="0" step="1" value=""></label>
             <label><span data-i18n="wearPerLapInput">Reifenverschleiß / Runde (%)</span><input id="piWear" type="number" step="0.05" value=""></label>
             <label><span data-i18n="savePenaltyInput">Zeitverlust je % Sparen (s/Rd)</span><input id="piPenalty" type="number" step="0.05" value="0.2"></label>
+            <label><span data-i18n="tyreChgInput">Reifenwechsel Zusatzzeit (s)</span><input id="piTyreChg" type="number" min="0" max="120" step="1" value="12"></label>
+            <label><span data-i18n="drvChgInput">Fahrerwechsel Zusatzzeit (s)</span><input id="piDrvChg" type="number" min="0" max="120" step="1" value="8"></label>
+            <label><span data-i18n="degrInput">Reifen-Degradation (s/Rd Alter)</span><input id="piDegr" type="number" min="0" max="1" step="0.005" value=""></label>
+            <label><span data-i18n="fuelEffInput">Sprit-Effekt (s/Rd je L)</span><input id="piFuelEff" type="number" min="0" max="0.2" step="0.005" value="0.03"></label>
+            <label><span data-i18n="tyreEolInput">Rest-Gummi Minimum (%)</span><input id="piTyreEol" type="number" min="0" max="60" step="1" value="8"></label>
           </div>
           <div class="hint" id="piTeleNote" style="margin-top:10px"></div>
+          <div class="hint" id="piModelNote" style="margin-top:6px"></div>
         </div>
         <div class="card">
           <h2 data-i18n="liftCoastTitle">Lift &amp; Coast – beste Sprit-Spar-Zonen</h2>
@@ -374,6 +403,10 @@
           <div class="hint" id="pitMapHint" data-i18n="liftCoastHint" style="margin-top:6px"></div>
         </div>
         <div class="card"><h2 data-i18n="recommendation">Empfehlung – schnellste Gesamtzeit</h2><div id="piHead"></div></div>
+        <div class="card"><h2 data-i18n="stopPlanTitle">Stopp-Plan – Reifen wechseln oder nicht?</h2>
+          <div class="scrollx" id="piStopPlan"></div>
+          <div class="hint" id="piStopPlanNote" style="margin-top:6px"></div>
+        </div>
         <div class="card"><h2 data-i18n="driverSplit">Fahrer-Einteilung</h2><div id="piDriverPlan"></div></div>
         <div class="card"><h2 data-i18n="strategyCompare">Strategie-Vergleich</h2>
           <div class="scrollx"><table id="piTable" class="pit"><thead><tr><th data-i18n="thStops">Stopps</th><th data-i18n="thStints">Stints</th><th data-i18n="thLapsStint">Rd/Stint</th><th data-i18n="thMinStint">Min/Stint</th><th data-i18n="thVELap">VE %/Rd</th><th data-i18n="thSave">Sparen</th><th data-i18n="thLStint">L/Stint</th><th data-i18n="thTotalTime">Gesamtzeit</th><th data-i18n="thOk">OK</th></tr></thead><tbody></tbody></table></div>
@@ -383,7 +416,8 @@
 
       <section data-panel="diag" style="display:none">
         <div class="card"><h2 data-i18n="bridgeConn">Bridge / Verbindung</h2><div id="diagConn" class="mono"></div></div>
-        <div class="card"><h2><span data-i18n="channelsInSession">Kanäle in dieser Session</span> (<span id="chanCount">0</span>)</h2>
+        <div class="card"><h2><span class="session-only" data-i18n="channelsInSession">Kanäle in dieser Session</span><span class="track-only-i" data-i18n="diagPoolChanTitle">Kanäle im Pool</span> (<span id="chanCount">0</span>)</h2>
+          <div class="hint track-only" id="diagPoolNote" style="margin-bottom:8px" data-i18n="diagPoolChans"></div>
           <div class="scrollx"><table id="diagChans"><thead><tr><th data-i18n="thName">Name</th><th data-i18n="thUnit">Einheit</th><th>Hz</th><th data-i18n="thSamples">Samples</th><th>min</th><th>max</th></tr></thead><tbody></tbody></table></div></div>
       </section>
     </div>
@@ -452,6 +486,37 @@ const STR = {
   anyChannel:"Beliebigen Kanal vergleichen", raceData:"Renn-Eckdaten", raceLength:"Rennlänge (Minuten)", tyreSets:"Reifensätze", numDrivers:"Anzahl Fahrer",
   pitLoss:"Boxenstopp-Verlust (s)", avgLapInput:"Ø Rundenzeit (m:ss.s)", vePerLapInput:"Virtual Energy / Runde (%)", fuelPerLapInput:"Sprit / Runde (L)",
   wearPerLapInput:"Reifenverschleiß / Runde (%)", savePenaltyInput:"Zeitverlust je % Sparen (s/Rd)", tankCapInput:"Tankinhalt (L, optional)", recommendation:"Empfehlung – schnellste Gesamtzeit",
+  tyreChgInput:"Reifenwechsel Zusatzzeit (s)", drvChgInput:"Fahrerwechsel Zusatzzeit (s)", degrInput:"Reifen-Degradation (s/Rd Alter)",
+  fuelEffInput:"Sprit-Effekt (s/Rd je L)", tyreEolInput:"Rest-Gummi Minimum (%)", stopPlanTitle:"Stopp-Plan – Reifen wechseln oder nicht?", thTyreChanges:"Reifenw.",
+  degrTele:(d)=>`Reifen-Degradation aus der Telemetrie: <b>${d} s pro Runde Reifenalter</b>.`,
+  degrOverride:(d)=>`(Telemetrie schätzt ${d} – du hast den Wert überschrieben.)`,
+  degrManual:(d)=>`Reifen-Degradation von Hand gesetzt: <b>${d} s pro Runde Reifenalter</b>.`,
+  degrNone:"Zu wenige brauchbare Runden für eine Degradations-Schätzung – gerechnet wird ohne Reifenalterung. Fahre einen längeren Stint am Stück, dann schätzt die App den Wert selbst.",
+  dataBasis:(n,s,c)=>`Geschätzt auf ${n} Runden aus ${s} Stint${s===1?"":"s"} · Datenbasis ${c}.`,
+  confhi:"belastbar", confmid:"brauchbar", conflow:"dünn",
+  degrLowConf:"Bei so wenig Runden ist das eine Tendenz, keine Zahl zum Draufwetten.",
+  degrFuelCorr:(c,f)=>`Sprit-Korrektur: ${c} s/Rd der Rundenzeit-Drift gehen auf den leichter werdenden Wagen (${f} s/Rd je Liter) und zählen nicht als Reifenverschleiß.`,
+  degrNoFuel:"Kein Sprit-Kanal in der Aufnahme – die Degradation ist ohne Gewichtskorrektur geschätzt und damit eher zu niedrig.",
+  wearTele:(w,b,l,e)=>`Verschleiß: <b>${w} %/Rd</b> auf frischen Reifen, +${b} %/Rd je Runde Alter → nutzbar ~<b>${l}</b> Runden je Satz (bis ${e} % Rest-Gummi).`,
+  wearNoTrend:(w,l,e)=>`Verschleiß: <b>${w} %/Rd</b>, kein messbarer Trend → nutzbar ~<b>${l}</b> Runden je Satz (bis ${e} % Rest-Gummi).`,
+  wearUnknown:"Kein Verschleißwert – die Reifenlebensdauer begrenzt die Stintlänge hier nicht.",
+  pitModelNote:(fe,tc,eol)=>`Modell: Rundenzeit = Basis + Reifenalter × Degradation + Spritgewicht (${fe} s/Rd je Liter) + Lift&Coast-Aufschlag. Ein Reifenwechsel kostet netto ${tc} s, ein Satz gilt bis ${eol} % Rest-Gummi als brauchbar. Alle Werte oben lassen sich überschreiben.`,
+  kTyreSets:"Reifensätze", tyreSetsD:(c,tot)=>`${c} Wechsel · ${tot} verfügbar`,
+  kAgeLoss:"Verlust durch Reifenalter", ageLossD:(d)=>`${d} s/Rd je Runde Alter`,
+  kPitTime:"Zeit in der Box", pitTimeD:(p,tc,dc)=>`Stopps ${p} s · Reifen ${tc} s · Fahrer ${dc} s`,
+  kFuelWeight:"Verlust durch Spritgewicht", fuelWeightD:(f)=>`${f} s/Rd je Liter im Tank`,
+  tyreSetsUsed:(u,tot,c)=>`${u} von ${tot} Sätzen · ${c} Wechsel`, tyreSetsShort:"nicht genug Sätze für diese Stintlänge",
+  tyreLife:(l,w)=>` · ein Satz hält ~<b>${l}</b> Runden (${w} %/Rd frisch)`,
+  pitExplain2:(ms,pen)=>`„Schnellste Gesamtzeit" = kleinste Summe aus Fahrzeit, Boxenzeit, Reifenwechseln, Reifenalter und Spritgewicht – unter Einhaltung von Energie (≤ ${ms} % Sparen), Tank, Reifenlebensdauer und Satzanzahl. Sparen kostet ${pen} s/Runde je %.`,
+  planStop:"Stopp", planLap:"ca. Runde", planTyres:"Reifen", planFuel:"Nachtanken", planStint:"nächster Stint", planDriver:"Fahrer", planWhy:"Warum",
+  planStart:"Start", planTyreYes:"neu", planTyreNo:(a)=>`behalten (${a} Rd alt)`, planStintInfo:(l,mn)=>`${l} Rd · ~${mn} min`, planDrvChg:"Wechsel",
+  planWhyStart:"Startreifen – frischer Satz.", planWhyLife:"Satz am Ende seiner Lebensdauer – Wechsel ist Pflicht.",
+  planWhyGain:(s)=>`Frische Reifen bringen netto ~${s} s (Wechselzeit schon abgezogen).`,
+  planWhyKeep:(s)=>`Doppelstint: Reifen drauflassen spart ~${s} s gegenüber einem Wechsel.`,
+  planWhySets:"Kein frischer Satz mehr übrig – es wird durchgefahren.",
+  planNote:(tc)=>`Je Stopp wird verglichen: ${tc} s Wechselzeit gegen den Zeitverlust, den ältere Reifen über den nächsten Stint kosten. Lebensdauer und verfügbare Sätze sind harte Grenzen.`,
+  planNoPlan:"Erst eine machbare Strategie wählen, dann erscheint hier der Stopp-Plan.",
+  planNoTyrePlan:"Für diese Stint-Länge geht die Reifenrechnung nicht auf – die Sätze reichen nicht oder ein Stint ist länger als ein Satz hält. Wähle eine Strategie mit mehr Stopps.",
   driverSplit:"Fahrer-Einteilung", strategyCompare:"Strategie-Vergleich", thStops:"Stopps", thStints:"Stints", thLapsStint:"Rd/Stint", thMinStint:"Min/Stint",
   thVELap:"VE %/Rd", thSave:"Sparen", thLStint:"L/Stint", thTotalTime:"Gesamtzeit", thOk:"OK",
   strategyHint:'Grün = schnellste machbare Strategie. „Sparen" = nötiger Lift&Coast gegenüber deinem Telemetrie-Verbrauch (⚠ = mehr als machbar). Zeile anklicken, um eine Strategie zu wählen – die Lift-&-Coast-Punkte werden dafür neu berechnet.',
@@ -539,6 +604,27 @@ const STR = {
   modeSession:"Session-Modus", modeSessionDesc:"Eine Aufnahme wählen, dann Runden einzeln analysieren – wie bisher.",
   modeTrack:"Strecken-Modus", modeTrackDesc:"Alle Runden einer Strecke und Klasse zusammenführen und miteinander vergleichen.",
   backHome:"← Start", backTracks:"← Strecken", pickTrack:"Wähle eine Strecke aus deinen Telemetrie-Dateien.",
+  tabTrackOver:"🗺️ Strecken-Übersicht", toTitle:"Strecken-Übersicht", toLaps:"Runden im Pool", toSessions:"Sessions", toCars:"Fahrzeuge",
+  toBest:"Bestzeit", toMedian:"Median", toStdDev:"Streuung σ", toSpread:"Spanne (Best–P90)",
+  toByCar:"Bestzeit je Fahrzeug", toBySess:"Sessions im Pool", toProgress:"Entwicklung über die Zeit", toPitData:"Werte für den Boxenstopp-Rechner",
+  thCar:"Fahrzeug", thLaps:"Runden", thBest:"Bestzeit", thMedianL:"Median", thStd:"σ", thDeltaPool:"Δ Pool-Best", thDate:"Datum", thSessionF:"Aufnahme", thInSess:"Sessions",
+  toNoPool:"Kein Rundenpool geladen.",
+  toProgressHint:"Bestzeit je Session in zeitlicher Reihenfolge. Der Balken zeigt den Abstand zur Pool-Bestzeit, die letzte Spalte die Veränderung zur vorherigen Session.",
+  toPitDataHint:"Diese Pool-Werte füllen den Boxenstopp-Rechner vor (Median über alle Pool-Runden). Im Rechner selbst überschreibbar.",
+  trackLoading:"Lade Detaildaten der Quell-Session …",
+  trackLocked:"Quell-Session gesperrt (Aufnahme läuft) – später erneut versuchen.",
+  trackErr:(m)=>"Quell-Session nicht lesbar: "+m, trackNoLap:"Keine Pool-Runde gewählt.",
+  lapFromSess:(n,car,date)=>n+(car?" · "+car:"")+(date?" · "+date:""),
+  chanCommon:(n)=>n+" Kanäle in beiden Sessions vorhanden (Schnittmenge).",
+  chanSameSess:"Beide Runden aus derselben Session – alle Kanäle verfügbar.",
+  chanNoCommon:"Keine gemeinsamen Kanäle in beiden Sessions.",
+  setupTrackT:"Setups vergleichen (Referenz-Runde vs. Vergleichs-Runde)",
+  setupTrackNote:"Vergleicht das Setup der Session der Referenz-Runde mit dem der Vergleichs-Runde – auch über Fahrzeuge hinweg.",
+  setupDiffTrackT:"Unterschiede im Setup",
+  kRefLapS:"Referenz-Runde", kCmpLapS:"Vergleichs-Runde",
+  diagPool:(dir,track,cat,sess,laps)=>`Bridge: <span class="ok">verbunden</span> · Ordner: <span class="mono">${dir}</span><br>Strecken-Modus: <b>${track}</b> · ${cat} · ${sess} Sessions · ${laps} Runden im Pool`,
+  diagPoolChanTitle:"Kanäle im Pool",
+  diagPoolChans:"Kanäle aller Pool-Sessions. Die Spalte Sessions zeigt, in wie vielen Aufnahmen des Pools der Kanal vorkommt – nur Kanäle aus allen Sessions sind überall vergleichbar.",
   pickCat:"Wähle eine verfügbare Klasse auf dieser Strecke.", pickCatNamed:(tr)=>"Wähle eine Klasse auf "+tr+".",
   changeTrackCat:"Strecke / Klasse wechseln",
   catHypercar:"Hypercar", catP2:"P2", catP3:"P3", catGte:"GTE", catGt3:"GT3",
@@ -569,6 +655,37 @@ const STR = {
   anyChannel:"Compare any channel", raceData:"Race parameters", raceLength:"Race length (minutes)", tyreSets:"Tyre sets", numDrivers:"Number of drivers",
   pitLoss:"Pit stop loss (s)", avgLapInput:"Avg lap time (m:ss.s)", vePerLapInput:"Virtual energy / lap (%)", fuelPerLapInput:"Fuel / lap (L)",
   wearPerLapInput:"Tyre wear / lap (%)", savePenaltyInput:"Time loss per % saving (s/lap)", tankCapInput:"Fuel tank (L, optional)", recommendation:"Recommendation – fastest total time",
+  tyreChgInput:"Extra time for tyre change (s)", drvChgInput:"Extra time for driver change (s)", degrInput:"Tyre degradation (s/lap of age)",
+  fuelEffInput:"Fuel effect (s/lap per L)", tyreEolInput:"Minimum tread left (%)", stopPlanTitle:"Stop plan – change tyres or not?", thTyreChanges:"Tyre chg.",
+  degrTele:(d)=>`Tyre degradation from telemetry: <b>${d} s per lap of tyre age</b>.`,
+  degrOverride:(d)=>`(Telemetry estimates ${d} – you overrode the value.)`,
+  degrManual:(d)=>`Tyre degradation set manually: <b>${d} s per lap of tyre age</b>.`,
+  degrNone:"Too few usable laps to estimate degradation – calculated without tyre ageing. Run a longer stint back to back and the app will estimate it for you.",
+  dataBasis:(n,s,c)=>`Estimated on ${n} laps from ${s} stint${s===1?"":"s"} · data basis ${c}.`,
+  confhi:"solid", confmid:"usable", conflow:"thin",
+  degrLowConf:"With this few laps it is a trend, not a number to bet on.",
+  degrFuelCorr:(c,f)=>`Fuel correction: ${c} s/lap of the lap time drift comes from the car getting lighter (${f} s/lap per litre) and does not count as tyre wear.`,
+  degrNoFuel:"No fuel channel in the recording – degradation is estimated without weight correction, so it is likely underestimated.",
+  wearTele:(w,b,l,e)=>`Wear: <b>${w} %/lap</b> on fresh tyres, +${b} %/lap per lap of age → usable for ~<b>${l}</b> laps per set (down to ${e} % tread left).`,
+  wearNoTrend:(w,l,e)=>`Wear: <b>${w} %/lap</b>, no measurable trend → usable for ~<b>${l}</b> laps per set (down to ${e} % tread left).`,
+  wearUnknown:"No wear figure – tyre life is not limiting stint length here.",
+  pitModelNote:(fe,tc,eol)=>`Model: lap time = base + tyre age × degradation + fuel weight (${fe} s/lap per litre) + lift&coast penalty. A tyre change costs ${tc} s net, a set counts as usable down to ${eol} % tread left. Every value above can be overridden.`,
+  kTyreSets:"Tyre sets", tyreSetsD:(c,tot)=>`${c} change(s) · ${tot} available`,
+  kAgeLoss:"Loss from tyre age", ageLossD:(d)=>`${d} s/lap per lap of age`,
+  kPitTime:"Time in the pits", pitTimeD:(p,tc,dc)=>`stops ${p} s · tyres ${tc} s · drivers ${dc} s`,
+  kFuelWeight:"Loss from fuel weight", fuelWeightD:(f)=>`${f} s/lap per litre on board`,
+  tyreSetsUsed:(u,tot,c)=>`${u} of ${tot} sets · ${c} change(s)`, tyreSetsShort:"not enough sets for this stint length",
+  tyreLife:(l,w)=>` · one set lasts ~<b>${l}</b> laps (${w} %/lap when fresh)`,
+  pitExplain2:(ms,pen)=>`"Fastest total time" = smallest sum of driving time, pit time, tyre changes, tyre age and fuel weight – while respecting energy (≤ ${ms} % saving), tank, tyre life and the number of sets. Saving costs ${pen} s/lap per %.`,
+  planStop:"Stop", planLap:"approx. lap", planTyres:"Tyres", planFuel:"Refuel", planStint:"next stint", planDriver:"Driver", planWhy:"Why",
+  planStart:"Start", planTyreYes:"new", planTyreNo:(a)=>`keep (${a} laps old)`, planStintInfo:(l,mn)=>`${l} laps · ~${mn} min`, planDrvChg:"change",
+  planWhyStart:"Starting tyres – fresh set.", planWhyLife:"Set has reached the end of its life – a change is mandatory.",
+  planWhyGain:(s)=>`Fresh tyres gain ~${s} s net (change time already deducted).`,
+  planWhyKeep:(s)=>`Double stint: keeping the tyres saves ~${s} s versus changing.`,
+  planWhySets:"No fresh set left – running on.",
+  planNote:(tc)=>`At every stop we compare ${tc} s of change time against the time older tyres cost over the next stint. Tyre life and the available sets are hard limits.`,
+  planNoPlan:"Pick a feasible strategy first, then the stop plan appears here.",
+  planNoTyrePlan:"The tyre maths does not add up for this stint length – either you run out of sets or a stint is longer than a set lasts. Pick a strategy with more stops.",
   driverSplit:"Driver split", strategyCompare:"Strategy comparison", thStops:"Stops", thStints:"Stints", thLapsStint:"Laps/stint", thMinStint:"Min/stint",
   thVELap:"VE %/lap", thSave:"Save", thLStint:"L/stint", thTotalTime:"Total time", thOk:"OK",
   strategyHint:'Green = fastest feasible strategy. "Save" = required lift&coast vs your telemetry consumption (⚠ = more than feasible). Click a row to pick a strategy – the lift & coast points are recalculated for it.',
@@ -656,6 +773,27 @@ const STR = {
   modeSession:"Session mode", modeSessionDesc:"Pick a recorded session, then analyse lap by lap — as today.",
   modeTrack:"Track mode", modeTrackDesc:"Pool every lap for a track and class, then compare them with each other.",
   backHome:"← Home", backTracks:"← Tracks", pickTrack:"Pick a track found in your telemetry files.",
+  tabTrackOver:"🗺️ Track overview", toTitle:"Track overview", toLaps:"Laps in pool", toSessions:"Sessions", toCars:"Cars",
+  toBest:"Best lap", toMedian:"Median", toStdDev:"Consistency σ", toSpread:"Spread (best–P90)",
+  toByCar:"Best lap per car", toBySess:"Sessions in the pool", toProgress:"Progress over time", toPitData:"Values for the pit stop calculator",
+  thCar:"Car", thLaps:"Laps", thBest:"Best", thMedianL:"Median", thStd:"σ", thDeltaPool:"Δ pool best", thDate:"Date", thSessionF:"Recording", thInSess:"Sessions",
+  toNoPool:"No lap pool loaded.",
+  toProgressHint:"Best lap per session in chronological order. The bar shows the gap to the pool best, the last column the change versus the previous session.",
+  toPitDataHint:"These pool values pre-fill the pit stop calculator (median over all pool laps). You can override them in the calculator.",
+  trackLoading:"Loading detailed data of the source session …",
+  trackLocked:"Source session locked (recording in progress) – try again later.",
+  trackErr:(m)=>"Source session not readable: "+m, trackNoLap:"No pool lap selected.",
+  lapFromSess:(n,car,date)=>n+(car?" · "+car:"")+(date?" · "+date:""),
+  chanCommon:(n)=>n+" channels present in both sessions (intersection).",
+  chanSameSess:"Both laps from the same session – all channels available.",
+  chanNoCommon:"No channels common to both sessions.",
+  setupTrackT:"Compare setups (reference lap vs comparison lap)",
+  setupTrackNote:"Compares the setup of the reference lap's session with the comparison lap's session – across cars too.",
+  setupDiffTrackT:"Setup differences",
+  kRefLapS:"Reference lap", kCmpLapS:"Comparison lap",
+  diagPool:(dir,track,cat,sess,laps)=>`Bridge: <span class="ok">connected</span> · folder: <span class="mono">${dir}</span><br>Track mode: <b>${track}</b> · ${cat} · ${sess} sessions · ${laps} laps in the pool`,
+  diagPoolChanTitle:"Channels in the pool",
+  diagPoolChans:"Channels of all pool sessions. The Sessions column shows in how many recordings of the pool the channel appears – only channels present in every session are comparable everywhere.",
   pickCat:"Pick a class available on this track.", pickCatNamed:(tr)=>"Pick a class at "+tr+".",
   changeTrackCat:"Change track / class",
   catHypercar:"Hypercar", catP2:"P2", catP3:"P3", catGte:"GTE", catGt3:"GT3",
@@ -686,6 +824,37 @@ const STR = {
   anyChannel:"Comparer n'importe quel canal", raceData:"Données de course", raceLength:"Durée de course (minutes)", tyreSets:"Trains de pneus", numDrivers:"Nombre de pilotes",
   pitLoss:"Perte d'arrêt aux stands (s)", avgLapInput:"Temps au tour moy. (m:ss.s)", vePerLapInput:"Virtual Energy / tour (%)", fuelPerLapInput:"Essence / tour (L)",
   wearPerLapInput:"Usure pneus / tour (%)", savePenaltyInput:"Perte de temps par % économisé (s/tour)", tankCapInput:"Réservoir (L, optionnel)", recommendation:"Recommandation – temps total le plus rapide",
+  tyreChgInput:"Temps additionnel changement pneus (s)", drvChgInput:"Temps additionnel changement pilote (s)", degrInput:"Dégradation pneus (s/tour d'âge)",
+  fuelEffInput:"Effet carburant (s/tour par L)", tyreEolInput:"Gomme restante mini (%)", stopPlanTitle:"Plan d'arrêt – changer les pneus ou pas ?", thTyreChanges:"Chg. pneus",
+  degrTele:(d)=>`Dégradation pneus mesurée sur ta télémétrie : <b>${d} s par tour d'âge du train</b>.`,
+  degrOverride:(d)=>`(La télémétrie estime ${d} – tu as remplacé la valeur.)`,
+  degrManual:(d)=>`Dégradation pneus saisie à la main : <b>${d} s par tour d'âge du train</b>.`,
+  degrNone:"Pas assez de tours exploitables pour estimer la dégradation – le calcul se fait sans vieillissement des pneus. Enchaîne un relais plus long et l'app l'estimera toute seule.",
+  dataBasis:(n,s,c)=>`Estimé sur ${n} tours de ${s} relais · données ${c}.`,
+  confhi:"solides", confmid:"utilisables", conflow:"minces",
+  degrLowConf:"Avec si peu de tours, c'est une tendance, pas un chiffre sur lequel parier.",
+  degrFuelCorr:(c,f)=>`Correction carburant : ${c} s/tour de la dérive vient de la voiture qui s'allège (${f} s/tour par litre) et ne compte pas comme usure pneu.`,
+  degrNoFuel:"Aucun canal essence dans l'enregistrement – la dégradation est estimée sans correction de poids, donc plutôt sous-évaluée.",
+  wearTele:(w,b,l,e)=>`Usure : <b>${w} %/tour</b> sur pneus neufs, +${b} %/tour par tour d'âge → utilisable ~<b>${l}</b> tours par train (jusqu'à ${e} % de gomme restante).`,
+  wearNoTrend:(w,l,e)=>`Usure : <b>${w} %/tour</b>, pas de tendance mesurable → utilisable ~<b>${l}</b> tours par train (jusqu'à ${e} % de gomme restante).`,
+  wearUnknown:"Pas de valeur d'usure – ici la durée de vie des pneus ne limite pas la longueur de relais.",
+  pitModelNote:(fe,tc,eol)=>`Modèle : temps au tour = base + âge du train × dégradation + poids du carburant (${fe} s/tour par litre) + surcoût lift & coast. Un changement de pneus coûte ${tc} s net, un train reste utilisable jusqu'à ${eol} % de gomme. Toutes les valeurs ci-dessus sont modifiables.`,
+  kTyreSets:"Trains de pneus", tyreSetsD:(c,tot)=>`${c} changement(s) · ${tot} dispo`,
+  kAgeLoss:"Perte due à l'âge des pneus", ageLossD:(d)=>`${d} s/tour par tour d'âge`,
+  kPitTime:"Temps aux stands", pitTimeD:(p,tc,dc)=>`arrêts ${p} s · pneus ${tc} s · pilotes ${dc} s`,
+  kFuelWeight:"Perte due au poids du carburant", fuelWeightD:(f)=>`${f} s/tour par litre à bord`,
+  tyreSetsUsed:(u,tot,c)=>`${u} trains sur ${tot} · ${c} changement(s)`, tyreSetsShort:"pas assez de trains pour cette longueur de relais",
+  tyreLife:(l,w)=>` · un train tient ~<b>${l}</b> tours (${w} %/tour à neuf)`,
+  pitExplain2:(ms,pen)=>`« Temps total le plus rapide » = la plus petite somme entre temps de piste, temps aux stands, changements de pneus, âge des pneus et poids du carburant – en respectant l'énergie (≤ ${ms} % d'économie), le réservoir, la durée de vie des pneus et le nombre de trains. Économiser coûte ${pen} s/tour par %.`,
+  planStop:"Arrêt", planLap:"tour approx.", planTyres:"Pneus", planFuel:"À embarquer", planStint:"relais suivant", planDriver:"Pilote", planWhy:"Pourquoi",
+  planStart:"Départ", planTyreYes:"neufs", planTyreNo:(a)=>`gardés (${a} tours)`, planStintInfo:(l,mn)=>`${l} tours · ~${mn} min`, planDrvChg:"relais",
+  planWhyStart:"Pneus de départ – train neuf.", planWhyLife:"Train en fin de vie – le changement est obligatoire.",
+  planWhyGain:(s)=>`Des pneus neufs rapportent ~${s} s net (temps de changement déjà déduit).`,
+  planWhyKeep:(s)=>`Double relais : garder les pneus fait gagner ~${s} s par rapport à un changement.`,
+  planWhySets:"Plus aucun train neuf disponible – on continue dessus.",
+  planNote:(tc)=>`À chaque arrêt on compare ${tc} s de temps de changement au temps que des pneus plus vieux coûtent sur le relais suivant. La durée de vie et les trains disponibles sont des limites dures.`,
+  planNoPlan:"Choisis d'abord une stratégie faisable, le plan d'arrêt apparaîtra ici.",
+  planNoTyrePlan:"Le compte de pneus ne tombe pas juste pour cette longueur de relais : soit tu manques de trains, soit un relais dépasse la durée de vie d'un train. Prends une stratégie avec plus d'arrêts.",
   driverSplit:"Répartition des pilotes", strategyCompare:"Comparaison des stratégies", thStops:"Arrêts", thStints:"Relais", thLapsStint:"Tours/relais", thMinStint:"Min/relais",
   thVELap:"VE %/tour", thSave:"Économie", thLStint:"L/relais", thTotalTime:"Temps total", thOk:"OK",
   strategyHint:'Vert = stratégie faisable la plus rapide. « Économie » = lift & coast nécessaire par rapport à ta conso télémétrie (⚠ = plus que réaliste). Clique une ligne pour choisir une stratégie – les points lift & coast sont recalculés.',
@@ -773,6 +942,27 @@ const STR = {
   modeSession:"Mode session", modeSessionDesc:"Sélectionne une session enregistrée, puis analyse tour par tour — comme aujourd’hui.",
   modeTrack:"Mode circuit", modeTrackDesc:"Regroupe tous tes tours d’un circuit et d’une catégorie, puis compare-les entre eux.",
   backHome:"← Accueil", backTracks:"← Circuits", pickTrack:"Choisis un circuit présent dans tes fichiers de télémétrie.",
+  tabTrackOver:"🗺️ Vue d'ensemble circuit", toTitle:"Vue d'ensemble du circuit", toLaps:"Tours dans le pool", toSessions:"Sessions", toCars:"Voitures",
+  toBest:"Meilleur tour", toMedian:"Médiane", toStdDev:"Régularité σ", toSpread:"Amplitude (best–P90)",
+  toByCar:"Meilleur tour par voiture", toBySess:"Sessions du pool", toProgress:"Progression dans le temps", toPitData:"Valeurs pour le calculateur d'arrêt",
+  thCar:"Voiture", thLaps:"Tours", thBest:"Meilleur", thMedianL:"Médiane", thStd:"σ", thDeltaPool:"Δ meilleur pool", thDate:"Date", thSessionF:"Enregistrement", thInSess:"Sessions",
+  toNoPool:"Aucun pool de tours chargé.",
+  toProgressHint:"Meilleur tour par session, dans l'ordre chronologique. La barre montre l'écart au meilleur tour du pool, la dernière colonne l'évolution par rapport à la session précédente.",
+  toPitDataHint:"Ces valeurs du pool préremplissent le calculateur d'arrêt (médiane sur tous les tours du pool). Tu peux les changer directement dans le calculateur.",
+  trackLoading:"Chargement des données détaillées de la session source…",
+  trackLocked:"Session source verrouillée (enregistrement en cours) – réessaie plus tard.",
+  trackErr:(m)=>"Session source illisible : "+m, trackNoLap:"Aucun tour du pool sélectionné.",
+  lapFromSess:(n,car,date)=>n+(car?" · "+car:"")+(date?" · "+date:""),
+  chanCommon:(n)=>n+" canaux présents dans les deux sessions (intersection).",
+  chanSameSess:"Les deux tours viennent de la même session – tous les canaux sont disponibles.",
+  chanNoCommon:"Aucun canal commun aux deux sessions.",
+  setupTrackT:"Comparer les setups (tour de référence vs tour de comparaison)",
+  setupTrackNote:"Compare le setup de la session du tour de référence avec celui du tour de comparaison – même entre voitures différentes.",
+  setupDiffTrackT:"Différences de setup",
+  kRefLapS:"Tour de référence", kCmpLapS:"Tour de comparaison",
+  diagPool:(dir,track,cat,sess,laps)=>`Bridge : <span class="ok">connecté</span> · dossier : <span class="mono">${dir}</span><br>Mode circuit : <b>${track}</b> · ${cat} · ${sess} sessions · ${laps} tours dans le pool`,
+  diagPoolChanTitle:"Canaux du pool",
+  diagPoolChans:"Canaux de toutes les sessions du pool. La colonne Sessions indique dans combien d'enregistrements le canal est présent – seuls les canaux présents partout sont comparables partout.",
   pickCat:"Choisis une catégorie disponible sur ce circuit.", pickCatNamed:(tr)=>"Choisis une catégorie sur "+tr+".",
   changeTrackCat:"Changer circuit / catégorie",
   catHypercar:"Hypercar", catP2:"P2", catP3:"P3", catGte:"GTE", catGt3:"GT3",
@@ -803,8 +993,10 @@ function setLang(l){
   applyStaticI18n();
   document.getElementById("liveLabel").textContent=STATE.follow?t("live"):t("manual");
   if(STATE.model){ renderMeta(); renderWeather(); refreshRefSrc(); recompute(); renderDiag();
-    if(STATE.appMode!=="track"){ renderSession(); renderTyres(); renderSetup(); pitPrefill(STATE.model); renderPit(); }
-    setStatus(t("loaded", STATE.model.laps.length, STATE.model.laps.filter(l=>l.complete).length)); }
+    if(STATE.appMode!=="track"){ renderSession(); renderTyres(); renderSetup(); }
+    pitPrefill(STATE.model); renderPit();
+    if(STATE.appMode==="track") setStatus(t("trackPoolReady", STATE.model.laps.length, STATE.model.poolSessions||0));
+    else setStatus(t("loaded", STATE.model.laps.length, STATE.model.laps.filter(l=>l.complete).length)); }
   else if(STATE.sessions&&STATE.sessions.length){ buildSessionSelect(); }
   else setStatus(t("connecting"));
   if(STATE.appMode==="pick"){ if(document.getElementById("gateTracks").style.display!=="none") renderTrackGrid();
@@ -1086,8 +1278,15 @@ function computeSectorFracs(){
 }
 
 /* ---------- Rendern ---------- */
+/* Panneau visible ? Sert au mode circuit : les outils y lisent la session source
+   par le réseau, on ne rafraîchit donc que l'onglet réellement affiché. */
+function panelVisible(name){
+  const s=document.querySelector('section[data-panel="'+name+'"]');
+  return !!s && s.style.display!=="none";
+}
 function recompute(){
   const m=STATE.model; if(!m) return;
+  if(!STATE.refLap||!STATE.cmpLap) return;   // pool circuit encore en chargement
   STATE.selStratS=null;
   let refP=null, refTime=null, refLabel="—", ext=false;
   if(STATE.refSource==="uploaded" && STATE.uploadedRef){ refP=STATE.uploadedRef.profile; refTime=STATE.uploadedRef.lapTime; refLabel="📂 "+fmtTime(refTime); ext=true; }
@@ -1100,10 +1299,17 @@ function recompute(){
   computeSectorFracs();
   buildLapTable(); renderKPIs(); renderInsights(); renderSectors();
   if(STATE.appMode!=="track"){ renderSession(); fillChanSelect(); renderTyres(); }
+  else {
+    trackRenderGen++;                       // invalide les rendus asynchrones en vol
+    if(panelVisible("trackover")) renderTrackOverview();
+    if(panelVisible("tyres")) renderTyres();
+    if(panelVisible("channels")) fillChanSelect();
+    if(panelVisible("setup")) renderSetup();
+  }
   buildCharts(); renderAllMaps(); redrawAll();
   const single = !ext && STATE.refLap===STATE.cmpLap;
   document.getElementById("singleLapNote").innerHTML = single ? `<div class="banner">${t("singleLap")}</div>` : "";
-  if(STATE.appMode!=="track") renderPit();
+  renderPit();
 }
 function trackLapLabel(l){
   if(!l) return "—";
@@ -1148,12 +1354,16 @@ function buildCharts(){
 }
 
 let chanRef=null,chanCmp=null,chanName="";
+function registerChanChart(){
+  registerChart("cChan","ttChan",()=>renderChanPlot(),x=>{const i=gIdx(x);return[{l:chanName+" "+t("refShort"),v:(chanRef&&isFinite(chanRef[i]))?chanRef[i].toFixed(2):"—",c:"#2f81f7"},{l:chanName+" "+t("cmpShort"),v:(chanCmp&&isFinite(chanCmp[i]))?chanCmp[i].toFixed(2):"—",c:"#ff7a00"}];});
+}
 function fillChanSelect(){
+  if(STATE.appMode==="track"){ fillChanSelectTrack(); return; }
   const sel=document.getElementById("chanSel"), chans=(STATE.model&&STATE.model.channels)||[];
   if(!sel||!chans.length) return;
   sel.innerHTML=chans.map((c,i)=>`<option value="${i}">${escapeHtml(c.name)}${c.unit?" ["+escapeHtml(c.unit)+"]":""}</option>`).join("");
   sel.onchange=renderChan;
-  registerChart("cChan","ttChan",()=>renderChanPlot(),x=>{const i=gIdx(x);return[{l:chanName+" "+t("refShort"),v:chanRef?chanRef[i].toFixed(2):"—",c:"#2f81f7"},{l:chanName+" "+t("cmpShort"),v:chanCmp?chanCmp[i].toFixed(2):"—",c:"#ff7a00"}];});
+  registerChanChart();
   renderChan();
 }
 function chanOnGrid(m,lap,c){
@@ -1165,9 +1375,12 @@ function chanOnGrid(m,lap,c){
   const idx=[...xs.keys()].sort((p,q)=>xs[p]-xs[q]);
   return resample(idx.map(i=>xs[i]),idx.map(i=>ys[i]),grid);
 }
-function renderChan(){ const sel=document.getElementById("chanSel"); const c=STATE.model.channels[+sel.value]; chanName=c.name;
+function renderChan(){ const sel=document.getElementById("chanSel");
+  if(STATE.appMode==="track"){ renderChanTrack(sel&&sel.value); return; }
+  const c=STATE.model.channels[+sel.value]; if(!c) return; chanName=c.name;
   chanRef=chanOnGrid(STATE.model,STATE.refLap,c); chanCmp=chanOnGrid(STATE.model,STATE.cmpLap,c); renderChanPlot(); }
-function renderChanPlot(){ plot(document.getElementById("cChan"),{xmax:STATE.refP.L,series:[{ys:chanRef,color:"#2f81f7",width:1.7},{ys:chanCmp,color:"#ff7a00",width:1.5}],zones:STATE.ana.zones.slice(0,6)}); }
+function renderChanPlot(){ if(!STATE.refP||!STATE.ana) return;
+  plot(document.getElementById("cChan"),{xmax:STATE.refP.L,series:[{ys:chanRef,color:"#2f81f7",width:1.7},{ys:chanCmp,color:"#ff7a00",width:1.5}],zones:STATE.ana.zones.slice(0,6)}); }
 
 function projectTrack(p,w,h,pad){
   const N=p.lat.length, lat0=p.lat[N>>1]*Math.PI/180;
@@ -1505,8 +1718,14 @@ document.getElementById("btnReload").onclick=()=>{
   else poll();
 };
 
+function diagChanHead(cols){
+  const head=document.querySelector("#diagChans thead tr");
+  if(head) head.innerHTML=cols.map(c=>`<th>${escapeHtml(c)}</th>`).join("");
+}
 function renderDiag(){
-  const m=STATE.model;
+  const m=STATE.model; if(!m) return;
+  if(STATE.appMode==="track"){ renderDiagTrack(m); return; }
+  diagChanHead([t("thName"),t("thUnit"),"Hz",t("thSamples"),"min","max"]);
   document.getElementById("diagConn").innerHTML=t("diagConn",escapeHtml(m.telDir||STATE.telDir||""),escapeHtml(m.fileName),(m.channelStartTs||0).toFixed(2),(m.trackLen||0).toFixed(0));
   document.getElementById("chanCount").textContent=m.channels.length;
   const tb=document.querySelector("#diagChans tbody");
@@ -1701,7 +1920,169 @@ document.getElementById("ldFileInput").addEventListener("change",async e=>{
 
 /* ---------- Boxenstopp- & Energie-Rechner ---------- */
 const PIT_MAXSAVE=15;   // % Virtual Energy, die per Lift&Coast realistisch sparbar sind
-function parseLapInput(s){ s=(s||"").trim(); if(!s)return null; if(s.includes(":")){const p=s.split(":");return (+p[0])*60+(parseFloat(p[1])||0);} return parseFloat(s); }
+/* Modell-Defaults (alle im UI überschreibbar) */
+const PIT_DEF={ fuelSecPerL:0.03, tyreChgSec:12, drvChgSec:8, tyreEolPct:8 };
+/* Harte Grenzen gegen NaN/Infinity und Endlos-Schleifen bei absurden Eingaben */
+const PIT_LIM={ totalLaps:2000, lifeCap:400, rows:24, stintsMax:60, groupMax:8, degrMax:0.6 };
+function parseLapInput(s){ s=(s||"").trim(); if(!s)return null; if(s.includes(":")){const p=s.split(":");return (+p[0])*60+(parseFloat(p[1])||0);} const v=parseFloat(s); return isFinite(v)?v:null; }
+/* Zahl aus einem Eingabefeld: leer/unsinnig => null, sonst auf [lo,hi] geklemmt */
+function pitVal(id,lo,hi){
+  const el=document.getElementById(id); if(!el) return null;
+  const s=(el.value||"").trim(); if(!s) return null;
+  const v=parseFloat(s); if(!isFinite(v)) return null;
+  return Math.min(hi,Math.max(lo,v));
+}
+function pitOr(v,def){ return (v==null||!isFinite(v))? def : v; }
+function pitMinWheel(a){ if(!a) return null; let mn=Infinity; for(let k=0;k<a.length;k++){ const v=a[k]; if(v!=null&&isFinite(v)&&v<mn)mn=v; } return isFinite(mn)?mn:null; }
+function pitMedian(a){ const s=a.slice().sort((x,y)=>x-y), n=s.length; if(!n)return null; return n%2? s[n>>1] : (s[(n>>1)-1]+s[n>>1])/2; }
+
+/* ---------- Stints aus der Telemetrie: ein Stint = Runden auf demselben Reifensatz ----------
+   Erkennung über das Rest-Profil („Tyres Wear" fällt normalerweise über die Runde). Der Stopp
+   liegt immer *innerhalb* einer Runde (Linie überfahren, dann Box), also steigt bei einem
+   Reifenwechsel das Rest-Profil zwischen Rundenanfang und Rundenende. Diese Runde ist die
+   Out-Lap des neuen Satzes. Nachtanken allein setzt das Reifenalter nicht zurück. */
+function pitStintSegments(m){
+  if(!m) return [];
+  if(m._pitStints) return m._pitStints;
+  const laps=(m.laps||[]).filter(l=>l&&l.t0!=null&&l.t1!=null);
+  const wearWh=m.wheels&&m.wheels["Tyres Wear"];
+  /* Ohne Verschleiß-Kanal bleibt nur die Rundenzeit: eine Runde weit über dem Median ist eine
+     Boxenrunde. Dann wird angenommen, dass dort auch Reifen kamen – ungenau, aber besser als
+     die ganze Aufnahme als einen Stint zu behandeln. */
+  let slowTh=Infinity;
+  if(!wearWh){
+    const med=pitMedian(laps.filter(l=>l.complete&&isFinite(l.lapTime)).map(l=>l.lapTime));
+    if(med!=null&&med>0) slowTh=med+Math.max(20,med*0.2);
+  }
+  const out=[]; let cur=[];
+  laps.forEach(l=>{
+    const w0=wearWh? pitMinWheel(wheelVal(wearWh,l.t0)) : null;
+    const w1=wearWh? pitMinWheel(wheelVal(wearWh,l.t1)) : null;
+    const fresh = wearWh? (w0!=null && w1!=null && w1-w0>1.5) : (isFinite(l.lapTime) && l.lapTime>slowTh);
+    if(fresh && cur.length){ out.push(cur); cur=[]; }
+    cur.push(l);
+  });
+  if(cur.length) out.push(cur);
+  out.forEach(st=>st.forEach((l,i)=>{ l._tyreAge=i; }));
+  m._pitStints=out; return out;
+}
+/* Brauchbare Runden eines Stints: ohne Out-/In-Lap, ohne unvollständige, ohne Ausreißer (Median/MAD) */
+function pitStintPool(st){
+  let pool=st.filter((l,i)=>i>0 && l.complete && !l.outlap && !l.inlap && isFinite(l.lapTime) && l.lapTime>10);
+  if(pool.length<4) return [];
+  const med=pitMedian(pool.map(l=>l.lapTime));
+  const mad=pitMedian(pool.map(l=>Math.abs(l.lapTime-med)))*1.4826;
+  const tol=Math.max(1,Math.min(3,3*(mad||0)));
+  return pool.filter(l=>Math.abs(l.lapTime-med)<=tol);
+}
+/* ---------- Reifen-Degradation (s pro Runde Reifenalter) ----------
+   Innerhalb jedes Stints Rundenzeit über das Reifenalter regressiert (Stint-weise zentriert,
+   also ein Fixed-Effects-Schätzer – Stints mit unterschiedlichem Grundniveau verfälschen nichts).
+   ACHTUNG Sprit-Falle: der Wagen wird im Stint leichter und damit schneller, das kaschiert die
+   Degradation. Deshalb wird der Gewichtseffekt (fuelPerLap × s/L) auf die Steigung addiert. */
+function pitDegradation(m,fuelSecPerL){
+  const stints=pitStintSegments(m);
+  let sxy=0,sxx=0,n=0,used=0,ageW=0; const parts=[];
+  stints.forEach(st=>{
+    const pool=pitStintPool(st); if(pool.length<4) return;
+    let ma=0,mt=0; pool.forEach(l=>{ ma+=l._tyreAge; mt+=l.lapTime; }); ma/=pool.length; mt/=pool.length;
+    let a=0,b=0; pool.forEach(l=>{ const dx=l._tyreAge-ma; a+=dx*(l.lapTime-mt); b+=dx*dx; });
+    if(!(b>0)) return;
+    sxy+=a; sxx+=b; n+=pool.length; used++; ageW+=ma*pool.length; parts.push({pool,ma,mt});
+  });
+  if(!(sxx>0) || n<6) return {ok:false,laps:n,stints:used};
+  const slopeRaw=sxy/sxx;
+  let ss=0,df=-1;
+  parts.forEach(p=>{ p.pool.forEach(l=>{ const r=(l.lapTime-p.mt)-slopeRaw*(l._tyreAge-p.ma); ss+=r*r; }); df+=p.pool.length-1; });
+  const se=(df>0 && ss>=0)? Math.sqrt((ss/df)/sxx) : Infinity;
+  const fuelPerLap=(m.fuelPerLap!=null&&isFinite(m.fuelPerLap)&&m.fuelPerLap>0)? m.fuelPerLap : null;
+  const fuelCorr=fuelPerLap!=null? fuelPerLap*fuelSecPerL : 0;
+  const degr=Math.max(0,Math.min(PIT_LIM.degrMax, slopeRaw+fuelCorr));
+  const conf=(n>=15&&isFinite(se)&&Math.abs(slopeRaw)>2*se)?"hi":(n>=9?"mid":"low");
+  return {ok:true,slopeRaw,degr,se,laps:n,stints:used,refAge:ageW/n,fuelCorr,fuelKnown:fuelPerLap!=null,conf};
+}
+/* ---------- Verschleiß: Mittel + Trend über das Reifenalter ---------- */
+function pitWearModel(m){
+  const stints=pitStintSegments(m);
+  const pts=[]; let used=0;
+  stints.forEach(st=>{
+    let hit=0;
+    st.forEach((l,i)=>{ if(i===0||!l.complete||l.outlap||l.inlap) return;
+      if(l.wearLap==null||!isFinite(l.wearLap)||l.wearLap<=0) return;
+      pts.push([l._tyreAge,l.wearLap]); hit++; });
+    if(hit) used++;
+  });
+  if(pts.length<5) return {ok:false,laps:pts.length,stints:used};
+  const med=pitMedian(pts.map(p=>p[1]));
+  const mad=pitMedian(pts.map(p=>Math.abs(p[1]-med)))*1.4826;
+  const tol=Math.max(med*0.5, 3*(mad||0));
+  const f=pts.filter(p=>Math.abs(p[1]-med)<=tol);
+  if(f.length<5) return {ok:false,laps:f.length,stints:used};
+  let mx=0,my=0; f.forEach(p=>{ mx+=p[0]; my+=p[1]; }); mx/=f.length; my/=f.length;
+  let a=0,b=0; f.forEach(p=>{ const dx=p[0]-mx; a+=dx*(p[1]-my); b+=dx*dx; });
+  const slope=(b>0)? Math.max(0,Math.min(my*0.15, a/b)) : 0;
+  const w0=Math.max(0.001, my-slope*mx);
+  return {ok:true,w0,slope,meanWear:my,laps:f.length,stints:used,trend:b>0};
+}
+/* Nutzbare Runden je Satz, bis das Rest-Profil unter „usable" fällt (Verschleiß wächst mit dem Alter) */
+function pitTyreLifeLaps(w0,slope,usable,cap){
+  if(!(w0>0)||!isFinite(w0)) return cap;
+  let acc=0;
+  for(let k=0;k<cap;k++){ acc+=Math.max(0.001,w0+slope*k); if(acc>usable) return Math.max(1,k); }
+  return cap;
+}
+/* Telemetrie-Ableitungen memoisieren – solange Session und Sprit-Annahme gleich bleiben */
+let PIT_GEN=0, PIT_CACHE={key:null,data:null};
+function pitTele(m,fuelSecPerL){
+  if(!m) return null;
+  if(m._pitKey==null) m._pitKey=++PIT_GEN;
+  const key=m._pitKey+"|"+fuelSecPerL.toFixed(4);
+  if(PIT_CACHE.key===key) return PIT_CACHE.data;
+  const data={ degr:pitDegradation(m,fuelSecPerL), wear:pitWearModel(m) };
+  PIT_CACHE={key,data};
+  return data;
+}
+/* ---------- Reifen-Satz-Planung: welche Stints laufen auf demselben Satz? ----------
+   Kosten einer Gruppe von g Stints auf einem Satz (N Runden Gesamtalter): degr × N(N−1)/2.
+   Ein Wechsel kostet chgSec. Kleine DP über (Stint-Index, freie Sätze) – daraus ergeben sich
+   „alles wechseln", „abwechselnd" oder „Doppel-/Dreifach-Stint" von selbst. */
+function pitTyrePlan(S,stintLaps,lifeLaps,tyres,degr,chgSec){
+  const L=stintLaps.length? Math.max(1,arrMax(stintLaps)) : 1;
+  const setsMax=Math.max(1,Math.min(tyres,S));
+  let gmax=isFinite(lifeLaps)? Math.floor(lifeLaps/L) : S;
+  gmax=Math.max(0,Math.min(gmax,S));
+  if(gmax<1) return null;
+  if(!(degr>0)){
+    // Ohne Degradation ist die Antwort trivial: so wenige Sätze wie möglich, gleichmäßig verteilt
+    const sets=Math.ceil(S/gmax);
+    if(sets>setsMax) return null;
+    const gr=[]; let left=S;
+    for(let i=0;i<sets;i++){ const g=Math.ceil(left/(sets-i)); gr.push(g); left-=g; }
+    return { groups:gr, sets, changes:sets-1, degrCost:0, chgCost:chgSec*(sets-1), cost:chgSec*(sets-1) };
+  }
+  // Mehr als PIT_LIM.groupMax Stints auf einem Satz ist keine reale Option – hält die DP klein
+  gmax=Math.min(gmax, Math.max(PIT_LIM.groupMax, Math.ceil(S/setsMax)));
+  const pre=[0]; for(let i=0;i<S;i++) pre.push(pre[i]+stintLaps[i]);
+  const memo=new Map();
+  const solve=(from,setsLeft)=>{
+    if(from>=S) return {c:0,gr:[]};
+    if(setsLeft<=0) return null;
+    const key=from+":"+setsLeft; if(memo.has(key)) return memo.get(key);
+    let best=null;
+    for(let g=1;g<=gmax && from+g<=S;g++){
+      const N=pre[from+g]-pre[from];
+      if(isFinite(lifeLaps) && N>lifeLaps) break;
+      const rest=solve(from+g,setsLeft-1); if(!rest) continue;
+      const c=degr*N*(N-1)/2 + chgSec + rest.c;
+      if(!best||c<best.c) best={c,gr:[g].concat(rest.gr)};
+    }
+    memo.set(key,best); return best;
+  };
+  const r=solve(0,setsMax);
+  if(!r) return null;
+  const sets=r.gr.length;
+  return { groups:r.gr, sets, changes:sets-1, degrCost:r.c-chgSec*sets, chgCost:chgSec*(sets-1), cost:r.c-chgSec };
+}
 function fmtClock(sec){ if(!isFinite(sec))return "—"; sec=Math.round(sec); const h=Math.floor(sec/3600),mm=Math.floor((sec%3600)/60),ss=sec%60; return (h>0?h+":"+String(mm).padStart(2,"0"):String(mm))+":"+String(ss).padStart(2,"0"); }
 function pitKpi(l,v,d,cls){ return `<div class="stat"><div class="l">${l}</div><div class="v">${v}</div><div class="d ${cls==='up'?'up':cls==='down'?'down':'muted'}">${d||''}</div></div>`; }
 function pitPrefill(m){
@@ -1709,9 +2090,35 @@ function pitPrefill(m){
   document.getElementById("piVE").value = m.vePerLap!=null? m.vePerLap.toFixed(2):"";
   document.getElementById("piFuel").value = m.fuelPerLap!=null? m.fuelPerLap.toFixed(1):"";
   document.getElementById("piWear").value = m.wearPerLap!=null? m.wearPerLap.toFixed(2):"";
+  const fuelSecPerL=pitOr(pitVal("piFuelEff",0,0.2),PIT_DEF.fuelSecPerL);
+  const tele=pitTele(m,fuelSecPerL);
+  const dEl=document.getElementById("piDegr");
+  if(dEl) dEl.value = (tele&&tele.degr.ok)? tele.degr.degr.toFixed(3) : "";
   const pl = perLap();
   const veS = m.vePerLap!=null?m.vePerLap.toFixed(2)+" %"+pl:"—", fuS = m.fuelPerLap!=null?m.fuelPerLap.toFixed(1)+" L"+pl:"—", wS = m.wearPerLap!=null?m.wearPerLap.toFixed(2)+" %"+pl:"—";
   document.getElementById("piTeleNote").innerHTML=t("teleNote",escapeHtml(m.meta.TrackName||""),fmtTime(m.avgLap),fmtTime(m.bestLap),veS,fuS,wS);
+}
+/* Was weiß das Modell aus der Telemetrie – und wie belastbar ist es? */
+function pitModelNoteHtml(tele,degrUsed,degrFromInput,w0,wSlope,lifeLaps,eolPct,fuelSecPerL,tyreChgSec){
+  const p=[];
+  const d=tele&&tele.degr, w=tele&&tele.wear;
+  if(d&&d.ok){
+    p.push(t("degrTele",degrUsed.toFixed(3))+(degrFromInput&&Math.abs(degrUsed-d.degr)>0.0005? " "+t("degrOverride",d.degr.toFixed(3)):""));
+    p.push(t("dataBasis",d.laps,d.stints,t("conf"+d.conf)));
+    if(d.fuelKnown) p.push(t("degrFuelCorr",d.fuelCorr.toFixed(3),fuelSecPerL.toFixed(3)));
+    else p.push(t("degrNoFuel"));
+    if(d.conf==="low") p.push(t("degrLowConf"));
+  } else if(degrFromInput&&degrUsed>0){
+    p.push(t("degrManual",degrUsed.toFixed(3)));
+  } else {
+    p.push(t("degrNone"));
+  }
+  if(w0!=null&&isFinite(lifeLaps)){
+    if(w&&w.ok&&w.slope>0.0005) p.push(t("wearTele",w0.toFixed(2),wSlope.toFixed(3),lifeLaps,eolPct));
+    else p.push(t("wearNoTrend",w0.toFixed(2),lifeLaps,eolPct));
+  } else p.push(t("wearUnknown"));
+  p.push(t("pitModelNote",fuelSecPerL.toFixed(3),tyreChgSec.toFixed(0),eolPct.toFixed(0)));
+  return p.join(" ");
 }
 /* ---------- Lift & Coast: beste Sprit-Spar-Zonen ---------- */
 // Coast-Dauer (s) aus nötiger Ersparnis: 0 % -> kurz, PIT_MAXSAVE -> lange segeln.
@@ -1793,64 +2200,176 @@ function attachPitMapHover(){
   });
   cv.addEventListener("mouseleave",clear);
 }
+/* Karte nur neu zeichnen, wenn sich Referenzrunde, Spar-Ziel, Breite oder Sprache geändert haben */
+let PIT_MAPSIG=0, pitMapSig=null;
+function pitMapRefresh(force){
+  const cv=document.getElementById("cPitMap"); if(!cv) return;
+  const p=STATE.refP; if(p&&p._pitSig==null) p._pitSig=++PIT_MAPSIG;
+  const sig=[p?p._pitSig:0, STATE.lcSavePct==null?"t":Math.round(STATE.lcSavePct*10), cv.clientWidth, LANG].join("|");
+  if(!force && sig===pitMapSig) return;
+  pitMapSig=sig; renderPitMap();
+}
+/* Runden möglichst gleichmäßig auf S Stints verteilen */
+function pitStintLaps(totalLaps,S){
+  const base=Math.floor(totalLaps/S), rem=totalLaps%S, a=[];
+  for(let i=0;i<S;i++) a.push(base+(i<rem?1:0));
+  return a;
+}
+/* Fahrer je Stint – zusammenhängende Blöcke, also so wenig Fahrerwechsel wie möglich */
+function pitDriverOf(S,D){
+  const base=Math.floor(S/D), rem=S%D, a=[];
+  for(let d=0;d<D&&a.length<S;d++){ const n=base+(d<rem?1:0); for(let i=0;i<n&&a.length<S;i++) a.push(d+1); }
+  while(a.length<S) a.push(Math.min(D,a.length+1));
+  return a;
+}
+/* Stopp-für-Stopp-Plan inkl. Begründung der Reifen-Entscheidung */
+function pitStopPlan(sel,tyres,drivers,degr,tyreChgSec,lifeLaps,fuelPerLap,avgLap){
+  const stintL=sel.stintL, S=stintL.length, tp=sel.tp;
+  const newSet=new Array(S).fill(false);
+  let k=0; tp.groups.forEach(g=>{ if(k<S) newSet[k]=true; k+=g; });
+  const drvOf=pitDriverOf(S,drivers);
+  const rows=[]; let lapNo=0, ageOnSet=0, setsStarted=0;
+  for(let i=0;i<S;i++){
+    const stop=i>0, prevAge=ageOnSet;            // Reifenalter, mit dem der Wagen an die Box kommt
+    if(newSet[i]){ ageOnSet=0; setsStarted++; }
+    // Netto-Gewinn frischer Reifen für den nächsten Stint: gespartes Reifenalter minus Wechselzeit
+    const gainIfFresh = degr*prevAge*stintL[i] - tyreChgSec;
+    const setsLeft = Math.max(0, tyres-setsStarted);
+    let why;
+    if(!stop) why=t("planWhyStart");
+    else if(newSet[i]) why = (prevAge+stintL[i]>lifeLaps || gainIfFresh<=0.5)? t("planWhyLife") : t("planWhyGain",gainIfFresh.toFixed(0));
+    else if(gainIfFresh>0.5 && (S-i)>setsLeft) why=t("planWhySets");
+    else why=t("planWhyKeep",Math.max(0,-gainIfFresh).toFixed(0));
+    rows.push({ no:i, stop, lapNo, newTyres:newSet[i], ageOnSet:prevAge, why,
+      nextLaps:stintL[i], nextMin:stintL[i]*avgLap/60,
+      fuelL: fuelPerLap!=null? fuelPerLap*stintL[i] : null,
+      vePct: sel.veTarget!=null? Math.min(100,sel.veTarget*stintL[i]) : null,
+      driver:drvOf[i], drvChange: i>0 && drvOf[i]!==drvOf[i-1] });
+    ageOnSet+=stintL[i]; lapNo+=stintL[i];
+  }
+  return rows;
+}
 function renderPit(){
-  const m=STATE.model, head=document.getElementById("piHead"); if(!m||!head){ renderPitMap(); return; }
-  const raceMin=+document.getElementById("piRace").value;
-  const tyres=Math.max(1,+document.getElementById("piTyres").value||1);
-  const drivers=Math.max(1,+document.getElementById("piDrivers").value||1);
-  const pitLoss=+document.getElementById("piPit").value||0;
-  const avgLap=parseLapInput(document.getElementById("piLap").value);
-  const vePerLap=parseFloat(document.getElementById("piVE").value)||null;
-  const fuelPerLap=parseFloat(document.getElementById("piFuel").value)||null;
-  const pen=parseFloat(document.getElementById("piPenalty").value)||0;
-  const tankCap=parseFloat(document.getElementById("piTank").value)||null;
-  const wearPerLap=parseFloat(document.getElementById("piWear").value)||null;
-  const tyreLapsMax = wearPerLap? Math.max(1,Math.floor(100/wearPerLap)) : Infinity;   // Runden bis Reifen runter
+  const m=STATE.model, head=document.getElementById("piHead"); if(!m||!head){ pitMapRefresh(); return; }
   const tb=document.querySelector("#piTable tbody"), plan=document.getElementById("piDriverPlan");
-  if(!avgLap||avgLap<10||!raceMin){ head.innerHTML=`<div class="hint">${t("pitFill")}</div>`; tb.innerHTML=""; plan.innerHTML=""; STATE.lcSavePct=null; renderPitMap(); return; }
-  const raceSec=raceMin*60, totalLaps=Math.ceil(raceSec/avgLap), veTank=100;
+  const stopBox=document.getElementById("piStopPlan"), stopNote=document.getElementById("piStopPlanNote"), modelNote=document.getElementById("piModelNote");
+  /* ---- Eingaben: leer => null, sonst auf sinnvolle Bereiche geklemmt ---- */
+  const raceMin    = pitVal("piRace",1,1440);
+  const tyres      = Math.round(pitOr(pitVal("piTyres",1,40),4));
+  const drivers    = Math.round(pitOr(pitVal("piDrivers",1,8),1));
+  const pitLoss    = pitOr(pitVal("piPit",0,300),0);
+  const avgLap     = parseLapInput(document.getElementById("piLap").value);
+  const vePerLap   = pitVal("piVE",0.01,100);
+  const fuelPerLap = pitVal("piFuel",0.01,60);
+  const pen        = pitOr(pitVal("piPenalty",0,5),0);
+  const tankCap    = pitVal("piTank",1,400);
+  const wearPerLap = pitVal("piWear",0.001,20);
+  const tyreChgSec = pitOr(pitVal("piTyreChg",0,120),PIT_DEF.tyreChgSec);
+  const drvChgSec  = pitOr(pitVal("piDrvChg",0,120),PIT_DEF.drvChgSec);
+  const fuelSecPerL= pitOr(pitVal("piFuelEff",0,0.2),PIT_DEF.fuelSecPerL);
+  const eolPct     = pitOr(pitVal("piTyreEol",0,60),PIT_DEF.tyreEolPct);
+  const degrIn     = pitVal("piDegr",0,PIT_LIM.degrMax);
+  /* ---- Telemetrie-Modell (memoisiert): Degradation + Verschleiß-Trend ---- */
+  const tele=pitTele(m,fuelSecPerL);
+  const degr=pitOr(degrIn, (tele&&tele.degr.ok)? tele.degr.degr : 0);
+  const wm=tele&&tele.wear;
+  let w0=null, wSlope=0;
+  if(wearPerLap!=null){
+    if(wm&&wm.ok&&wm.meanWear>0.001){ const r=wearPerLap/wm.meanWear; w0=Math.max(0.001,wm.w0*r); wSlope=Math.max(0,wm.slope*r); }
+    else w0=wearPerLap;
+  } else if(wm&&wm.ok){ w0=wm.w0; wSlope=wm.slope; }
+  const lifeLaps = w0!=null? pitTyreLifeLaps(w0,wSlope,Math.max(1,100-eolPct),PIT_LIM.lifeCap) : Infinity;
+  if(modelNote) modelNote.innerHTML=pitModelNoteHtml(tele,degr,degrIn!=null,w0,wSlope,lifeLaps,eolPct,fuelSecPerL,tyreChgSec);
+  if(!avgLap||!(avgLap>=10)||!raceMin){
+    head.innerHTML=`<div class="hint">${t("pitFill")}</div>`; tb.innerHTML=""; plan.innerHTML="";
+    if(stopBox)stopBox.innerHTML=""; if(stopNote)stopNote.innerHTML="";
+    STATE.lcSavePct=null; pitMapRefresh(); return;
+  }
+  const raceSec=raceMin*60, veTank=100;
+  const totalLaps=Math.max(1,Math.min(PIT_LIM.totalLaps,Math.ceil(raceSec/avgLap)));
   const lapsPush = vePerLap? Math.max(1,Math.floor(veTank/vePerLap)) : totalLaps;
-  const Senergy = Math.max(1, Math.ceil(totalLaps/lapsPush));
+  const Senergy  = Math.max(1, Math.ceil(totalLaps/lapsPush));
+  /* Basis-Rundenzeit auf „frische Reifen + leerer Tank" zurückrechnen. Der Anker verschiebt
+     alle Strategien um denselben Betrag (Rundenzahl ist fix), die Reihenfolge bleibt also gleich. */
+  const refL=Math.max(1,Math.ceil(totalLaps/Senergy));
+  const refAge=(tele&&tele.degr.ok&&isFinite(tele.degr.refAge))? tele.degr.refAge : (refL-1)/2;
+  let baseLap=avgLap - degr*refAge - fuelSecPerL*(fuelPerLap||0)*((refL+1)/2);
+  if(!isFinite(baseLap)) baseLap=avgLap;
+  baseLap=Math.max(avgLap*0.7,baseLap);
+  /* ---- Kandidaten: Stint-Zahl S, jeweils mit optimalem Reifen-Satz-Plan ---- */
+  const Shi=Math.max(1,Math.min(totalLaps,Senergy+4,PIT_LIM.stintsMax));
+  const Slo=Math.max(1,Shi-PIT_LIM.rows+1);
   const rows=[];
-  for(let S=1; S<=Senergy+4 && S<=totalLaps; S++){
-    const lapsPerStint=Math.ceil(totalLaps/S);
-    const veTarget = vePerLap? veTank/lapsPerStint : null;
-    const savePct = vePerLap? (vePerLap-veTarget)/vePerLap*100 : 0;
-    const stops=S-1;
-    const penalty=Math.max(0,savePct)*pen;
-    const lapT=avgLap+penalty;
-    const totalTime=totalLaps*lapT+stops*pitLoss;
-    const fuelStint=fuelPerLap? fuelPerLap*lapsPerStint : null;
-    const tyreOK = lapsPerStint<=tyreLapsMax;
-    const fuelOK = !(tankCap&&fuelStint) || fuelStint<=tankCap;
-    const feasible = (vePerLap? savePct<=PIT_MAXSAVE : true) && tyreOK && fuelOK;
-    rows.push({S,stops,lapsPerStint,stintMin:lapsPerStint*avgLap/60,veTarget,savePct,fuelStint,totalTime,feasible,tyreOK});
+  for(let S=Slo;S<=Shi;S++){
+    const stintL=pitStintLaps(totalLaps,S), L=stintL[0], stops=S-1;
+    const veTarget = vePerLap? veTank/L : null;
+    const savePct  = vePerLap? (vePerLap-veTarget)/vePerLap*100 : 0;
+    const penalty  = Math.max(0,savePct)*pen;
+    const fuelStint= fuelPerLap!=null? fuelPerLap*L : null;
+    const tp=pitTyrePlan(S,stintL,lifeLaps,tyres,degr,tyreChgSec);
+    const drvChanges=Math.max(0,Math.min(drivers-1,stops));
+    let fuelSum=0; if(fuelPerLap!=null) stintL.forEach(n=>{ fuelSum+=n*(n+1)/2; });
+    const fuelWeight=fuelPerLap!=null? fuelSecPerL*fuelPerLap*fuelSum : 0;   // schwerer Tank = langsamer
+    const driveTime=totalLaps*(baseLap+penalty);
+    const pitTime=stops*pitLoss + drvChanges*drvChgSec + (tp?tp.chgCost:0);
+    const degrTime=tp?tp.degrCost:0;
+    const totalTime=driveTime+pitTime+degrTime+fuelWeight;
+    const fuelOK=!(tankCap&&fuelStint) || fuelStint<=tankCap;
+    const feasible=(vePerLap? savePct<=PIT_MAXSAVE : true) && !!tp && fuelOK;
+    rows.push({S,stops,stintL,lapsPerStint:L,stintMin:L*avgLap/60,veTarget,savePct,fuelStint,
+               tp,drvChanges,fuelWeight,pitTime,degrTime,totalTime,feasible,fuelOK});
   }
   let best=null; rows.forEach(r=>{ if(r.feasible&&(!best||r.totalTime<best.totalTime))best=r; });
   const sel=(STATE.selStratS!=null?rows.find(r=>r.S===STATE.selStratS):null)||best;
   STATE.lcSavePct = sel? sel.savePct : null;
-  renderPitMap();
-  tb.innerHTML=rows.map(r=>`<tr data-s="${r.S}" class="${r===best?'fastest':''}${r===sel?' selstrat':''}${!r.feasible?' invalid':''}"><td>${r.stops}</td><td>${r.S}</td><td>${r.lapsPerStint}</td><td>${r.stintMin.toFixed(0)}</td><td>${r.veTarget!=null?r.veTarget.toFixed(2):'—'}</td><td>${r.savePct>0.3?'+'+r.savePct.toFixed(0)+'%':(r.savePct<-0.3?r.savePct.toFixed(0)+'%':'0')}</td><td>${r.fuelStint!=null?r.fuelStint.toFixed(1):'—'}</td><td>${fmtClock(r.totalTime)}</td><td>${r.feasible?'✓':'⚠'}</td></tr>`).join("");
+  pitMapRefresh();
+  tb.innerHTML=rows.map(r=>`<tr data-s="${r.S}" class="${r===best?'fastest':''}${r===sel?' selstrat':''}${!r.feasible?' invalid':''}"><td>${r.stops}</td><td>${r.S}</td><td>${r.lapsPerStint}</td><td>${r.stintMin.toFixed(0)}</td><td>${r.veTarget!=null?r.veTarget.toFixed(2):'—'}</td><td>${r.savePct>0.3?'+'+r.savePct.toFixed(0)+'%':(r.savePct<-0.3?r.savePct.toFixed(0)+'%':'0')}</td><td>${r.fuelStint!=null?r.fuelStint.toFixed(1):'—'}</td><td>${r.tp?r.tp.changes:'⚠'}</td><td>${fmtClock(r.totalTime)}</td><td>${r.feasible?'✓':'⚠'}</td></tr>`).join("");
   tb.querySelectorAll("tr[data-s]").forEach(tr=>tr.onclick=()=>{ STATE.selStratS=+tr.dataset.s; renderPit(); });
-  if(!sel){ head.innerHTML=`<div class="hint">${t("pitNoStrat")}</div>`; plan.innerHTML=""; return; }
-  const reused=Math.max(0,sel.S-tyres);
-  const tyreTxt=t("tyreFresh",Math.min(sel.S,tyres))+(reused>0?t("tyreReused",reused,tyres):'');
+  if(!sel){
+    head.innerHTML=`<div class="hint">${t("pitNoStrat")}</div>`; plan.innerHTML="";
+    if(stopBox)stopBox.innerHTML=""; if(stopNote)stopNote.innerHTML=`<div class="hint">${t("planNoPlan")}</div>`;
+    return;
+  }
   const badge = sel===best?`<span class="pill best">${t("fastestBadge")}</span>`:`<span class="pill cmp">${t("selectedBadge")}</span>`;
   const slowerNote = (sel!==best&&best)?`<br><span class="up">${t("stratSlower",(sel.totalTime-best.totalTime).toFixed(0))}</span>`:'';
+  const tp=sel.tp;
+  const tyreLine = tp
+    ? t("tyreSetsUsed",tp.sets,tyres,tp.changes)+(isFinite(lifeLaps)&&w0!=null? t("tyreLife",lifeLaps,w0.toFixed(2)):'')
+    : t("tyreSetsShort");
   head.innerHTML=`<div style="font-size:16px;margin-bottom:8px"><b>${t("pitStops",sel.stops)}</b> · ${t("pitStints",sel.S,sel.lapsPerStint,sel.stintMin.toFixed(0))} ${badge}</div>
     <div class="grid2">
       ${pitKpi(t("veRunde"), sel.veTarget!=null?sel.veTarget.toFixed(2)+" %":"—", sel.savePct>0.5?t("veSave",sel.savePct.toFixed(0)):(sel.savePct<-0.5?t("veEnough"):t("veExact")), sel.savePct>0.5?"up":"down")}
-      ${pitKpi(t("fuelStint"), sel.fuelStint!=null?sel.fuelStint.toFixed(1)+" L":"—",t("fuelTotal",(fuelPerLap?(fuelPerLap*totalLaps).toFixed(0)+" L":"—")))}
+      ${pitKpi(t("fuelStint"), sel.fuelStint!=null?sel.fuelStint.toFixed(1)+" L":"—",t("fuelTotal",(fuelPerLap!=null?(fuelPerLap*totalLaps).toFixed(0)+" L":"—")))}
       ${pitKpi(t("raceDist"), t("lapsN",totalLaps),t("driveTime",fmtClock(totalLaps*avgLap)))}
       ${pitKpi(t("estTotal"), fmtClock(sel.totalTime), t("stopsXs",sel.stops,pitLoss))}
+      ${pitKpi(t("kTyreSets"), tp?String(tp.sets):"—", t("tyreSetsD",tp?tp.changes:0,tyres))}
+      ${pitKpi(t("kAgeLoss"), degr>0&&tp? Math.round(sel.degrTime)+" s":"0 s", t("ageLossD",degr.toFixed(3)), degr>0?"up":"")}
+      ${pitKpi(t("kPitTime"), Math.round(sel.pitTime)+" s", t("pitTimeD",Math.round(sel.stops*pitLoss),Math.round(tp?tp.chgCost:0),Math.round(sel.drvChanges*drvChgSec)))}
+      ${pitKpi(t("kFuelWeight"), Math.round(sel.fuelWeight)+" s", t("fuelWeightD",fuelSecPerL.toFixed(3)))}
     </div>
-    <div class="hint" style="margin-top:8px">${t("tyresLbl")} ${tyreTxt}${isFinite(tyreLapsMax)?t("tyreLast",tyreLapsMax,wearPerLap.toFixed(2)):''}.${slowerNote}<br>${t("pitExplain",PIT_MAXSAVE,pen)}</div>`;
+    <div class="hint" style="margin-top:8px">${t("tyresLbl")} ${tyreLine}.${slowerNote}<br>${t("pitExplain2",PIT_MAXSAVE,pen)}</div>`;
+  /* ---- Stopp-Plan ---- */
+  if(stopBox && !tp){ stopBox.innerHTML=""; if(stopNote) stopNote.innerHTML=`<div class="hint">${t("planNoTyrePlan")}</div>`; }
+  else if(stopBox){
+    const pr=pitStopPlan(sel,tyres,drivers,degr,tyreChgSec,lifeLaps,fuelPerLap,avgLap);
+    stopBox.innerHTML=`<table class="pit"><thead><tr><th>${t("planStop")}</th><th>${t("planLap")}</th><th>${t("planTyres")}</th><th>${t("planFuel")}</th><th>${t("planStint")}</th><th>${t("planDriver")}</th><th style="text-align:left">${t("planWhy")}</th></tr></thead><tbody>`+
+      pr.map(r=>{
+        const fuelTxt=[ r.fuelL!=null? r.fuelL.toFixed(1)+" L":null, r.vePct!=null? r.vePct.toFixed(0)+" % VE":null ].filter(Boolean).join(" · ")||"—";
+        const tyTxt = r.newTyres? `<b style="color:#58d68d">${t("planTyreYes")}</b>` : `<span class="muted">${t("planTyreNo",r.ageOnSet)}</span>`;
+        return `<tr><td>${r.stop?r.no:t("planStart")}</td><td>${r.stop?r.lapNo:"—"}</td><td>${tyTxt}</td><td>${fuelTxt}</td><td>${t("planStintInfo",r.nextLaps,r.nextMin.toFixed(0))}</td><td>${t("driverK",r.driver)}${r.drvChange?' <span class="pill">'+t("planDrvChg")+'</span>':''}</td><td style="text-align:left;white-space:normal">${r.why}</td></tr>`;
+      }).join("")+`</tbody></table>`;
+    if(stopNote) stopNote.innerHTML=t("planNote",tyreChgSec.toFixed(0));
+  }
+  /* ---- Fahrer-Einteilung ---- */
   const D=drivers,S=sel.S, baseS=Math.floor(S/D), extra=S%D; let html='';
   for(let d=0;d<D;d++){ const st=baseS+(d<extra?1:0); html+=`<div class="stat"><div class="l">${t("driverK",d+1)}</div><div class="v">${t("stintsN",st)}</div><div class="d muted">${t("driverInfo",(st*sel.stintMin).toFixed(0),st*sel.lapsPerStint)}</div></div>`; }
   plan.innerHTML='<div class="grid2">'+html+'</div>'+(S<D?`<div class="hint" style="margin-top:8px">${t("moreDrivers",D,S)}</div>`:'');
 }
-// Eingaben verdrahten
-["piRace","piTyres","piDrivers","piPit","piLap","piVE","piFuel","piTank","piWear","piPenalty"].forEach(id=>{ const e=document.getElementById(id); if(e) e.addEventListener("input",renderPit); });
+// Eingaben verdrahten – gebündelt mit kurzem Debounce, damit nicht jede Tastatureingabe neu rechnet
+let pitDebounce=null;
+function renderPitSoon(){ if(pitDebounce)clearTimeout(pitDebounce); pitDebounce=setTimeout(()=>{ pitDebounce=null; renderPit(); },180); }
+["piRace","piTyres","piDrivers","piPit","piLap","piVE","piFuel","piTank","piWear","piPenalty",
+ "piTyreChg","piDrvChg","piDegr","piFuelEff","piTyreEol"].forEach(id=>{ const e=document.getElementById(id); if(e) e.addEventListener("input",renderPitSoon); });
 document.getElementById("refSrcSel").addEventListener("change",e=>{ STATE.refSource = e.target.value; recompute(); });
 document.getElementById("btnSaveRef").addEventListener("click",saveBestRef);
 
@@ -1858,13 +2377,19 @@ document.getElementById("btnSaveRef").addEventListener("click",saveBestRef);
 function tempColor(t){ if(t==null)return "#33405a"; if(t<70)return "#5aa0e6"; if(t<=105)return "#3fb950"; if(t<=120)return "#d29922"; return "#f85149"; }
 function avgT(arr){ const v=arr.filter(x=>x).map(x=>x.avg); return v.length? v.reduce((a,b)=>a+b,0)/v.length : null; }
 function renderTyres(){
+  if(STATE.appMode==="track"){ renderTyresTrack(); return; }
   const m=STATE.model, lap=STATE.cmpLap; if(!m||!lap) return;
-  document.getElementById("tyLapNote").textContent="· "+t("lapN",lap.index+1)+" ("+fmtTime(lap.lapTime)+")";
+  renderTyresFor(m, lap, "· "+t("lapN",lap.index+1)+" ("+fmtTime(lap.lapTime)+")");
+}
+/* Rendu pneus/freins pour un couple (modèle de session, tour de cette session).
+   En mode circuit le modèle vient du chargement paresseux de la session source. */
+function renderTyresFor(m, lap, note){
+  const grid=document.getElementById("tyreWheels"); if(!m||!lap||!grid) return;
+  const noteEl=document.getElementById("tyLapNote"); if(noteEl) noteEl.textContent=note||"";
   const W=m.wheels||{};
   const wear=wheelStats(W["Tyres Wear"],lap.t0,lap.t1), press=wheelStats(W["TyresPressure"],lap.t0,lap.t1);
   const tc=wheelStats(W["TyresTempCentre"],lap.t0,lap.t1), tl=wheelStats(W["TyresTempLeft"],lap.t0,lap.t1), tr=wheelStats(W["TyresTempRight"],lap.t0,lap.t1);
-  const grid=document.getElementById("tyreWheels");
-  if(!tc){ grid.innerHTML=`<div class="hint">${t("noTyreTemp")}</div>`; document.getElementById("tyreTips").innerHTML=""; renderBrakes(); renderWearSession(); return; }
+  if(!tc){ grid.innerHTML=`<div class="hint">${t("noTyreTemp")}</div>`; document.getElementById("tyreTips").innerHTML=""; renderBrakes(m,lap); renderWearSession(m); return; }
   let html="";
   for(let k=0;k<4;k++){
     const c=tc[k]&&tc[k].avg, l=tl[k]&&tl[k].avg, r=tr[k]&&tr[k].avg, p=press&&press[k]&&press[k].avg, wr=wear&&wear[k]&&wear[k].min;
@@ -1875,7 +2400,7 @@ function renderTyres(){
       <div class="r2"><span class="muted">${t("restProfile")}</span><b>${wr!=null?wr.toFixed(1)+' %':'–'}</b></div>${bar}</div>`;
   }
   grid.innerHTML=html;
-  renderTyreTips(tc,tl,tr); renderBrakes(); renderWearSession();
+  renderTyreTips(tc,tl,tr); renderBrakes(m,lap); renderWearSession(m);
 }
 function innerOuter(tl,tr,k){ const I=(k===0||k===2)?tr[k]:tl[k], O=(k===0||k===2)?tl[k]:tr[k]; return [I&&I.avg, O&&O.avg]; }
 function renderTyreTips(tc,tl,tr){
@@ -1902,15 +2427,20 @@ function renderTyreTips(tc,tl,tr){
   const el=document.getElementById("tyreTips");
   el.innerHTML = tips.length? tips.map(x=>`<div class="insight" style="background:var(--panel2)"><div class="body"><div class="sub">${x}</div></div></div>`).join("") : `<div class="hint">${t("noTyreData")}</div>`;
 }
-function renderBrakes(){
-  const m=STATE.model,lap=STATE.cmpLap, bt=wheelStats((m.wheels||{})["Brakes Temp"],lap.t0,lap.t1);
-  const grid=document.getElementById("brakeWheels");
+function renderBrakes(m,lap){
+  m=m||STATE.model; lap=lap||STATE.cmpLap;
+  const grid=document.getElementById("brakeWheels"); if(!grid) return;
+  if(!m||!lap){ grid.innerHTML=""; return; }
+  const bt=wheelStats((m.wheels||{})["Brakes Temp"],lap.t0,lap.t1);
   if(!bt){ grid.innerHTML=`<div class="hint">${t("noBrakeTemp")}</div>`; return; }
   grid.innerHTML=[0,1,2,3].map(k=>{ const a=bt[k],v=a&&a.avg,mx=a&&a.max,col=v==null?"#33405a":v<150?"#5aa0e6":v<500?"#3fb950":v<650?"#d29922":"#f85149";
     return `<div class="wheel"><div class="wl">${WL(k)}</div><div class="r2"><span class="muted">${t("brAvg")}</span><b style="color:${col}">${v!=null?v.toFixed(0)+' °C':'–'}</b></div><div class="r2"><span class="muted">${t("brMax")}</span><b>${mx!=null?mx.toFixed(0)+' °C':'–'}</b></div></div>`; }).join("");
 }
-function renderWearSession(){
-  const m=STATE.model, ww=(m.wheels||{})["Tyres Wear"], el=document.getElementById("wearSession");
+function renderWearSession(m){
+  m=m||STATE.model;
+  const el=document.getElementById("wearSession"); if(!el) return;
+  if(!m||!m.laps){ el.innerHTML=""; return; }
+  const ww=(m.wheels||{})["Tyres Wear"];
   if(!ww){ el.innerHTML=`<div class="hint">${t("noWearData")}</div>`; return; }
   const sT=m.laps.length?m.laps[0].t0:0, eT=m.laps.length?m.laps[m.laps.length-1].t1:0;
   const s=wheelVal(ww,sT), e=wheelVal(ww,eT);
@@ -1950,6 +2480,7 @@ async function recordSetupHistory(m, signal){
 }
 function setupHistoryFor(m){ return lsGet("lmuHist",[]).filter(h=>h.track===(m.meta&&m.meta.TrackName)&&h.car===(m.meta&&m.meta.CarName)); }
 function renderSetup(){
+  if(STATE.appMode==="track"){ renderSetupTrack(); return; }
   const m=STATE.model; if(!m)return;
   const hist=setupHistoryFor(m).sort((a,b)=>(a.date||"").localeCompare(b.date||""));
   const selA=document.getElementById("setupSelA"), selB=document.getElementById("setupSelB");
@@ -1971,9 +2502,11 @@ function renderSetupCompare(hist){
   rows.sort((x,y)=>setupLabel(x.k).localeCompare(setupLabel(y.k)));
   diffEl.innerHTML = rows.length? `<table class="setuptbl"><thead><tr><th>${t("thParam")}</th><th>${t("thBefore")}</th><th>${t("thAfter")}</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${escapeHtml(setupLabel(r.k))}</td><td class="muted">${escapeHtml(r.a==null?'–':r.a)}</td><td><b>${escapeHtml(r.b==null?'–':r.b)}</b></td></tr>`).join("")}</tbody></table>` : `<div class="hint">${t("noDiff")}</div>`;
 }
-function renderSetupHints(){
-  const m=STATE.model, el=document.getElementById("setupHints"); if(!m){el.innerHTML="";return;}
-  const lap=m.laps.find(l=>l.complete&&!l.outlap&&!l.inlap)||m.laps.find(l=>l.complete)||STATE.cmpLap;
+function renderSetupHints(m, lapArg){
+  m=m||STATE.model;
+  const el=document.getElementById("setupHints"); if(!el) return;
+  if(!m||!m.laps){el.innerHTML="";return;}
+  const lap=lapArg||m.laps.find(l=>l.complete&&!l.outlap&&!l.inlap)||m.laps.find(l=>l.complete)||STATE.cmpLap;
   if(!lap){ el.innerHTML=`<div class="hint">${t("noComplete")}</div>`; return; }
   const W=m.wheels||{}, tc=wheelStats(W["TyresTempCentre"],lap.t0,lap.t1), tl=wheelStats(W["TyresTempLeft"],lap.t0,lap.t1), tr=wheelStats(W["TyresTempRight"],lap.t0,lap.t1);
   const hints=[];
@@ -1996,7 +2529,9 @@ function steeringCorrections(m,lap){ const cs=findChan(m.channels,ALIAS.steer); 
 /* ---------- Tabs ---------- */
 function switchTab(name){ document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.tab===name));
   document.querySelectorAll("section[data-panel]").forEach(s=>s.style.display=s.dataset.panel===name?"":"none");
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{redrawAll(); renderAllMaps(); if(name==="pit")renderPit(); if(name==="tyres")renderTyres(); if(name==="setup")renderSetup(); if(name==="session")renderSession();})); }
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{redrawAll(); renderAllMaps(); if(name==="pit")renderPit(); if(name==="tyres")renderTyres(); if(name==="setup")renderSetup(); if(name==="session")renderSession();
+    if(name==="trackover")renderTrackOverview();
+    if(name==="channels"&&STATE.appMode==="track")fillChanSelect();})); }
 document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>switchTab(t.dataset.tab));
 addEventListener("resize",()=>{redrawAll(); if(STATE.refP){renderAllMaps(); renderPitMap();}});
 
@@ -2037,6 +2572,7 @@ function showGate(view){
 function goHome(){
   trackLoadGen++;
   loadGen++;
+  clearPoolCaches();
   STATE.follow=false;
   setLive(false);
   showConn("");
@@ -2097,7 +2633,7 @@ function fillTrackCtx(){
   if(!title) return;
   title.textContent=(STATE.trackPick.track||"—")+" · "+catLabel(STATE.trackPick.cat);
   const laps=(STATE.model&&STATE.model.laps)||[];
-  const nSess=new Set(laps.map(l=>l.file)).size;
+  const nSess=(STATE.model&&STATE.model.poolSessions)||new Set(laps.map(l=>l.src+"|"+l.file)).size;
   const best=laps[0];
   sub.textContent=t("trackPoolReady",laps.length,nSess)+(best?" · "+fmtTime(best.lapTime):"");
 }
@@ -2124,6 +2660,7 @@ async function selectCategory(cat){
 }
 async function loadTrackPool(track, cat){
   const gen=++trackLoadGen;
+  clearPoolCaches();          // pool différent = sessions détaillées en cache obsolètes
   const matches=(STATE.trackIndex||[]).filter(s=>(s.track||t("unknownTrack"))===track && carCategory(s)===cat);
   setBodyMode("track");
   STATE.refP=null; STATE.cmpP=null; STATE.ana=null; STATE.refLap=null; STATE.cmpLap=null;
@@ -2134,7 +2671,8 @@ async function loadTrackPool(track, cat){
   switchTab("compare");
   document.getElementById("app").style.display="none";
   showConn(`<div class="banner">${escapeHtml(t("loadingTrack",0,matches.length,track))}</div>`);
-  const pool=[];
+  const pool=[], chanIdx=new Map();
+  let sessCount=0;
   for(let i=0;i<matches.length;i++){
     if(gen!==trackLoadGen) return;
     const s=matches[i];
@@ -2145,7 +2683,9 @@ async function loadTrackPool(track, cat){
       if(gen!==trackLoadGen) return;
       const m=buildModel(js);
       if(m.error) continue;
-      computeSectors(m); computeTopSpeeds(m);
+      computeSectors(m); computeTopSpeeds(m); computeConsumption(m);
+      indexPoolChannels(chanIdx, m);
+      sessCount++;
       m.laps.forEach(l=>{
         if(!l.complete||l.outlap||l.inlap) return;
         const profile=lapProfile(m,l);
@@ -2153,7 +2693,12 @@ async function loadTrackPool(track, cat){
         pool.push({ origIndex:l.index, lapTime:l.lapTime, complete:true, outlap:false, inlap:false,
           trackLen:l.trackLen, topSpeed:l.topSpeed, s1:l.s1, s2:l.s2, s3:l.s3, profile,
           car:m.meta.CarName||s.car||"", date:m.meta.RecordingTime||s.recordingTime||"",
-          file:m.fileName, src:m.src||s.src||"" });
+          file:m.fileName, src:m.src||s.src||"",
+          veLap:l.veLap, fuelLap:l.fuelLap, wearLap:l.wearLap,
+          // Coordonnées du tour dans sa session d'origine : permettent de relire
+          // roues / canaux / setup après un rechargement paresseux de la session.
+          srcLap:{ index:l.index, t0:l.t0, t1:l.t1, i0:l.i0, i1:l.i1,
+                   trackLen:l.trackLen, lapTime:l.lapTime, complete:true } });
       });
     }catch(e){}
   }
@@ -2161,10 +2706,13 @@ async function loadTrackPool(track, cat){
   pool.sort((a,b)=>a.lapTime-b.lapTime);
   pool.forEach((l,i)=>l.index=i);
   STATE.model={ fileName:track, meta:{TrackName:track, CarClass:catLabel(cat)},
-    laps:pool, channels:[], events:{}, trackLen:pool[0]&&pool[0].trackLen, telDir:STATE.telDir };
+    laps:pool, channels:[], events:{}, trackLen:pool[0]&&pool[0].trackLen, telDir:STATE.telDir,
+    poolSessions:new Set(pool.map(l=>l.src+"|"+l.file)).size, poolChannels:poolChannelList(chanIdx) };
+  applyPoolAggregates(STATE.model);
   STATE.refSource="session"; STATE.loadedKey=null;
-  fillTrackCtx(); renderMeta(); refreshRefSrc();
+  fillTrackCtx(); renderMeta(); refreshRefSrc(); renderDiag();
   if(!pool.length){
+    renderTrackOverview();
     showConn(`<div class="banner err">${t("noTrackLaps")}</div>`);
     setStatus(t("noTrackLaps"));
     document.getElementById("app").style.display="none";
@@ -2173,14 +2721,326 @@ async function loadTrackPool(track, cat){
   STATE.refLap=pool[0]; STATE.cmpLap=pool[1]||pool[0];
   document.getElementById("app").style.display="";
   showConn("");
+  pitPrefill(STATE.model);   // le calculateur d'arrêt tourne sur les médianes du pool
   recompute();
-  setStatus(t("trackPoolReady", pool.length, new Set(pool.map(l=>l.file)).size));
+  setStatus(t("trackPoolReady", pool.length, STATE.model.poolSessions));
 }
+/* ============ Mode circuit : outils sur un pool multi-sessions ============
+   Un tour du pool ne garde que son profil + une référence vers sa session
+   source ({file, src, srcLap}). Les données détaillées (roues, canaux, setup)
+   sont chargées à la demande puis mises en cache LRU : un circuit peut compter
+   des dizaines de sessions, le chargement initial doit rester rapide. */
+let trackRenderGen=0;
+const POOL_MODEL_MAX=4;            // sessions complètes gardées en mémoire
+const poolModelCache=new Map(), poolModelPending=new Map();
+const poolSetupCache=new Map(), poolSetupPending=new Map();
+let trackChan=null;
+
+function poolLapKey(l){ return (l&&l.file)? ((l.src||"lmu")+":"+l.file) : ""; }
+function clearPoolCaches(){
+  poolModelCache.clear(); poolModelPending.clear();
+  poolSetupCache.clear(); poolSetupPending.clear();
+  trackChan=null; trackRenderGen++;
+}
+function poolErrText(e){
+  if(e&&e.code===423) return t("trackLocked");
+  return t("trackErr",(e&&e.message)||String(e||"?"));
+}
+function cacheTouch(map,key,val,max){
+  map.delete(key); map.set(key,val);
+  while(map.size>max){ const first=map.keys().next().value; map.delete(first); }
+}
+/* Session source complète. Ne rejette jamais : renvoie {m} ou {err}. */
+function poolSessionModel(lap){
+  const key=poolLapKey(lap);
+  if(!key) return Promise.resolve({err:t("trackNoLap")});
+  if(poolModelCache.has(key)){ const e=poolModelCache.get(key); cacheTouch(poolModelCache,key,e,POOL_MODEL_MAX); return Promise.resolve(e); }
+  if(poolModelPending.has(key)) return poolModelPending.get(key);
+  const p=(async()=>{
+    let entry;
+    try{
+      const js=await apiGet(sessionQs({file:lap.file,src:lap.src}));
+      const m=buildModel(js);
+      if(m.error) entry={err:m.error};
+      else { computeSectors(m); computeTopSpeeds(m); computeConsumption(m); entry={m}; }
+    }catch(e){ entry={err:poolErrText(e)}; }
+    poolModelPending.delete(key);
+    cacheTouch(poolModelCache,key,entry,POOL_MODEL_MAX);
+    return entry;
+  })();
+  poolModelPending.set(key,p);
+  return p;
+}
+/* Setup de la session source, compacté en {clé: valeur affichée}. */
+function poolSetup(lap){
+  const key=poolLapKey(lap);
+  if(!key) return Promise.resolve({err:t("trackNoLap")});
+  if(poolSetupCache.has(key)) return Promise.resolve(poolSetupCache.get(key));
+  if(poolSetupPending.has(key)) return poolSetupPending.get(key);
+  const p=(async()=>{
+    let entry;
+    try{
+      const r=await apiGet(setupQs(lap.file, lap.src));
+      const raw=(r&&r.setup)||null;
+      if(!raw || !Object.keys(raw).length) entry={err:t("noDiff")};
+      else { const o={}; for(const k in raw) o[k]=raw[k]&&raw[k].s; entry={setup:o}; }
+    }catch(e){ entry={err:poolErrText(e)}; }
+    poolSetupPending.delete(key);
+    cacheTouch(poolSetupCache,key,entry,12);
+    return entry;
+  })();
+  poolSetupPending.set(key,p);
+  return p;
+}
+function fmtSessDate(d){ const s=String(d||"").slice(0,16).replace("T"," ").replace(/_/g,":"); return s||"—"; }
+function trackLapDesc(l){
+  if(!l) return "—";
+  const n=t("lapN",(l.origIndex!=null?l.origIndex:l.index)+1)+" "+fmtTime(l.lapTime);
+  return t("lapFromSess", n, l.car||"", fmtSessDate(l.date)==="—"?"":fmtSessDate(l.date));
+}
+
+/* ---- Agrégats du pool ---- */
+function poolMedian(a){
+  if(!a||!a.length) return null;
+  const s=a.slice().sort((x,y)=>x-y), n=s.length;
+  return n%2? s[(n-1)>>1] : (s[n/2-1]+s[n/2])/2;
+}
+function poolNums(laps,key,min){ return (laps||[]).map(l=>l[key]).filter(v=>v!=null&&isFinite(v)&&v>min); }
+function applyPoolAggregates(m){
+  const laps=(m&&m.laps)||[];
+  const times=laps.map(l=>l.lapTime).filter(v=>isFinite(v)&&v>0);
+  m.avgLap = poolMedian(times)||0;
+  m.bestLap = times.length? arrMin(times) : 0;
+  m.vePerLap = poolMedian(poolNums(laps,"veLap",0.05));
+  m.fuelPerLap = poolMedian(poolNums(laps,"fuelLap",0.02));
+  m.wearPerLap = poolMedian(poolNums(laps,"wearLap",0.001));
+  m.bestS1=m.bestS2=m.bestS3=m.theoBest=null;
+  const valid=laps.filter(l=>l.s1!=null&&l.s2!=null&&l.s3!=null);
+  if(valid.length){ m.bestS1=arrMin(valid,l=>l.s1); m.bestS2=arrMin(valid,l=>l.s2); m.bestS3=arrMin(valid,l=>l.s3); m.theoBest=m.bestS1+m.bestS2+m.bestS3; }
+}
+function indexPoolChannels(map, m){
+  const bump=(name,unit,freq,wheel)=>{
+    if(!name) return;
+    let e=map.get(name);
+    if(!e){ e={name,unit:unit||"",freq:freq||null,sessions:0,wheel:!!wheel}; map.set(name,e); }
+    e.sessions++; if(!e.unit&&unit) e.unit=unit; if(!e.freq&&freq) e.freq=freq;
+  };
+  const seen=new Set();
+  (m.channels||[]).forEach(c=>{ if(!c||!c.name||seen.has(c.name)) return; seen.add(c.name); bump(c.name,c.unit,c.freq,false); });
+  const W=m.wheels||{};
+  for(const n in W){ if(seen.has(n)) continue; seen.add(n); bump(n,W[n]&&W[n].unit,W[n]&&W[n].freq,true); }
+}
+function poolChannelList(map){
+  return [...map.values()].sort((a,b)=>b.sessions-a.sessions||a.name.localeCompare(b.name));
+}
+function poolStats(times){
+  const s=(times||[]).filter(v=>isFinite(v)&&v>0).slice().sort((a,b)=>a-b);
+  if(!s.length) return null;
+  const n=s.length; let sum=0; for(const v of s) sum+=v;
+  const mean=sum/n; let q=0; for(const v of s) q+=(v-mean)*(v-mean);
+  const p90=s[Math.min(n-1,Math.round(0.9*(n-1)))];
+  return { n, best:s[0], med:poolMedian(s), mean, sd:n>1?Math.sqrt(q/(n-1)):0, p90, spread:p90-s[0] };
+}
+function poolGroup(laps, keyFn){
+  const map=new Map();
+  (laps||[]).forEach(l=>{ const k=keyFn(l)||"—"; let g=map.get(k);
+    if(!g){ g={key:k,laps:[]}; map.set(k,g); } g.laps.push(l); });
+  return [...map.values()];
+}
+/* Barre inversée : plein = au niveau du meilleur tour du pool. */
+function poolBar(delta, maxDelta){
+  const pct=(maxDelta>0)? Math.max(3,Math.min(100,100*(1-Math.min(Math.max(delta,0),maxDelta)/maxDelta))) : 100;
+  return `<div class="tbar"><i style="width:${pct.toFixed(0)}%"></i></div>`;
+}
+function poolDeltaCell(d){
+  if(!(d>0.0005)) return '<td class="num">—</td>';
+  return `<td class="num up">${fmtDelta(d)}</td>`;
+}
+
+/* ---- Onglet « Vue d'ensemble circuit » ---- */
+function renderTrackOverview(){
+  const m=STATE.model, kp=document.getElementById("toKpis"); if(!kp) return;
+  const byCar=document.getElementById("toByCar"), bySess=document.getElementById("toBySess"),
+        prog=document.getElementById("toProgress"), pitData=document.getElementById("toPitData");
+  const laps=(m&&m.laps)||[];
+  if(!laps.length){ kp.innerHTML=`<div class="hint">${t("toNoPool")}</div>`;
+    [byCar,bySess,prog,pitData].forEach(e=>{ if(e) e.innerHTML=""; }); return; }
+  const st=poolStats(laps.map(l=>l.lapTime));
+  if(!st){ kp.innerHTML=`<div class="hint">${t("toNoPool")}</div>`; return; }
+  const bestL=laps.reduce((a,b)=>(b.lapTime<a.lapTime?b:a),laps[0]);
+  const nSess=new Set(laps.map(l=>l.file||"")).size;
+  const carGroups=poolGroup(laps,l=>l.car||"—");
+  kp.innerHTML=[
+    pitKpi(t("toLaps"),String(laps.length),t("sessionsN",nSess)),
+    pitKpi(t("toBest"),fmtTime(st.best),escapeHtml(bestL.car||"")),
+    pitKpi(t("toMedian"),fmtTime(st.med),fmtDelta(st.med-st.best)+" s"),
+    pitKpi(t("toStdDev"),st.sd.toFixed(3)+" s",t("lapsN",st.n)),
+    pitKpi(t("toSpread"),st.spread.toFixed(3)+" s","best → P90"),
+    pitKpi(t("toCars"),String(carGroups.length),"")
+  ].join("");
+
+  const carRows=carGroups.map(g=>({ car:g.key, n:g.laps.length, st:poolStats(g.laps.map(l=>l.lapTime)),
+      sess:new Set(g.laps.map(l=>l.file||"")).size }))
+    .filter(r=>r.st).sort((a,b)=>a.st.best-b.st.best);
+  const maxCarD=carRows.length? Math.max(0,arrMax(carRows,r=>r.st.best-st.best)) : 0;
+  if(byCar) byCar.innerHTML=`<table class="pit pool" style="font-size:12.5px"><thead><tr><th>${t("thCar")}</th><th class="num">${t("thBest")}</th><th class="num">${t("thDeltaPool")}</th><th></th><th class="num">${t("thMedianL")}</th><th class="num">${t("thStd")}</th><th class="num">${t("thLaps")}</th><th class="num">${t("thInSess")}</th></tr></thead><tbody>`
+    + carRows.map((r,i)=>`<tr${i===0?' class="fastest"':''}><td>${escapeHtml(r.car)}</td><td class="num"><b>${fmtTime(r.st.best)}</b></td>`
+      + poolDeltaCell(r.st.best-st.best)
+      + `<td>${poolBar(r.st.best-st.best,maxCarD)}</td><td class="num">${fmtTime(r.st.med)}</td><td class="num">${r.st.sd.toFixed(3)}</td><td class="num">${r.n}</td><td class="num">${r.sess}</td></tr>`).join("")
+    + `</tbody></table>`;
+
+  const sessRows=poolGroup(laps,l=>poolLapKey(l)).map(g=>{
+      const f=g.laps[0];
+      return { key:g.key, file:f.file||"", car:f.car||"", date:f.date||"", n:g.laps.length, st:poolStats(g.laps.map(l=>l.lapTime)) };
+    }).filter(r=>r.st);
+  const maxSessD=sessRows.length? Math.max(0,arrMax(sessRows,r=>r.st.best-st.best)) : 0;
+  const byBest=sessRows.slice().sort((a,b)=>a.st.best-b.st.best);
+  if(bySess) bySess.innerHTML=`<table class="pit pool" style="font-size:12.5px"><thead><tr><th>${t("thDate")}</th><th>${t("thCar")}</th><th class="num">${t("thBest")}</th><th class="num">${t("thDeltaPool")}</th><th></th><th class="num">${t("thMedianL")}</th><th class="num">${t("thStd")}</th><th class="num">${t("thLaps")}</th><th>${t("thSessionF")}</th></tr></thead><tbody>`
+    + byBest.map((r,i)=>`<tr${i===0?' class="fastest"':''}><td>${escapeHtml(fmtSessDate(r.date))}</td><td>${escapeHtml(r.car)}</td><td class="num"><b>${fmtTime(r.st.best)}</b></td>`
+      + poolDeltaCell(r.st.best-st.best)
+      + `<td>${poolBar(r.st.best-st.best,maxSessD)}</td><td class="num">${fmtTime(r.st.med)}</td><td class="num">${r.st.sd.toFixed(3)}</td><td class="num">${r.n}</td><td class="muted">${escapeHtml(prettyName(r.file))}</td></tr>`).join("")
+    + `</tbody></table>`;
+
+  const chrono=sessRows.slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  if(prog) prog.innerHTML=`<table class="pit pool" style="font-size:12.5px"><thead><tr><th>#</th><th>${t("thDate")}</th><th>${t("thCar")}</th><th class="num">${t("thBest")}</th><th></th><th class="num">${t("thDeltaPool")}</th><th class="num">Δ</th></tr></thead><tbody>`
+    + chrono.map((r,i)=>{
+        const prev=i>0?chrono[i-1].st.best:null, dPrev=(prev!=null)? r.st.best-prev : null;
+        const cls=(dPrev==null)?"":(dPrev<-0.0005?" down":dPrev>0.0005?" up":"");
+        return `<tr><td>${i+1}</td><td>${escapeHtml(fmtSessDate(r.date))}</td><td>${escapeHtml(r.car)}</td><td class="num"><b>${fmtTime(r.st.best)}</b></td>`
+          + `<td>${poolBar(r.st.best-st.best,maxSessD)}</td>` + poolDeltaCell(r.st.best-st.best)
+          + `<td class="num${cls}">${dPrev==null?"—":fmtDelta(dPrev)}</td></tr>`;
+      }).join("")
+    + `</tbody></table>`;
+
+  if(pitData){
+    const pl=perLap();
+    pitData.innerHTML=[
+      pitKpi(t("avgLapInput"),fmtTime(m.avgLap),t("toMedian")),
+      pitKpi(t("toBest"),fmtTime(m.bestLap),escapeHtml(bestL.car||"")),
+      pitKpi(t("vePerLapInput"),m.vePerLap!=null?m.vePerLap.toFixed(2)+" %":"—",m.vePerLap!=null?pl:""),
+      pitKpi(t("fuelPerLapInput"),m.fuelPerLap!=null?m.fuelPerLap.toFixed(1)+" L":"—",m.fuelPerLap!=null?pl:""),
+      pitKpi(t("wearPerLapInput"),m.wearPerLap!=null?m.wearPerLap.toFixed(2)+" %":"—",m.wearPerLap!=null?pl:"")
+    ].join("");
+  }
+}
+
+/* ---- Pneus & freins (tour de comparaison du pool) ---- */
+async function renderTyresTrack(){
+  const gen=trackRenderGen, lap=STATE.cmpLap;
+  const grid=document.getElementById("tyreWheels"); if(!grid) return;
+  const tips=document.getElementById("tyreTips"), noteEl=document.getElementById("tyLapNote");
+  const clearRest=()=>["brakeWheels","wearSession"].forEach(id=>{ const e=document.getElementById(id); if(e) e.innerHTML=""; });
+  if(!lap||!lap.srcLap){ grid.innerHTML=`<div class="hint">${t("trackNoLap")}</div>`; if(tips) tips.innerHTML=""; clearRest(); return; }
+  if(noteEl) noteEl.textContent="· "+trackLapDesc(lap);
+  grid.innerHTML=`<div class="hint">${t("trackLoading")}</div>`;
+  const res=await poolSessionModel(lap);
+  if(gen!==trackRenderGen || STATE.cmpLap!==lap) return;
+  if(!res.m){ grid.innerHTML=`<div class="banner err">${escapeHtml(res.err||"")}</div>`; if(tips) tips.innerHTML=""; clearRest(); return; }
+  renderTyresFor(res.m, lap.srcLap, "· "+trackLapDesc(lap));
+}
+
+/* ---- Comparateur de canaux : intersection des deux sessions sources ---- */
+async function fillChanSelectTrack(){
+  const gen=trackRenderGen, sel=document.getElementById("chanSel"), note=document.getElementById("chanNote");
+  if(!sel) return;
+  registerChanChart();
+  const ref=STATE.refLap, cmp=STATE.cmpLap;
+  const fail=(msg)=>{ sel.innerHTML=""; sel.onchange=null; if(note) note.textContent=msg||"";
+    chanRef=chanCmp=null; chanName=""; trackChan=null; renderChanPlot(); };
+  if(!ref||!cmp||!ref.srcLap||!cmp.srcLap){ fail(t("trackNoLap")); return; }
+  if(note) note.textContent=t("trackLoading");
+  const [ra,rb]=await Promise.all([poolSessionModel(ref),poolSessionModel(cmp)]);
+  if(gen!==trackRenderGen || STATE.refLap!==ref || STATE.cmpLap!==cmp) return;
+  if(!ra.m||!rb.m){ fail(ra.err||rb.err||""); return; }
+  const inB=new Set((rb.m.channels||[]).map(c=>c.name));
+  const common=(ra.m.channels||[]).filter(c=>c.nData&&inB.has(c.name));
+  if(!common.length){ fail(t("chanNoCommon")); return; }
+  const prev=sel.dataset.trackName||"";
+  sel.innerHTML=common.map(c=>`<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}${c.unit?" ["+escapeHtml(c.unit)+"]":""}</option>`).join("");
+  if(prev && common.some(c=>c.name===prev)) sel.value=prev;
+  sel.dataset.trackName=sel.value;
+  sel.onchange=()=>{ sel.dataset.trackName=sel.value; renderChan(); };
+  if(note) note.textContent=(poolLapKey(ref)===poolLapKey(cmp))? t("chanSameSess") : t("chanCommon",common.length);
+  trackChan={mRef:ra.m,mCmp:rb.m,refLap:ref,cmpLap:cmp};
+  renderChan();
+}
+function renderChanTrack(name){
+  const tc=trackChan;
+  if(!name||!tc||tc.refLap!==STATE.refLap||tc.cmpLap!==STATE.cmpLap){ chanRef=chanCmp=null; renderChanPlot(); return; }
+  const cR=(tc.mRef.channels||[]).find(c=>c.name===name), cC=(tc.mCmp.channels||[]).find(c=>c.name===name);
+  chanName=name;
+  chanRef=(cR&&cR.nData&&tc.mRef.cDist)? chanOnGrid(tc.mRef,tc.refLap.srcLap,cR) : null;
+  chanCmp=(cC&&cC.nData&&tc.mCmp.cDist)? chanOnGrid(tc.mCmp,tc.cmpLap.srcLap,cC) : null;
+  renderChanPlot();
+}
+
+/* ---- Setup : session du tour de référence vs session du tour de comparaison ---- */
+async function renderSetupTrack(){
+  const gen=trackRenderGen, ref=STATE.refLap, cmp=STATE.cmpLap;
+  const paceEl=document.getElementById("setupPace"), diffEl=document.getElementById("setupDiff"),
+        hintsEl=document.getElementById("setupHints");
+  const selA=document.getElementById("setupSelA"), selB=document.getElementById("setupSelB");
+  if(selA) selA.innerHTML=""; if(selB) selB.innerHTML="";
+  if(!paceEl||!diffEl) return;
+  if(!ref||!cmp||!ref.file||!cmp.file){ paceEl.innerHTML=`<div class="hint">${t("trackNoLap")}</div>`;
+    diffEl.innerHTML=""; if(hintsEl) hintsEl.innerHTML=""; return; }
+  const dt=cmp.lapTime-ref.lapTime;
+  const kpis=(changed)=>'<div class="grid2">'
+    +pitKpi(t("kRefLapS"),fmtTime(ref.lapTime),escapeHtml(trackLapDesc(ref)))
+    +pitKpi(t("kCmpLapS"),fmtTime(cmp.lapTime),escapeHtml(trackLapDesc(cmp)))
+    +pitKpi(t("kDiff"),fmtDelta(dt)+" s",dt<=0?t("faster"):t("slower"),dt<=0?"down":"up")
+    +pitKpi(t("kChanged"),changed,t("seeBelow"))
+    +'</div>';
+  paceEl.innerHTML=kpis("…");
+  diffEl.innerHTML=`<div class="hint">${t("trackLoading")}</div>`;
+  const [A,B]=await Promise.all([poolSetup(ref),poolSetup(cmp)]);
+  if(gen!==trackRenderGen || STATE.refLap!==ref || STATE.cmpLap!==cmp) return;
+  if(!A.setup||!B.setup){
+    paceEl.innerHTML=kpis("—");
+    diffEl.innerHTML=`<div class="banner err">${escapeHtml(A.err||B.err||"")}</div>`;
+  } else {
+    const rows=[];
+    new Set([...Object.keys(A.setup),...Object.keys(B.setup)]).forEach(k=>{
+      const a=A.setup[k], b=B.setup[k]; if(a!==b) rows.push({k,a,b}); });
+    rows.sort((x,y)=>setupLabel(x.k).localeCompare(setupLabel(y.k)));
+    paceEl.innerHTML=kpis(String(rows.length));
+    diffEl.innerHTML=rows.length
+      ? `<table class="setuptbl"><thead><tr><th>${t("thParam")}</th><th>${t("kRefLapS")}</th><th>${t("kCmpLapS")}</th></tr></thead><tbody>`
+        + rows.map(r=>`<tr><td>${escapeHtml(setupLabel(r.k))}</td><td class="muted">${escapeHtml(r.a==null?"–":r.a)}</td><td><b>${escapeHtml(r.b==null?"–":r.b)}</b></td></tr>`).join("")
+        + `</tbody></table>`
+      : `<div class="hint">${t("noDiff")}</div>`;
+  }
+  if(hintsEl) hintsEl.innerHTML=`<div class="hint">${t("trackLoading")}</div>`;
+  const res=await poolSessionModel(cmp);
+  if(gen!==trackRenderGen || STATE.cmpLap!==cmp) return;
+  if(res.m) renderSetupHints(res.m, cmp.srcLap);
+  else if(hintsEl) hintsEl.innerHTML=`<div class="hint">${escapeHtml(res.err||"")}</div>`;
+}
+
+/* ---- Diagnostic : infos du pool au lieu d'une session unique ---- */
+function renderDiagTrack(m){
+  const conn=document.getElementById("diagConn");
+  const laps=(m&&m.laps)||[], chans=(m&&m.poolChannels)||[];
+  const nSess=(m&&m.poolSessions)||new Set(laps.map(l=>l.file||"")).size;
+  if(conn) conn.innerHTML=t("diagPool",escapeHtml((m&&m.telDir)||STATE.telDir||""),
+    escapeHtml(STATE.trackPick.track||(m&&m.fileName)||""),escapeHtml(catLabel(STATE.trackPick.cat)),nSess,laps.length);
+  const cnt=document.getElementById("chanCount"); if(cnt) cnt.textContent=chans.length;
+  diagChanHead([t("thName"),t("thUnit"),"Hz",t("thInSess")]);
+  const tb=document.querySelector("#diagChans tbody"); if(!tb) return;
+  tb.innerHTML=chans.length
+    ? chans.map(c=>`<tr><td>${escapeHtml(c.name)}${c.wheel?' <span class="pill">4×</span>':''}</td><td>${escapeHtml(c.unit||"")}</td><td>${c.freq!=null?c.freq:"—"}</td><td>${c.sessions}${nSess?" / "+nSess:""}</td></tr>`).join("")
+    : `<tr><td colspan="4" class="muted">${t("toNoPool")}</td></tr>`;
+}
+
 function enterSessionMode(){
   const fromTrack=STATE.appMode==="track"||!!STATE.trackPick.cat;
   trackLoadGen++;
+  clearPoolCaches();
   setBodyMode("session");
   switchTab("improve");
+  const chanSel=document.getElementById("chanSel");
+  if(chanSel){ chanSel.innerHTML=""; delete chanSel.dataset.trackName; }
+  chanRef=chanCmp=null; chanName="";
   if(fromTrack){
     STATE.model=null; STATE.loadedKey=null; STATE.refLap=null; STATE.cmpLap=null;
     STATE.refP=null; STATE.cmpP=null; STATE.ana=null;
