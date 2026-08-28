@@ -54,9 +54,12 @@ ouvre le navigateur automatiquement. Pour quitter, utilise le **bouton ⏻** en 
 l'application. (La CLI DuckDB est téléchargée au premier démarrage si elle n'est pas déjà présente à
 côté. Les messages de l'application sont écrits dans `lmu-telemetrie.log`, à côté de l'exécutable.)
 
-**Depuis les sources (avec Node.js) :** double-clique sur **`Start LMU Telemetrie.cmd`**. Au premier
-démarrage, le script récupère automatiquement **Node.js** (si nécessaire) et la **CLI DuckDB**, démarre
-le pont et ouvre `http://localhost:8777` dans le navigateur.
+**Depuis les sources (avec Node.js) :**
+- **Windows :** double-clique sur **`Lancer LMU Telemetrie Windows.cmd`**.
+- **Mac :** double-clique sur **`Lancer LMU Telemetrie Mac.command`**.
+
+Au premier démarrage, le script récupère automatiquement **Node.js** (si nécessaire) et la **CLI DuckDB**,
+démarre le pont et ouvre `http://localhost:8777` dans le navigateur.
 
 Le dossier de télémétrie est trouvé automatiquement via les bibliothèques Steam. Pour un chemin
 différent :

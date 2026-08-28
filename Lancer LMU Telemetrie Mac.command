@@ -1,5 +1,6 @@
 #!/bin/bash
-# Double-clic Finder : démarre la bridge et ouvre le viewer dans Google Chrome.
+# Lanceur rapide macOS — double-clic dans le Finder.
+# Démarre le pont et ouvre le viewer dans Google Chrome.
 # Copie hors de Documents : macOS bloque sinon Node (EPERM / TCC).
 SRC="$(cd "$(dirname "$0")" && pwd)"
 export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
@@ -7,7 +8,7 @@ SUPPORT="$HOME/Library/Application Support/LMU Telemetry Analyzer"
 mkdir -p "$SUPPORT"
 
 echo "============================================================"
-echo "  LMU Telemetrie-Analyse"
+echo "  Analyseur de télémétrie LMU  (Mac)"
 echo "------------------------------------------------------------"
 echo "  Démarre le serveur local et ouvre Chrome"
 echo "  (http://localhost:8777)"

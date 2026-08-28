@@ -54,9 +54,12 @@ automatically. Quit via the **⏻ button** at the top right of the app. (The Duc
 first start if not present alongside it. The app writes messages to `lmu-telemetrie.log` next to the
 EXE.)
 
-**From source (with Node.js):** double-click **`Start LMU Telemetrie.cmd`**. On first start the script
-automatically obtains **Node.js** (if needed) and the **DuckDB CLI**, starts the bridge and opens
-`http://localhost:8777` in the browser.
+**From source (with Node.js):**
+- **Windows:** double-click **`Lancer LMU Telemetrie Windows.cmd`**.
+- **Mac:** double-click **`Lancer LMU Telemetrie Mac.command`**.
+
+On first start the script automatically obtains **Node.js** (if needed) and the **DuckDB CLI**, starts
+the bridge and opens `http://localhost:8777` in the browser.
 
 The telemetry folder is found automatically via the Steam libraries. For a different path:
 ```

@@ -381,6 +381,53 @@ function listSessions() {
   }
   return { telDir: TEL_DIR, lmuDir: TEL.lmuDir, manualDir: TEL.manualDir, sessions: files };
 }
+function metaStr(v) {
+  if (v == null) return "";
+  if (typeof v === "string" || typeof v === "number") return String(v);
+  if (typeof v === "object") {
+    if (v.stringValue != null && v.stringValue !== "") return String(v.stringValue);
+    if (v.value != null && v.value !== "") return String(v.value);
+  }
+  return "";
+}
+const metaCache = new Map();
+async function loadMeta(file) {
+  const sql = `SELECT (json_object(
+    'meta',(SELECT json_group_object(key,value) FROM metadata WHERE key<>'CarSetup')
+  ))::VARCHAR AS doc`;
+  const cat = await duck(file, sql);
+  return (cat && cat.meta) || {};
+}
+async function indexSessions() {
+  const list = listSessions();
+  if (list.error) return list;
+  const sessions = [];
+  for (const s of list.sessions) {
+    const resolved = resolveSessionFile(s.file, s.src);
+    if (!resolved) continue;
+    const cacheKey = resolved.full + ":" + s.mtime;
+    let meta = metaCache.get(cacheKey);
+    if (!meta) {
+      try { meta = await loadMeta(resolved.full); }
+      catch (e) { meta = { _error: duckLockMsg(e).slice(0, 200) }; }
+      metaCache.set(cacheKey, meta);
+    }
+    if (meta._error) {
+      sessions.push({ ...s, track: "", car: "", carClass: "", locked: /lock|in use|verwendet/i.test(meta._error) });
+      continue;
+    }
+    sessions.push({
+      ...s,
+      track: metaStr(meta.TrackName),
+      car: metaStr(meta.CarName),
+      carClass: metaStr(meta.CarClass),
+      sessionType: metaStr(meta.SessionType),
+      recordingTime: metaStr(meta.RecordingTime),
+      driver: metaStr(meta.DriverName),
+    });
+  }
+  return { telDir: list.telDir, lmuDir: list.lmuDir, manualDir: list.manualDir, sessions };
+}
 function resolveSessionFile(name, src) {
   const bySrc = src === "manual" ? TEL.manualDir : src === "lmu" ? TEL.lmuDir : null;
   const order = [bySrc, TEL.lmuDir, TEL.manualDir].filter(Boolean);
@@ -456,6 +503,10 @@ async function handleRequest(req, res) {
   }
   if (u.pathname === "/api/sessions") {
     return json(res, 200, listSessions());
+  }
+  if (u.pathname === "/api/index") {
+    try { return json(res, 200, await indexSessions()); }
+    catch (e) { return json(res, 500, { error: String(e.message || e), sessions: [] }); }
   }
   if (u.pathname === "/api/session") {
     const name = u.searchParams.get("file") || "";
