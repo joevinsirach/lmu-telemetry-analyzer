@@ -1,4 +1,5 @@
-@echo off
+﻿@echo off
+chcp 65001 >nul
 REM Lanceur rapide Windows — double-clic dans l'Explorateur.
 REM Pour un démarrage SANS fenêtre de console, double-clique
 REM   sur "LMU-Telemetrie.exe" (démarre entièrement en arrière-plan).

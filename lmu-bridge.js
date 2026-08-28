@@ -72,12 +72,15 @@ if (process.pkg) {
 } else {
   process.on("uncaughtException", e => { console.error("FATAL", e && e.stack || e); process.exit(1); });
   process.on("unhandledRejection", e => { console.error("FATAL", e && e.stack || e); });
+  if (process.platform === "win32") {
+    try { execFileSync("cmd.exe", ["/d", "/c", "chcp 65001 >nul"], { stdio: "ignore", windowsHide: true }); } catch (_) {}
+  }
 }
 
 // DuckDB-CLI bei Bedarf herunterladen (Windows-.exe und macOS-Doppelklick)
 function ensureDuckDB() {
   if (fs.existsSync(DUCKDB)) return;
-  console.log("Lade DuckDB-CLI herunter (einmalig)...");
+  console.log("Téléchargement de la CLI DuckDB (une seule fois)...");
   const dir = path.join(BASE, "duckdbcli");
   try { fs.mkdirSync(dir, { recursive: true }); } catch (_) {}
   try {
@@ -92,10 +95,10 @@ function ensureDuckDB() {
       try { fs.unlinkSync(zip); } catch (_) {}
       try { fs.chmodSync(DUCKDB, 0o755); } catch (_) {}
     } else {
-      console.error("DuckDB-CLI fehlt: " + DUCKDB);
+      console.error("CLI DuckDB manquante : " + DUCKDB);
       return;
     }
-  } catch (e) { console.error("DuckDB-Download fehlgeschlagen:", e.message); }
+  } catch (e) { console.error("Échec du téléchargement de DuckDB :", e.message); }
 }
 // Standard-Browser als Tab öffnen (Fallback, wenn kein Edge/Chrome gefunden wird
 // oder der App-Start fehlschlägt). Beendet die Bridge NICHT mit, da hier kein
@@ -116,7 +119,7 @@ function openBrowserTab() {
       child.unref();
     }
   } catch (e) {
-    console.error("Browser konnte nicht geöffnet werden:", e.message);
+    console.error("Impossible d'ouvrir le navigateur :", e.message);
   }
 }
 
@@ -148,7 +151,7 @@ function findBrowser() {
 function openApp() {
   const url = "http://localhost:" + PORT;
   const browser = findBrowser();
-  if (!browser) { console.log("Kein Edge/Chrome gefunden – öffne Standard-Browser."); return openBrowserTab(); }
+  if (!browser) { console.log("Edge/Chrome introuvable — ouverture du navigateur par défaut."); return openBrowserTab(); }
   // Eigenes Profilverzeichnis erzwingt einen unabhängigen Browser-Prozess, dessen
   // Lebensdauer dem Fenster entspricht (sonst übergibt Edge/Chrome an eine bereits
   // laufende Instanz und der Kindprozess endet sofort).
@@ -162,9 +165,9 @@ function openApp() {
       "--no-default-browser-check",
       "--window-size=1400,900",
     ], { stdio: "ignore" });   // KEIN windowsHide: das würde Edges/Chromes GUI-Fenster verstecken (SW_HIDE)
-    child.on("exit", () => { console.log("App-Fenster geschlossen – Bridge wird beendet."); process.exit(0); });
-    child.on("error", e => { console.error("App-Fenster konnte nicht gestartet werden:", e.message); openBrowserTab(); });
-  } catch (e) { console.error("App-Start fehlgeschlagen:", e.message); openBrowserTab(); }
+    child.on("exit", () => { console.log("Fenêtre de l'app fermée — arrêt du pont."); process.exit(0); });
+    child.on("error", e => { console.error("Impossible de démarrer la fenêtre de l'app :", e.message); openBrowserTab(); });
+  } catch (e) { console.error("Échec du démarrage de l'app :", e.message); openBrowserTab(); }
 }
 // Neueste Release-Version ermitteln: erst gh (auch bei privatem Repo), sonst öffentliche API
 function getLatestVersion(cb) {
@@ -364,7 +367,7 @@ function listDirSessions(dir, src) {
       return { file: f, size: st.size, mtime: st.mtimeMs, sessionTime: sessionTimeFromName(f), src };
     });
   } catch (e) {
-    console.error("Telemetrie-Ordner unlesbar (" + src + "):", dir, e.message);
+    console.error("Dossier de télémétrie illisible (" + src + ") :", dir, e.message);
     return [];
   }
 }
@@ -497,7 +500,7 @@ async function handleRequest(req, res) {
   }
   if (u.pathname === "/api/quit") {
     json(res, 200, { ok: true });
-    console.log("Beenden angefordert – Bridge wird gestoppt.");
+    console.log("Arrêt demandé — le pont s'arrête.");
     setTimeout(() => process.exit(0), 250);
     return;
   }
@@ -525,7 +528,7 @@ async function handleRequest(req, res) {
       return json(res, 200, data);
     } catch (e) {
       const msg = duckLockMsg(e);
-      console.error("[/api/session] Fehler:", msg.slice(0, 1000));
+      console.error("[/api/session] Erreur :", msg.slice(0, 1000));
       return sessionOpenError(res, msg);
     }
   }
@@ -563,7 +566,7 @@ ensureDuckDB();
 loadHtml();
 function onListenError(err) {
   if (err.code === "EADDRINUSE") {
-    console.error("Port " + PORT + " bereits belegt – öffne die laufende Instanz.");
+    console.error("Le port " + PORT + " est déjà utilisé — ouverture de l'instance en cours.");
     if (!ARG["no-open"]) openApp();
     setTimeout(() => process.exit(0), 1200);
     return;
@@ -576,12 +579,12 @@ server.on("error", onListenError);
 // ohne IPv6-Bind schlägt fetch() mit ERR_CONNECTION_REFUSED fehl.
 server.listen(PORT, "127.0.0.1", () => {
   console.log("======================================================");
-  console.log("  LMU Telemetrie-Analyse v" + APP_VERSION);
-  console.log("  ▶  Eigenes App-Fenster (Adresse: http://localhost:" + PORT + ")");
-  console.log("  Telemetrie LMU: " + (TEL.lmuDir || "nicht gefunden"));
-  console.log("  Telemetrie man.: " + (TEL.manualDir || "kein Ordner telemetry/"));
-  console.log("  DuckDB CLI:     " + (fs.existsSync(DUCKDB) ? "ok" : "FEHLT"));
-  console.log("  (Beenden: App-Fenster schließen, ⏻-Button oder Task-Manager.)");
+  console.log("  LMU Analyse télémétrie v" + APP_VERSION);
+  console.log("  ▶  Fenêtre d'application (adresse : http://localhost:" + PORT + ")");
+  console.log("  Télémétrie LMU : " + (TEL.lmuDir || "introuvable"));
+  console.log("  Télémétrie man. : " + (TEL.manualDir || "pas de dossier telemetry/"));
+  console.log("  DuckDB CLI :     " + (fs.existsSync(DUCKDB) ? "ok" : "MANQUANTE"));
+  console.log("  (Pour quitter : ferme la fenêtre de l'app, bouton ⏻ ou Gestionnaire des tâches.)");
   console.log("======================================================");
   if (!ARG["no-open"]) setTimeout(openApp, 800);
 });
