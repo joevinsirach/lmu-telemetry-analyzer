@@ -28,7 +28,7 @@ const DATA_DIR = process.platform === "darwin"
 try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch (_) {}
 const DUCKDB = path.join(DATA_DIR, "duckdbcli", process.platform === "win32" ? "duckdb.exe" : "duckdb");
 const HTML = path.join(__dirname, "lmu-telemetry-analyzer.html"); // im pkg-Snapshot eingebettet
-const LOGO = path.join(__dirname, "LOGO_LM.svg");
+const LOGO = path.join(__dirname, "LOGO_LM2.svg");
 const CHROME_PROFILE = path.join(DATA_DIR, "chrome-profile");
 const REPO = "mzluzifer/lmu-telemetry-analyzer";
 const APP_VERSION = "1.10.0";
@@ -52,7 +52,7 @@ function loadHtml() {
 function loadLogo() {
   if (process.pkg && LOGO_BUF) return LOGO_BUF;
   try {
-    LOGO_BUF = readBundled(LOGO, "LOGO_LM.svg");
+    LOGO_BUF = readBundled(LOGO, "LOGO_LM2.svg");
     return LOGO_BUF;
   } catch (_) {
     return null;
@@ -255,14 +255,14 @@ const TEL_DIR = TEL.lmuDir || TEL.manualDir;
 
 /* ---- Gewünschte Kanäle (Name -> Ziel-Frequenz Hz fürs Downsampling) ---- */
 const WANT_CH = {
-  "Lap Dist": 10, "Ground Speed": 50, "Throttle Pos": 50, "Brake Pos": 50,
+  "Lap Dist": 10, "Ground Speed": 50, "Throttle Pos": 50, "Throttle Pos Unfiltered": 50, "Brake Pos": 50,
   "Steering Pos": 50, "Engine RPM": 25, "GPS Latitude": 10, "GPS Longitude": 10,
   "G Force Lat": 10, "G Force Long": 10, "Fuel Level": 5, "Virtual Energy": 5,
   "SoC": 5, "Wheel Speed": 25, "Steering Shaft Torque": 25, "Path Lateral": 10,
   "Ambient Temperature": 1, "Track Temperature": 1, "Wind Speed": 1, "Wind Heading": 1,
 };
 const WANT_EV = ["Gear", "Lap", "Lap Time", "Last Sector1", "Last Sector2",
-  "Current Sector", "In Pits", "TC", "ABS", "TCLevel", "ABSLevel", "Best LapTime",
+  "Current Sector", "In Pits", "TC", "TCCut", "ABS", "TCLevel", "ABSLevel", "Best LapTime",
   "Best Sector1", "Best Sector2", "Minimum Path Wetness", "CloudDarkness", "Yellow Flag State"];
 // Mehrdimensionale Kanäle pro Rad (value1..4 = FL,FR,RL,RR) -> Ziel-Frequenz
 const WANT_WHEEL = {
@@ -574,7 +574,7 @@ async function handleRequest(req, res) {
     res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
     return res.end(html);
   }
-  if (u.pathname === "/favicon.ico" || u.pathname === "/LOGO_LM.svg") {
+  if (u.pathname === "/favicon.ico" || u.pathname === "/LOGO_LM2.svg" || u.pathname === "/LOGO_LM.svg") {
     const buf = loadLogo();
     if (!buf) { res.writeHead(404); return res.end(); }
     res.writeHead(200, {
