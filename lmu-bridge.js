@@ -33,7 +33,7 @@ const REPO = "mzluzifer/lmu-telemetry-analyzer";
 const APP_VERSION = "1.10.0";
 let HTML_BUF = null;
 function loadHtml() {
-  if (HTML_BUF) return HTML_BUF;
+  if (process.pkg && HTML_BUF) return HTML_BUF;
   try {
     HTML_BUF = fs.readFileSync(HTML);
     return HTML_BUF;
@@ -387,6 +387,111 @@ function listDirSessions(dir, src) {
     return [];
   }
 }
+const INDEX_PATH = path.join(DATA_DIR, "session-index.json");
+let SESSION_INDEX = {};
+try { SESSION_INDEX = JSON.parse(fs.readFileSync(INDEX_PATH, "utf8")) || {}; } catch (_) { SESSION_INDEX = {}; }
+function saveSessionIndex() {
+  try { fs.writeFileSync(INDEX_PATH, JSON.stringify(SESSION_INDEX)); } catch (_) {}
+}
+function metaStr(v) {
+  if (v == null) return "";
+  if (typeof v === "string" || typeof v === "number") return String(v);
+  if (typeof v === "object") {
+    if (v.stringValue != null && v.stringValue !== "") return String(v.stringValue);
+    if (v.value != null && v.value !== "") return String(v.value);
+  }
+  return "";
+}
+
+const INDEX_VER = 2;
+function normalizeClassKey(cls) {
+  const s = String(cls || "").toUpperCase();
+  if (!s) return "";
+  if (/GT3|LMGT3/.test(s)) return "GT3";
+  if (/LMP2|^P2\b/.test(s)) return "P2";
+  if (/LMP3|^P3\b/.test(s)) return "P3";
+  if (/HYPERCAR|\bHY\b|\bLMH\b|\bLMDH\b/.test(s)) return "HY";
+  return s;
+}
+function pickLayout(raw) {
+  return metaStr(raw.TrackLayout) || metaStr(raw.Layout) || metaStr(raw.TrackConfig)
+    || metaStr(raw.TrackConfiguration) || metaStr(raw.CircuitLayout) || "";
+}
+function lightLapsFromRaw(raw) {
+  const arr = Array.isArray(raw && raw.laps) ? raw.laps : [];
+  const out = [];
+  for (let i = 0; i < arr.length; i++) {
+    const v = arr[i];
+    const lapTime = typeof v === "number" ? v : Number(v && (v.lapTime != null ? v.lapTime : v));
+    if (!(lapTime > 20)) continue;
+    out.push({ lapIndex: out.length, lapTime });
+  }
+  return out;
+}
+async function loadSessionMeta(full) {
+  const sqlFull = `SELECT (json_object(
+    'CarName', (SELECT value FROM metadata WHERE key='CarName' LIMIT 1),
+    'TrackName', (SELECT value FROM metadata WHERE key='TrackName' LIMIT 1),
+    'TrackLayout', (SELECT value FROM metadata WHERE key='TrackLayout' LIMIT 1),
+    'Layout', (SELECT value FROM metadata WHERE key='Layout' LIMIT 1),
+    'TrackConfig', (SELECT value FROM metadata WHERE key='TrackConfig' LIMIT 1),
+    'TrackConfiguration', (SELECT value FROM metadata WHERE key='TrackConfiguration' LIMIT 1),
+    'CircuitLayout', (SELECT value FROM metadata WHERE key='CircuitLayout' LIMIT 1),
+    'CarClass', (SELECT value FROM metadata WHERE key='CarClass' LIMIT 1),
+    'SessionType', (SELECT value FROM metadata WHERE key='SessionType' LIMIT 1),
+    'RecordingTime', (SELECT value FROM metadata WHERE key='RecordingTime' LIMIT 1),
+    'nLaps', COALESCE((SELECT count(*) FROM "Lap Time" WHERE try_cast(value AS DOUBLE) > 20), 0),
+    'laps', (SELECT to_json(list(try_cast(value AS DOUBLE) ORDER BY ts)) FROM "Lap Time" WHERE try_cast(value AS DOUBLE) > 20)
+  ))::VARCHAR AS doc`;
+  const sqlLite = `SELECT (json_object(
+    'CarName', (SELECT value FROM metadata WHERE key='CarName' LIMIT 1),
+    'TrackName', (SELECT value FROM metadata WHERE key='TrackName' LIMIT 1),
+    'TrackLayout', (SELECT value FROM metadata WHERE key='TrackLayout' LIMIT 1),
+    'Layout', (SELECT value FROM metadata WHERE key='Layout' LIMIT 1),
+    'TrackConfig', (SELECT value FROM metadata WHERE key='TrackConfig' LIMIT 1),
+    'CarClass', (SELECT value FROM metadata WHERE key='CarClass' LIMIT 1),
+    'SessionType', (SELECT value FROM metadata WHERE key='SessionType' LIMIT 1),
+    'RecordingTime', (SELECT value FROM metadata WHERE key='RecordingTime' LIMIT 1),
+    'nLaps', 0,
+    'laps', json_array()
+  ))::VARCHAR AS doc`;
+  try { return await duck(full, sqlFull); }
+  catch (_) { return await duck(full, sqlLite); }
+}
+function indexRecordFromRaw(st, raw) {
+  const cls = metaStr(raw.CarClass);
+  const laps = lightLapsFromRaw(raw);
+  return {
+    v: INDEX_VER,
+    mtime: st.mtimeMs, size: st.size,
+    car: metaStr(raw.CarName), track: metaStr(raw.TrackName),
+    layout: pickLayout(raw || {}),
+    class: cls, classKey: normalizeClassKey(cls),
+    stype: metaStr(raw.SessionType),
+    date: metaStr(raw.RecordingTime),
+    nLaps: Number(raw.nLaps) || laps.length || 0,
+    laps
+  };
+}
+function publicSessionMeta(name, rec) {
+  return {
+    file: name, car: rec.car, track: rec.track, layout: rec.layout || "",
+    class: rec.class, classKey: rec.classKey || normalizeClassKey(rec.class),
+    stype: rec.stype, date: rec.date || "", nLaps: rec.nLaps,
+    laps: rec.laps || []
+  };
+}
+function enrichSession(s) {
+  const e = SESSION_INDEX[s.file];
+  if (e && e.v === INDEX_VER && e.mtime === s.mtime && e.size === s.size) {
+    return {
+      ...s, car: e.car, track: e.track, layout: e.layout || "",
+      class: e.class, classKey: e.classKey || normalizeClassKey(e.class),
+      stype: e.stype, date: e.date || "", nLaps: e.nLaps, laps: e.laps || []
+    };
+  }
+  return s;
+}
 function listSessions() {
   if (!TEL.lmuDir && !TEL.manualDir)
     return { error: "Telemetrie-Ordner nicht gefunden", telDir: null, lmuDir: null, manualDir: null, sessions: [] };
@@ -398,54 +503,11 @@ function listSessions() {
   } catch (e) {
     return { error: String(e.message), telDir: TEL_DIR, lmuDir: TEL.lmuDir, manualDir: TEL.manualDir, sessions: [] };
   }
-  return { telDir: TEL_DIR, lmuDir: TEL.lmuDir, manualDir: TEL.manualDir, sessions: files };
-}
-function metaStr(v) {
-  if (v == null) return "";
-  if (typeof v === "string" || typeof v === "number") return String(v);
-  if (typeof v === "object") {
-    if (v.stringValue != null && v.stringValue !== "") return String(v.stringValue);
-    if (v.value != null && v.value !== "") return String(v.value);
-  }
-  return "";
-}
-const metaCache = new Map();
-async function loadMeta(file) {
-  const sql = `SELECT (json_object(
-    'meta',(SELECT json_group_object(key,value) FROM metadata WHERE key<>'CarSetup')
-  ))::VARCHAR AS doc`;
-  const cat = await duck(file, sql);
-  return (cat && cat.meta) || {};
-}
-async function indexSessions() {
-  const list = listSessions();
-  if (list.error) return list;
-  const sessions = [];
-  for (const s of list.sessions) {
-    const resolved = resolveSessionFile(s.file, s.src);
-    if (!resolved) continue;
-    const cacheKey = resolved.full + ":" + s.mtime;
-    let meta = metaCache.get(cacheKey);
-    if (!meta) {
-      try { meta = await loadMeta(resolved.full); }
-      catch (e) { meta = { _error: duckLockMsg(e).slice(0, 200) }; }
-      metaCache.set(cacheKey, meta);
-    }
-    if (meta._error) {
-      sessions.push({ ...s, track: "", car: "", carClass: "", locked: /lock|in use|verwendet/i.test(meta._error) });
-      continue;
-    }
-    sessions.push({
-      ...s,
-      track: metaStr(meta.TrackName),
-      car: metaStr(meta.CarName),
-      carClass: metaStr(meta.CarClass),
-      sessionType: metaStr(meta.SessionType),
-      recordingTime: metaStr(meta.RecordingTime),
-      driver: metaStr(meta.DriverName),
-    });
-  }
-  return { telDir: list.telDir, lmuDir: list.lmuDir, manualDir: list.manualDir, sessions };
+  const live = new Set(files.map(s => s.file));
+  let pruned = false;
+  Object.keys(SESSION_INDEX).forEach(f => { if (!live.has(f)) { delete SESSION_INDEX[f]; pruned = true; } });
+  if (pruned) saveSessionIndex();
+  return { telDir: TEL_DIR, lmuDir: TEL.lmuDir, manualDir: TEL.manualDir, sessions: files.map(enrichSession) };
 }
 function resolveSessionFile(name, src) {
   const bySrc = src === "manual" ? TEL.manualDir : src === "lmu" ? TEL.lmuDir : null;
@@ -523,9 +585,27 @@ async function handleRequest(req, res) {
   if (u.pathname === "/api/sessions") {
     return json(res, 200, listSessions());
   }
-  if (u.pathname === "/api/index") {
-    try { return json(res, 200, await indexSessions()); }
-    catch (e) { return json(res, 500, { error: String(e.message || e), sessions: [] }); }
+  if (u.pathname === "/api/session-meta") {
+    const name = u.searchParams.get("file") || "";
+    const src = u.searchParams.get("src") || "";
+    if (!name || /[\\/]/.test(name) || !/\.duckdb$/i.test(name)) return json(res, 400, { error: "Ungültiger Dateiname" });
+    if (src && src !== "lmu" && src !== "manual") return json(res, 400, { error: "Ungültige Quelle" });
+    const resolved = resolveSessionFile(name, src);
+    if (!resolved) return json(res, 404, { error: "Datei nicht gefunden" });
+    try {
+      const st = fs.statSync(resolved.full);
+      const cached = SESSION_INDEX[name];
+      if (cached && cached.v === INDEX_VER && cached.mtime === st.mtimeMs && cached.size === st.size) {
+        return json(res, 200, publicSessionMeta(name, cached));
+      }
+      const raw = await loadSessionMeta(resolved.full) || {};
+      const rec = indexRecordFromRaw(st, raw);
+      SESSION_INDEX[name] = rec; saveSessionIndex();
+      return json(res, 200, publicSessionMeta(name, rec));
+    } catch (e) {
+      const msg = duckLockMsg(e);
+      return sessionOpenError(res, msg);
+    }
   }
   if (u.pathname === "/api/session") {
     const name = u.searchParams.get("file") || "";

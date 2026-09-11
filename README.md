@@ -3,15 +3,21 @@
 🌐 **Français** · [English](README.en.md)
 
 Une application web légère et locale pour analyser la télémétrie de **Le Mans Ultimate**. Elle lit les
-**fichiers de télémétrie DuckDB** enregistrés par le jeu (`UserData\Telemetry\*.duckdb`), charge
-automatiquement le dernier enregistrement et te montre **où tu perds du temps sur la piste** – avec en
-plus une analyse pneus/freins, un calculateur d'arrêts aux stands/énergie et une comparaison de setups.
+**fichiers de télémétrie DuckDB** enregistrés par le jeu (`UserData\Telemetry\*.duckdb`) et s'ouvre sur
+un **menu d'accueil en trois modes : Session · Circuit · Voiture**. Tu analyses ensuite **où tu perds
+du temps sur la piste**, plus pneus/freins, stats véhicule (passages, puissance, couple), calculateur
+d'arrêts et comparaison de setups.
 
 > Application 100 % locale – fonctionne hors ligne, pas de cloud, pas de compte. Un petit « pont » Node
 > lit les fichiers DuckDB via la CLI DuckDB fournie et sert l'interface HTML sur `http://localhost:8777`.
 
 ## Fonctionnalités
 
+## Fonctionnalités
+
+- 🏠 **Trois modes** – au lancement, trois cartes : **Session** (une prise, analyse actuelle dont Live), **Circuit** (layout + catégorie, tous les tours comparables entre sessions) et **Voiture** (marque + catégorie, puissance / passages en ligne droite seulement). L'analyse ne démarre qu'après le dernier choix ; le dernier fichier n'est pas chargé automatiquement.
+- 🏁 **Circuit** – groupé par **piste + layout** (ex. Silverstone National ≠ Grand Prix). Puis la catégorie présente (GT3 / P2 / P3 / HY, champ `CarClass` de la télémétrie). Référence et comparaison = n'importe quels deux tours du pack, même fichiers différents.
+- 🚗 **Voiture** – groupes du type **BMW · GT3** (toutes années/écuries) : points de passage optimaux et courbes de puissance uniquement en **plein gaz en ligne droite**.
 - 🎯 **Où est-ce que je perds du temps ?** – Delta de temps sur le tour, zones de perte détectées automatiquement avec des conseils concrets (point de freinage, vitesse minimale, remise des gaz).
 - 📈 **Comparaison** – Vitesse / accélérateur / frein / direction / rapport de deux tours superposés.
 - 🗺️ **Carte de piste interactive** (grande, en haut ; aussi dans les onglets Comparaison et Pneus) – survoler la piste avec la souris affiche **vitesse, delta, accélérateur et frein** à cet endroit ; coloration commutable entre delta (gain/perte) ou vitesse ; dans l'onglet Pneus, coloration par **température de frein** (moyenne des 4 freins) ; synchronisée avec les graphiques. **Toutes les cartes de piste sont zoomables** (molette pour zoomer, glisser pour déplacer, double-clic pour réinitialiser).
@@ -19,12 +25,12 @@ plus une analyse pneus/freins, un calculateur d'arrêts aux stands/énergie et u
 - ⏱️ **Temps aux secteurs** – S1/S2/S3 par tour, meilleurs secteurs mis en évidence, meilleur temps théorique.
 - 🌦️ **Météo & piste** – conditions, température air/piste, vent, humidité.
 - 🧭 **Carte de piste gain/perte** – mini-carte toujours visible (barre latérale), vert = temps gagné, rouge = temps perdu.
-- 📋 **Dernière session** – tableau de tous les tours : temps, Δ par rapport au meilleur temps, vitesse de pointe, consommation d'énergie virtuelle/carburant/pneus par tour.
+- 📋 **Dernière session** – en mode Session, les tours de l'enregistrement chargé ; en mode Circuit, **tous les tours** du layout + catégorie.
 - 🔄 **Vérification de version** – t'avertit automatiquement quand une nouvelle version est disponible sur GitHub.
 - 🛞 **Pneus & freins** – température (intérieur/milieu/extérieur par roue), pression, profil restant/usure, températures de freins + conseils sur pression/carrossage/équilibrage.
 - 🔧 **Setup & rythme** – compare deux de tes sessions : ce qui a changé dans le setup et comment le meilleur temps a évolué, plus des conseils de setup basés sur la télémétrie. Inclut une section avec des liens vers des **fournisseurs de setups** externes.
 - ⛽ **Calculateur d'arrêts aux stands** – à partir de la longueur de course, des jeux de pneus, des pilotes et du rythme/de la consommation mesurés : durée des relais, énergie virtuelle cible par tour, stratégie au temps total le plus rapide, répartition des pilotes (tient compte à la fois de l'énergie **et** de l'usure des pneus). Plus une **carte de piste lift & coast** : montre les zones de freinage au meilleur potentiel d'économie de carburant (① = meilleure zone), avec une distance de lever de pied dynamique selon la vitesse d'entrée et des stratégies sélectionnables.
-- ⏺ **Live** – charge automatiquement le nouvel enregistrement après chaque relais ; pendant qu'un enregistrement est en cours (fichier verrouillé), la dernière session terminée est affichée.
+- ⏺ **Live** – **mode Session uniquement** : charge automatiquement le nouvel enregistrement après chaque relais ; pendant qu'un enregistrement est en cours (fichier verrouillé), la dernière session terminée est affichée.
 - 🌐 **Langue** – interface commutable en un clic entre **français, anglais et allemand** (en haut à droite).
 - 🪟 **Interface épurée** – **barre latérale rétractable**, **graphique de delta** aussi dans l'onglet Comparaison, et un bouton d'accueil dans l'en-tête. Les comparaisons de delta ignorent systématiquement les tours d'entrée/sortie de stand comme référence.
 
@@ -69,13 +75,12 @@ node lmu-bridge.js --dir="D:\chemin\vers\Le Mans Ultimate\UserData\Telemetry"
 
 ## Fonctionnement
 
-LMU écrit la télémétrie sous forme de **base de données DuckDB** – une table par canal/événement
-(`value` ou `value1..4` par roue), plus des tables de métadonnées (`metadata`, `channelsList`,
-`eventsList`) ; le setup complet du véhicule est stocké en JSON dans `metadata`. Comme un navigateur ne
 peut pas lire DuckDB directement, le pont (`lmu-bridge.js`) lit les fichiers via `duckdb.exe` et les
-fournit en JSON. Toute l'analyse (détection des tours, delta, pneus, stratégie) s'exécute dans le
-navigateur (`lmu-telemetry-analyzer.html`, JavaScript pur, graphiques Canvas maison, aucune bibliothèque
-externe).
+fournit en JSON. Voiture, circuit, layout, catégorie (`CarClass`) et temps au tour légers sont indexés
+en arrière-plan (`/api/session-meta`, cache `session-index.json`) pour remplir les trois modes sans
+charger chaque fichier en entier. Toute l'analyse (détection des tours, delta, pneus, passages,
+stratégie) s'exécute dans le navigateur (`lmu-telemetry-analyzer.html`, JavaScript pur, graphiques
+Canvas maison, aucune bibliothèque externe).
 
 ## Confidentialité
 
