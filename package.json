@@ -5,7 +5,7 @@
   "bin": "lmu-bridge.js",
   "license": "MIT",
   "pkg": {
-    "assets": ["lmu-telemetry-analyzer.html"],
+    "assets": ["lmu-telemetry-analyzer.html", "LOGO_LM.svg"],
     "targets": ["node18-win-x64"],
     "outputPath": "dist"
   }

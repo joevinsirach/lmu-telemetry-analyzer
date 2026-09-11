@@ -11,6 +11,7 @@ _*
 
 # Browser-Profil des App-Fensters (Edge/Chrome --app-Modus)
 .app-profile/
+chrome-profile/
 
 # Node
 node_modules/

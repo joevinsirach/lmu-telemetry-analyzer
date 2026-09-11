@@ -28,21 +28,34 @@ const DATA_DIR = process.platform === "darwin"
 try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch (_) {}
 const DUCKDB = path.join(DATA_DIR, "duckdbcli", process.platform === "win32" ? "duckdb.exe" : "duckdb");
 const HTML = path.join(__dirname, "lmu-telemetry-analyzer.html"); // im pkg-Snapshot eingebettet
+const LOGO = path.join(__dirname, "LOGO_LM.svg");
 const CHROME_PROFILE = path.join(DATA_DIR, "chrome-profile");
 const REPO = "mzluzifer/lmu-telemetry-analyzer";
 const APP_VERSION = "1.10.0";
 let HTML_BUF = null;
-function loadHtml() {
-  if (process.pkg && HTML_BUF) return HTML_BUF;
+let LOGO_BUF = null;
+function readBundled(src, destName) {
   try {
-    HTML_BUF = fs.readFileSync(HTML);
-    return HTML_BUF;
+    return fs.readFileSync(src);
   } catch (e) {
     if (e.code !== "EPERM" && e.code !== "EACCES") throw e;
-    const dest = path.join(DATA_DIR, "lmu-telemetry-analyzer.html");
-    execFileSync("/bin/cp", ["-f", HTML, dest]);
-    HTML_BUF = fs.readFileSync(dest);
-    return HTML_BUF;
+    const dest = path.join(DATA_DIR, destName);
+    execFileSync("/bin/cp", ["-f", src, dest]);
+    return fs.readFileSync(dest);
+  }
+}
+function loadHtml() {
+  if (process.pkg && HTML_BUF) return HTML_BUF;
+  HTML_BUF = readBundled(HTML, "lmu-telemetry-analyzer.html");
+  return HTML_BUF;
+}
+function loadLogo() {
+  if (process.pkg && LOGO_BUF) return LOGO_BUF;
+  try {
+    LOGO_BUF = readBundled(LOGO, "LOGO_LM.svg");
+    return LOGO_BUF;
+  } catch (_) {
+    return null;
   }
 }
 
@@ -561,9 +574,14 @@ async function handleRequest(req, res) {
     res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
     return res.end(html);
   }
-  if (u.pathname === "/favicon.ico") {
-    res.writeHead(204, { "cache-control": "public, max-age=86400" });
-    return res.end();
+  if (u.pathname === "/favicon.ico" || u.pathname === "/LOGO_LM.svg") {
+    const buf = loadLogo();
+    if (!buf) { res.writeHead(404); return res.end(); }
+    res.writeHead(200, {
+      "content-type": "image/svg+xml",
+      "cache-control": "public, max-age=86400",
+    });
+    return res.end(buf);
   }
   if (u.pathname === "/api/config") {
     return json(res, 200, { telDir: TEL_DIR, lmuDir: TEL.lmuDir, manualDir: TEL.manualDir, port: PORT, duckdb: fs.existsSync(DUCKDB), version: APP_VERSION });
@@ -660,6 +678,7 @@ function json(res, code, obj) {
 
 ensureDuckDB();
 loadHtml();
+loadLogo();
 function onListening() {
   console.log("======================================================");
   console.log("  LMU Analyse télémétrie v" + APP_VERSION);
