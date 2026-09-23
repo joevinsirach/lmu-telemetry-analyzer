@@ -522,7 +522,86 @@ function listSessions() {
   if (pruned) saveSessionIndex();
   return { telDir: TEL_DIR, lmuDir: TEL.lmuDir, manualDir: TEL.manualDir, sessions: files.map(enrichSession) };
 }
+function guestDir() {
+  const d = path.join(DATA_DIR, "guest-sessions");
+  try { fs.mkdirSync(d, { recursive: true }); } catch (_) {}
+  return d;
+}
+function isGuestFileName(name) {
+  return /^guest-[A-Za-z0-9][A-Za-z0-9._-]{0,140}\.duckdb$/i.test(name) && !name.includes("..");
+}
+function guestStoredName(original) {
+  const base = path.basename(String(original || "session.duckdb")).replace(/\.duckdb$/i, "");
+  const stem = base.replace(/[^A-Za-z0-9._-]+/g, "_").replace(/^\.+/, "").slice(0, 60) || "session";
+  return "guest-" + Date.now().toString(36) + "-" + stem + ".duckdb";
+}
+function pipeGuestUpload(req, dest, limit) {
+  return new Promise((resolve, reject) => {
+    const ws = fs.createWriteStream(dest);
+    let settled = false;
+    let n = 0;
+    let header = Buffer.alloc(0);
+    const fail = (err) => {
+      if (settled) return;
+      settled = true;
+      try { req.destroy(); } catch (_) {}
+      ws.destroy();
+      fs.unlink(dest, () => {});
+      reject(err);
+    };
+    req.on("data", (chunk) => {
+      if (settled) return;
+      n += chunk.length;
+      if (n > limit) return fail(Object.assign(new Error("fichier trop volumineux"), { status: 413 }));
+      if (header.length < 4) {
+        header = Buffer.concat([header, chunk.subarray(0, Math.min(chunk.length, 4 - header.length))]);
+        if (header.length >= 4 && header.subarray(0, 4).toString("utf8") !== "DUCK")
+          return fail(Object.assign(new Error("pas un fichier DuckDB"), { status: 422 }));
+      }
+      if (!ws.write(chunk)) req.pause();
+    });
+    ws.on("drain", () => { try { req.resume(); } catch (_) {} });
+    req.on("end", () => {
+      if (settled) return;
+      if (n < 128 || header.subarray(0, 4).toString("utf8") !== "DUCK")
+        return fail(Object.assign(new Error("pas un fichier DuckDB"), { status: 422 }));
+      ws.end(() => { if (!settled) { settled = true; resolve(n); } });
+    });
+    req.on("error", fail);
+    ws.on("error", fail);
+  });
+}
+async function importGuestSession(req, res) {
+  let original = "session.duckdb";
+  try { original = decodeURIComponent(req.headers["x-filename"] || original); } catch (_) {}
+  const stored = guestStoredName(original);
+  const dest = path.join(guestDir(), stored);
+  try {
+    const bytes = await pipeGuestUpload(req, dest, 512 * 1024 * 1024);
+    await loadSessionMeta(dest);
+    return json(res, 200, { file: stored, src: "guest", bytes, original: path.basename(original) });
+  } catch (e) {
+    try { fs.unlinkSync(dest); } catch (_) {}
+    const msg = duckLockMsg(e);
+    const status = e.status || (isInvalidDb(msg) ? 422 : 500);
+    const error = status === 422 ? "Keine gültige LMU-Telemetrie (DuckDB)" : (status === 413 ? "Datei zu groß" : msg.slice(0, 400));
+    return json(res, status, { error });
+  }
+}
+function deleteGuestSession(name) {
+  if (!isGuestFileName(name)) return { ok: false, status: 400, error: "Ungültiger Dateiname" };
+  const full = path.join(guestDir(), name);
+  try { fs.unlinkSync(full); } catch (e) { if (e.code !== "ENOENT") return { ok: false, status: 500, error: e.message }; }
+  return { ok: true, status: 200 };
+}
 function resolveSessionFile(name, src) {
+  if (src === "guest") {
+    if (!isGuestFileName(name)) return null;
+    const dir = guestDir();
+    const full = path.join(dir, name);
+    if (fs.existsSync(full)) return { full, src: "guest", dir };
+    return null;
+  }
   const bySrc = src === "manual" ? TEL.manualDir : src === "lmu" ? TEL.lmuDir : null;
   const order = [bySrc, TEL.lmuDir, TEL.manualDir].filter(Boolean);
   const seen = new Set();
@@ -607,7 +686,7 @@ async function handleRequest(req, res) {
     const name = u.searchParams.get("file") || "";
     const src = u.searchParams.get("src") || "";
     if (!name || /[\\/]/.test(name) || !/\.duckdb$/i.test(name)) return json(res, 400, { error: "Ungültiger Dateiname" });
-    if (src && src !== "lmu" && src !== "manual") return json(res, 400, { error: "Ungültige Quelle" });
+    if (src && src !== "lmu" && src !== "manual" && src !== "guest") return json(res, 400, { error: "Ungültige Quelle" });
     const resolved = resolveSessionFile(name, src);
     if (!resolved) return json(res, 404, { error: "Datei nicht gefunden" });
     try {
@@ -629,8 +708,8 @@ async function handleRequest(req, res) {
     const name = u.searchParams.get("file") || "";
     const src = u.searchParams.get("src") || "";
     if (!name || /[\\/]/.test(name) || !/\.duckdb$/i.test(name)) return json(res, 400, { error: "Ungültiger Dateiname" });
-    if (src && src !== "lmu" && src !== "manual") return json(res, 400, { error: "Ungültige Quelle" });
-    if (!TEL.lmuDir && !TEL.manualDir) return json(res, 500, { error: "Telemetrie-Ordner unbekannt" });
+    if (src && src !== "lmu" && src !== "manual" && src !== "guest") return json(res, 400, { error: "Ungültige Quelle" });
+    if (src !== "guest" && !TEL.lmuDir && !TEL.manualDir) return json(res, 500, { error: "Telemetrie-Ordner unbekannt" });
     const resolved = resolveSessionFile(name, src);
     if (!resolved) return json(res, 404, { error: "Datei nicht gefunden" });
     try {
@@ -650,8 +729,8 @@ async function handleRequest(req, res) {
     const name = u.searchParams.get("file") || "";
     const src = u.searchParams.get("src") || "";
     if (!name || /[\\/]/.test(name) || !/\.duckdb$/i.test(name)) return json(res, 400, { error: "Ungültiger Dateiname" });
-    if (src && src !== "lmu" && src !== "manual") return json(res, 400, { error: "Ungültige Quelle" });
-    if (!TEL.lmuDir && !TEL.manualDir) return json(res, 500, { error: "Telemetrie-Ordner unbekannt" });
+    if (src && src !== "lmu" && src !== "manual" && src !== "guest") return json(res, 400, { error: "Ungültige Quelle" });
+    if (src !== "guest" && !TEL.lmuDir && !TEL.manualDir) return json(res, 500, { error: "Telemetrie-Ordner unbekannt" });
     const resolved = resolveSessionFile(name, src);
     if (!resolved) return json(res, 404, { error: "Datei nicht gefunden" });
     const full = resolved.full;
@@ -661,6 +740,13 @@ async function handleRequest(req, res) {
       const msg = duckLockMsg(e);
       return sessionOpenError(res, msg);
     }
+  }
+  if (req.method === "POST" && u.pathname === "/api/guest-session") {
+    return importGuestSession(req, res);
+  }
+  if (req.method === "DELETE" && u.pathname === "/api/guest-session") {
+    const gone = deleteGuestSession(u.searchParams.get("file") || "");
+    return json(res, gone.status, gone.ok ? { ok: true } : { error: gone.error });
   }
   res.writeHead(404); res.end("not found");
 }

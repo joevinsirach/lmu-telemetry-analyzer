@@ -13,7 +13,7 @@ torque), a pit-stop/energy calculator and a setup comparison.
 
 ## Features
 
-- 🏠 **Three modes** – on launch three cards: **Session** (one recording, existing analysis including Live), **Track** (layout + class, compare every lap across sessions) and **Car** (brand + class, straight-line power/shift points only). Analysis starts only after the final choice; the latest recording is not loaded automatically.
+- 🏠 **Three modes** – on launch three cards: **Session** (one recording, existing analysis), **Track** (layout + class, compare every lap across sessions) and **Car** (brand + class, straight-line power/shift points only). Analysis starts only after the final choice; the latest recording is not loaded automatically.
 - 🏁 **Track** – grouped by **track + layout** (e.g. Silverstone National ≠ Grand Prix). Then the classes present (GT3 / P2 / P3 / HY from telemetry `CarClass`). Reference and comparison can be any two laps in the pack, even from different files.
 - 🚗 **Car** – groups such as **BMW · GT3** (all years/teams together): optimal upshift points (% of max RPM) and power/torque curves from **straight-line full throttle** only (|lat G| low, steering ≈ 0).
 - 🎯 **Where am I losing time?** – Time delta across the lap, automatically detected loss zones with concrete tips (braking point, minimum speed, throttle application).
@@ -28,7 +28,6 @@ torque), a pit-stop/energy calculator and a setup comparison.
 - 🛞 **Tires & brakes** – temperature (inner/middle/outer per wheel), pressure, remaining tread/wear, brake temperatures + hints on pressure/camber/balance.
 - 🔧 **Setup & Pace** – compares two of your sessions: what was changed in the setup and how the best time changed, plus setup hints derived from telemetry. Includes a section linking to external **setup providers**.
 - ⛽ **Pit-stop calculator** – from race length, tire sets, drivers and the measured pace/consumption: stint lengths, target virtual energy per lap, fastest overall-time strategy, driver allocation (accounts for both energy **and** tire wear). Plus a **lift & coast track map**: shows the braking zones with the greatest fuel-saving potential (① = best zone), with dynamic lift distance based on entry speed and selectable strategies.
-- ⏺ **Live** – **Session mode only** (otherwise off): automatically load the new recording after each stint; while a recording is running (file locked) the last completed session is shown.
 - 🌐 **Language** – interface switchable with one click between **French, English and German** (top right).
 - 🪟 **Clean interface** – **collapsible sidebar**, **delta graph** also in the comparison tab, and a home button in the header. Delta comparisons consistently ignore out/in laps as a reference.
 

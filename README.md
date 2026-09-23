@@ -15,7 +15,7 @@ d'arrêts et comparaison de setups.
 
 ## Fonctionnalités
 
-- 🏠 **Trois modes** – au lancement, trois cartes : **Session** (une prise, analyse actuelle dont Live), **Circuit** (layout + catégorie, tous les tours comparables entre sessions) et **Voiture** (marque + catégorie, puissance / passages en ligne droite seulement). L'analyse ne démarre qu'après le dernier choix ; le dernier fichier n'est pas chargé automatiquement.
+- 🏠 **Trois modes** – au lancement, trois cartes : **Session** (une prise, analyse actuelle), **Circuit** (layout + catégorie, tous les tours comparables entre sessions) et **Voiture** (marque + catégorie, puissance / passages en ligne droite seulement). L'analyse ne démarre qu'après le dernier choix ; le dernier fichier n'est pas chargé automatiquement.
 - 🏁 **Circuit** – groupé par **piste + layout** (ex. Silverstone National ≠ Grand Prix). Puis la catégorie présente (GT3 / P2 / P3 / HY, champ `CarClass` de la télémétrie). Référence et comparaison = n'importe quels deux tours du pack, même fichiers différents.
 - 🚗 **Voiture** – groupes du type **BMW · GT3** (toutes années/écuries) : points de passage optimaux et courbes de puissance uniquement en **plein gaz en ligne droite**.
 - 🎯 **Où est-ce que je perds du temps ?** – Delta de temps sur le tour, zones de perte détectées automatiquement avec des conseils concrets (point de freinage, vitesse minimale, remise des gaz).
@@ -30,7 +30,6 @@ d'arrêts et comparaison de setups.
 - 🛞 **Pneus & freins** – température (intérieur/milieu/extérieur par roue), pression, profil restant/usure, températures de freins + conseils sur pression/carrossage/équilibrage.
 - 🔧 **Setup & rythme** – compare deux de tes sessions : ce qui a changé dans le setup et comment le meilleur temps a évolué, plus des conseils de setup basés sur la télémétrie. Inclut une section avec des liens vers des **fournisseurs de setups** externes.
 - ⛽ **Calculateur d'arrêts aux stands** – à partir de la longueur de course, des jeux de pneus, des pilotes et du rythme/de la consommation mesurés : durée des relais, énergie virtuelle cible par tour, stratégie au temps total le plus rapide, répartition des pilotes (tient compte à la fois de l'énergie **et** de l'usure des pneus). Plus une **carte de piste lift & coast** : montre les zones de freinage au meilleur potentiel d'économie de carburant (① = meilleure zone), avec une distance de lever de pied dynamique selon la vitesse d'entrée et des stratégies sélectionnables.
-- ⏺ **Live** – **mode Session uniquement** : charge automatiquement le nouvel enregistrement après chaque relais ; pendant qu'un enregistrement est en cours (fichier verrouillé), la dernière session terminée est affichée.
 - 🌐 **Langue** – interface commutable en un clic entre **français, anglais et allemand** (en haut à droite).
 - 🪟 **Interface épurée** – **barre latérale rétractable**, **graphique de delta** aussi dans l'onglet Comparaison, et un bouton d'accueil dans l'en-tête. Les comparaisons de delta ignorent systématiquement les tours d'entrée/sortie de stand comme référence.
 
