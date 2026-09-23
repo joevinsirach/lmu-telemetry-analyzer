@@ -22,10 +22,15 @@
   *::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px;border:2px solid transparent;background-clip:padding-box}
   *::-webkit-scrollbar-thumb:hover{background:#3a4658;border:2px solid transparent;background-clip:padding-box}
   *::-webkit-scrollbar-corner{background:transparent}
-  body{background:var(--bg);color:var(--txt);font:14px/1.45 "Segoe UI",Roboto,system-ui,sans-serif}
-  header{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:8px 12px;background:linear-gradient(180deg,#171c24,#10141b);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
-  header h1{font-size:16px;margin:0;letter-spacing:.3px;font-weight:600;white-space:nowrap}
-  .hdrlogo{height:28px;width:28px;flex-shrink:0;pointer-events:none;border-radius:7px;filter:drop-shadow(0 1px 3px rgba(0,0,0,.5))}
+  body{background:var(--bg);color:var(--txt);font:14.5px/1.5 "Segoe UI",Roboto,system-ui,sans-serif}
+  header{display:flex;align-items:center;flex-wrap:wrap;gap:14px;padding:12px 20px;background:#12171e;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+  .hdr-brand{display:flex;align-items:center;gap:10px;min-width:0}
+  .hdr-tools{display:flex;align-items:center;gap:8px}
+  header h1{font-size:15px;margin:0;letter-spacing:.2px;font-weight:600;white-space:nowrap}
+  button.hdrlogo{background:transparent;border:0;padding:0;width:28px;height:28px;border-radius:7px;cursor:pointer;flex-shrink:0}
+  button.hdrlogo:hover{background:transparent;border-color:transparent}
+  button.hdrlogo img{height:28px;width:28px;display:block;border-radius:7px;filter:drop-shadow(0 1px 3px rgba(0,0,0,.5));pointer-events:none}
+  button.hdrlogo:hover img{filter:drop-shadow(0 1px 4px rgba(0,0,0,.55)) brightness(1.15)}
   header h1 .dot{color:var(--accent)}
   .grow{flex:1}
   button,.btn{background:var(--panel2);color:var(--txt);border:1px solid var(--line);padding:7px 12px;border-radius:7px;cursor:pointer;font-size:13px;display:inline-flex;align-items:center;gap:7px;transition:.15s}
@@ -42,21 +47,36 @@
   .iconbtn:hover{border-color:var(--accent);color:var(--txt)}
   body.sb-collapsed .layout{grid-template-columns:1fr}
   body.sb-collapsed aside{display:none}
-  .layout{display:grid;grid-template-columns:310px 1fr;height:calc(100% - var(--hdr-h, 53px))}
+  #sbToggle{
+    position:fixed; left:0; z-index:30;
+    top:calc(var(--hdr-h, 53px) + (100vh - var(--hdr-h, 53px)) / 2);
+    transform:translateY(-50%);
+    width:16px; height:52px; padding:0; margin:0;
+    border:1px solid var(--line); border-left:0; border-radius:0 8px 8px 0;
+    background:var(--panel); color:var(--muted);
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:2px 0 10px rgba(0,0,0,.25);
+  }
+  #sbToggle::before{content:"‹"; font-size:18px; line-height:1; font-weight:700}
+  body.sb-collapsed #sbToggle::before{content:"›"}
+  #sbToggle:hover{color:var(--txt); border-color:var(--accent); background:#222a38}
+  body.home-only #sbToggle, body.car-only #sbToggle{display:none}
+  .layout{display:grid;grid-template-columns:320px 1fr;height:calc(100% - var(--hdr-h, 53px))}
   body.loading main, body.loading aside{pointer-events:none;opacity:.6}
   @media (max-width:1100px){
     .layout{grid-template-columns:260px 1fr}
     .iconbtn{padding:6px 8px}
   }
-  aside{background:var(--panel);border-right:1px solid var(--line);overflow:auto;padding:12px}
-  main{overflow:auto;padding:16px 18px}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:16px;box-shadow:var(--shadow)}
-  .card h2{font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin:0 0 12px}
+  aside{background:var(--panel);border-right:1px solid var(--line);overflow:auto;padding:16px 14px 24px}
+  aside .card{margin-bottom:12px}
+  main{overflow:auto;padding:22px 26px 32px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:18px;box-shadow:0 1px 0 rgba(255,255,255,.03)}
+  .card h2{font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin:0 0 14px;font-weight:650}
   .sec-title{font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin:4px 0 8px}
-  label.fld{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:10px 0 4px}
+  label.fld{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px}
   select{width:100%;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:7px;padding:7px 8px;font-size:13px}
   table{width:100%;border-collapse:collapse;font-size:13px}
-  th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
   th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.4px}
   tr.lap{cursor:pointer}
   tr.lap:hover{background:#1d2531}
@@ -72,11 +92,11 @@
   .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;margin:0 2px 8px}
   .legend span{display:inline-flex;align-items:center;gap:6px;color:var(--muted)}
   .legend i{width:14px;height:3px;border-radius:2px;display:inline-block}
-  .tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
-  .tab{padding:7px 14px;border-radius:7px;border:1px solid var(--line);background:var(--panel2);cursor:pointer;font-size:13px;color:var(--muted)}
-  .tab.active{color:var(--txt);border-color:var(--accent);background:#23170a}
+  .tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+  .tab{padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:transparent;cursor:pointer;font-size:13px;color:var(--muted)}
+  .tab.active{color:var(--txt);border-color:var(--accent);background:#2a1c0e}
   .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
-  .stat{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:10px 12px}
+  .stat{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
   .stat .v{font-size:20px;font-weight:700}
   .stat .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
   .stat .d{font-size:12px;margin-top:2px}
@@ -138,23 +158,37 @@
   .shiftnums{font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap;text-align:right}
   .shiftnums b{color:var(--txt)}
   .garage-note{font-size:11px;color:var(--muted);margin:8px 0 0}
-  .home-card{margin-bottom:16px}
-  .home-card h2{margin-bottom:8px}
-  .mode-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
-  .mode-card{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:18px 16px;min-height:132px;text-align:left;background:var(--panel2);border:1px solid var(--line);border-radius:12px;cursor:pointer;width:100%}
-  .mode-card:hover{border-color:var(--accent);background:#222a38}
-  .mode-card .mode-ico{font-size:22px;line-height:1}
-  .mode-card strong{font-size:16px;letter-spacing:.2px}
-  .mode-card span.mode-desc{font-size:12.5px;color:var(--muted);text-transform:none;letter-spacing:0;font-weight:400}
-  .home-back{margin:0 0 12px;font-size:12px}
-  .home-list{display:flex;flex-direction:column;gap:8px;margin-top:12px;max-height:min(62vh,640px);overflow:auto}
-  .pick-card{display:flex;flex-direction:column;align-items:flex-start;gap:4px;width:100%;padding:12px 14px;text-align:left;border-radius:10px}
-  .pick-card .pick-title{font-size:14px;font-weight:650;color:var(--txt)}
-  .pick-card .pick-sub{font-size:12.5px;color:var(--muted)}
-  .pick-card .pick-meta{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
-  body.home-only .layout{grid-template-columns:1fr;max-width:920px;margin:48px auto 0}
+  .home{width:min(1080px,100%)}
+  .home-kicker{margin:0 0 10px;font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+  .home h2{margin:0 0 12px;font-size:34px;line-height:1.12;font-weight:650;letter-spacing:-.03em;text-transform:none;color:var(--txt)}
+  #homeDrillTitle{font-size:28px}
+  .home-lead{max-width:58ch;margin:0 0 28px;font-size:15.5px;line-height:1.5;color:var(--muted)}
+  .home-lead:empty{display:none}
+  .mode-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+  .mode-card{display:flex;flex-direction:column;align-items:flex-start;gap:0;padding:22px 20px 18px;min-height:228px;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:16px;cursor:pointer;width:100%;box-shadow:0 1px 0 rgba(255,255,255,.03);transition:border-color .15s,background .15s,transform .15s}
+  .mode-card:hover{border-color:#c56a1a;background:#1a2130;transform:translateY(-2px)}
+  .mode-card .mode-ico{width:42px;height:42px;margin-bottom:20px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);color:var(--accent);display:flex;align-items:center;justify-content:center}
+  .mode-card .mode-ico svg{display:block}
+  .mode-card strong{font-size:18px;font-weight:650;letter-spacing:-.01em;margin-bottom:8px}
+  .mode-card span.mode-desc{font-size:13.5px;line-height:1.45;color:var(--muted);text-transform:none;letter-spacing:0;font-weight:400}
+  .mode-card::after{content:"→";margin-top:auto;padding-top:18px;color:var(--accent);font-size:16px;line-height:1}
+  button.home-back{margin:0 0 18px;padding:0;border:0;background:transparent;color:var(--muted);font-size:13px}
+  button.home-back:hover{border:0;background:transparent;color:var(--txt)}
+  .home-list{display:flex;flex-direction:column;gap:10px;max-height:min(64vh,720px);overflow:auto;padding-right:4px}
+  .home-list .hint{padding:22px 4px;font-size:14px}
+  .pick-card{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;padding:16px 40px 16px 16px;text-align:left;border-radius:12px;background:var(--panel2)}
+  .pick-card::after{content:"›";position:absolute;right:16px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:20px;line-height:1}
+  .pick-card:hover::after{color:var(--accent)}
+  .pick-card .pick-title{font-size:15px;font-weight:650;color:var(--txt)}
+  .pick-card .pick-sub{font-size:13px;color:var(--muted)}
+  .pick-card .pick-meta{margin-top:4px;font-size:12px;color:#a8b3c2;font-variant-numeric:tabular-nums}
+  .home-note{margin:22px 0 0;font-size:12.5px;color:var(--muted)}
+  .home-note:empty{display:none}
+  body.home-only .layout{grid-template-columns:1fr;max-width:none;margin:0}
   body.home-only aside{display:none}
-  body.home-only .home-card{padding:28px 26px}
+  body.home-only main{display:flex;flex-direction:column;padding:36px 32px 56px}
+  body.home-only #home{margin:auto}
+  body:not(.home-only) #home{display:none}
   body.car-only aside{display:none}
   body.car-only .layout{grid-template-columns:1fr}
   @media (max-width:900px){ .mode-grid{grid-template-columns:1fr} }
@@ -167,17 +201,20 @@
 </head>
 <body class="home-only">
 <header>
-  <img id="hdrLogo" class="hdrlogo" alt="LM" src="/LOGO_LM2.svg">
-  <button id="sbToggle" class="iconbtn" title="Seitenleiste ein-/ausklappen">☰</button>
-  <button id="btnHome" class="iconbtn" data-i18n="goHome" style="display:none">⌂ Start</button>
-  <h1>LMU <span class="dot">●</span> <span data-i18n="appTitle">Analyse télémétrie</span></h1>
-  <button id="btnReload" data-i18n="reload">↻ Aktualisieren</button>
-  <div class="langsw"><button id="langFr" class="active">FR</button><button id="langEn">EN</button><button id="langDe">DE</button></div>
-  <span id="versionBadge" class="vbadge"></span>
+  <div class="hdr-brand">
+    <button type="button" id="btnHome" class="hdrlogo" data-i18n-title="goHome" title="Accueil"><img alt="" src="/LOGO_LM2.svg"></button>
+    <h1>LMU <span class="dot">●</span> <span data-i18n="appTitle">Analyse télémétrie</span></h1>
+  </div>
+  <div class="hdr-tools">
+    <button id="btnReload" data-i18n="reload">↻ Aktualisieren</button>
+    <div class="langsw"><button id="langFr" class="active">FR</button><button id="langEn">EN</button><button id="langDe">DE</button></div>
+    <span id="versionBadge" class="vbadge"></span>
+  </div>
   <span class="grow"></span>
   <span id="status" class="status">…</span>
-  <button id="btnQuit" class="iconbtn" data-i18n="quit" title="App beenden">⏻ Beenden</button>
+  <button id="btnQuit" class="iconbtn" data-i18n="quit" data-i18n-title="tipQuit" title="Quitter l'application">⏻ Beenden</button>
 </header>
+<button type="button" id="sbToggle" data-i18n-title="tipSidebar" title="Afficher ou masquer la barre latérale"></button>
 
 <div class="layout">
   <aside>
@@ -216,39 +253,41 @@
   </aside>
 
   <main>
-    <div id="home" class="card home-card">
+    <div id="home" class="home">
       <div id="homeModes">
-        <h2 data-i18n="homeTitle">Session · Circuit · Voiture</h2>
-        <p class="garage-note" data-i18n="homeHint" style="margin:0 0 16px">Wähle einen Modus, dann einen Eintrag.</p>
+        <p class="home-kicker">Le Mans Ultimate</p>
+        <h2 data-i18n="homeHeadline">Que veux-tu analyser ?</h2>
+        <p class="home-lead" data-i18n="homeLead">Trois entrées. L'analyse s'ouvre seulement après le dernier choix.</p>
         <div class="mode-grid">
           <button type="button" class="mode-card" data-mode="session">
-            <span class="mode-ico">📁</span>
+            <span class="mode-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5h7l4 4V20a1.5 1.5 0 0 1-1.5 1.5H7A1.5 1.5 0 0 1 5.5 20V5A1.5 1.5 0 0 1 7 3.5z"/><path d="M14 3.5V8h4.5M8.5 12.5h7M8.5 16h5"/></svg></span>
             <strong data-i18n="modeSession">Session</strong>
-            <span class="mode-desc" data-i18n="modeSessionHint">Eine Aufnahme laden und wie bisher analysieren.</span>
+            <span class="mode-desc" data-i18n="modeSessionHint">Un enregistrement, tour par tour : delta, secteurs, pneus et setup.</span>
           </button>
           <button type="button" class="mode-card" data-mode="circuit">
-            <span class="mode-ico">🏁</span>
+            <span class="mode-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="6.5" width="17" height="11" rx="5.5"/><path d="M12 6.5v2.2"/></svg></span>
             <strong data-i18n="modeCircuit">Circuit</strong>
-            <span class="mode-desc" data-i18n="modeCircuitHint">Alle Runden eines Layouts und einer Klasse vergleichen.</span>
+            <span class="mode-desc" data-i18n="modeCircuitHint">Tous tes tours d'un tracé et d'une classe, pour voir où tu progresses.</span>
           </button>
           <button type="button" class="mode-card" data-mode="car">
-            <span class="mode-ico">🚗</span>
+            <span class="mode-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15.5h16"/><path d="M6.2 15.5l1.5-4.1A2 2 0 0 1 9.6 10h4.8a2 2 0 0 1 1.9 1.4l1.5 4.1"/><circle cx="7.5" cy="16.4" r="1.35"/><circle cx="16.5" cy="16.4" r="1.35"/></svg></span>
             <strong data-i18n="modeCar">Voiture</strong>
-            <span class="mode-desc" data-i18n="modeCarHint">Marke + Klasse: Leistung und Schaltpunkte aus allen Vollgas-Beschleunigungen.</span>
+            <span class="mode-desc" data-i18n="modeCarHint">Puissance et points de passage, à partir de tes accélérations plein gaz.</span>
           </button>
         </div>
       </div>
       <div id="homeDrill" style="display:none">
-        <button type="button" id="homeBack" class="home-back iconbtn" data-i18n="homeBack">← Zurück</button>
+        <button type="button" id="homeBack" class="home-back" data-i18n="homeBack">← Retour</button>
         <h2 id="homeDrillTitle"></h2>
-        <p class="garage-note" id="homeDrillHint"></p>
+        <p class="home-lead" id="homeDrillHint"></p>
         <div id="homeList" class="home-list"></div>
       </div>
-      <div class="garage-note" id="garageNote"></div>
+      <p class="home-note" id="garageNote"></p>
     </div>
     <div id="conn"></div>
 
     <div id="app" style="display:none">
+      <button type="button" id="analysisBack" class="home-back" data-i18n="homeBack">← Retour</button>
       <div class="tabs">
         <div class="tab active" data-tab="improve" data-i18n="tabImprove">🎯 Wo verliere ich Zeit?</div>
         <div class="tab" data-tab="compare" data-i18n="tabCompare">📈 Vergleich</div>
@@ -400,14 +439,14 @@
               <button type="button" id="piDurTime" class="active" data-i18n="raceByTime">Zeit</button>
               <button type="button" id="piDurLaps" data-i18n="raceByLaps">Runden</button>
             </div>
-            <label id="piRaceWrap"><span data-i18n="raceLength">Minuten</span><input id="piRace" type="number" min="1" value="360"></label>
-            <label id="piLapsWrap" hidden><span data-i18n="raceLaps">Rundenzahl</span><input id="piLaps" type="number" min="1" value=""></label>
+            <label id="piRaceWrap"><span data-i18n="raceLength">Minuten</span><input id="piRace" type="number" min="1" value="60"></label>
+            <label id="piLapsWrap" hidden><span data-i18n="raceLaps">Rundenzahl</span><input id="piLaps" type="number" min="1" value="30"></label>
             <div class="hint" id="piDurNote"></div>
           </div>
           <div class="pitgrid">
-            <label><span data-i18n="tyreSets">Reifensätze</span><input id="piTyres" type="number" min="1" value="4"></label>
+            <label><span data-i18n="tyreSets">Reifensätze</span><input id="piTyres" type="number" min="1" value="3"></label>
             <label><span data-i18n="numDrivers">Anzahl Fahrer</span><input id="piDrivers" type="number" min="1" value="2"></label>
-            <label><span data-i18n="pitLoss">Boxenstopp-Verlust (s)</span><input id="piPit" type="number" min="0" value="52"></label>
+            <label><span data-i18n="pitLoss">Boxenstopp-Verlust (s)</span><input id="piPit" type="number" min="0" value=""></label>
             <label><span data-i18n="avgLapInput">Ø Rundenzeit (m:ss.s)</span><input id="piLap" type="text" value=""></label>
             <label><span data-i18n="vePerLapInput">Virtual Energy / Runde (%)</span><input id="piVE" type="number" step="0.01" value=""></label>
             <label><span data-i18n="fuelPerLapInput">Sprit / Runde (L)</span><input id="piFuel" type="number" step="0.1" value=""></label>
@@ -543,6 +582,8 @@ const STR = {
   driverK:(n)=>"Fahrer "+n, stintsN:(n)=>`${n} Stint${n===1?"":"s"}`, driverInfo:(m,l)=>`~${m} min · ~${l} Runden`,
   moreDrivers:(D,S)=>`Mehr Fahrer (${D}) als Stints (${S}) – nicht jeder kommt zum Einsatz.`,
   teleNote:(tr,a,b,v,f,w)=>`Aus Telemetrie · <b>${tr}</b> · Ø Runde <b>${a}</b> · Bestzeit ${b} · VE ${v} · Sprit ${f} · Verschleiß ${w}. Tipp: trage für die Planung deine erwartete <b>Renn-Pace</b> ein (nicht die Outlap).`,
+  pitSrcMeasured:(n,sec)=>`Boxenverlust gemessen auf diesem Circuit: ${sec} s (Median aus ${n} Einfahrt${n===1?"":"en"}, Ereignis In Pits). Pace, Sprit, Energie und Verschleiß: fliegende Runden ohne Box.`,
+  pitSrcGeneric:"Kein Boxenstopp (In Pits) auf diesem Circuit aufgezeichnet. Der Boxenverlust wird nicht geschätzt. Renndauer, Fahrer und Reifensätze stehen nicht in der Telemetrie.",
   mTrack:"Strecke", mVehicle:"Fahrzeug", mClass:"Klasse", mSession:"Session", mWeather:"Wetter", mDriver:"Fahrer", mRecording:"Aufnahme",
   pressure:"Druck", restProfile:"Rest-Profil", noTyreTemp:"Keine Reifen-Temperatur-Kanäle in dieser Aufnahme.", noTyreData:"Reifentemperaturen unauffällig (oder Datenbasis zu klein, z. B. nur Outlap).",
   noBrakeTemp:"Keine Bremstemperatur-Daten.", noWearData:"Keine Verschleißdaten.", wRest:(w)=>w+" Rest", usedPct:(p)=>p+" % verbraucht",
@@ -594,24 +635,27 @@ const STR = {
   steerL:"Lenkung", gearL:"Gang", missingLapDist:"Kanal 'Lap Dist' fehlt – Runden können nicht erkannt werden.",
   lapNotSaved:"Runde unvollständig – nicht gespeichert",
   storageFull:"Speicher voll – Bestzeit/Setup konnte nicht gespeichert werden (Browser-Limit).",
-  homeTitle:"Session · Strecke · Fahrzeug",
-  homeHint:"Wähle einen Modus, dann einen Eintrag. Die Analyse startet erst nach der letzten Auswahl.",
+  homeHeadline:"Was möchtest du ansehen?",
+  homeLead:"Drei Einstiege. Die Analyse öffnet sich erst nach der letzten Auswahl.",
   homePickSession:"Session wählen…",
-  goHome:"⌂ Start", homeBack:"← Zurück",
+  goHome:"Start", tipSidebar:"Seitenleiste ein-/ausklappen", tipQuit:"App beenden", homeBack:"← Zurück",
   modeSession:"Session", modeCircuit:"Strecke", modeCar:"Fahrzeug",
-  modeSessionHint:"Eine Aufnahme laden und wie bisher analysieren.",
-  modeCircuitHint:"Alle Runden eines Layouts und einer Klasse vergleichen.",
-  modeCarHint:"Marke + Klasse: Leistung und Schaltpunkte aus allen Vollgas-Beschleunigungen.",
-  homeSessionsTitle:"Sessions", homeCircuitsTitle:"Strecken", homeCarsTitle:"Fahrzeuge",
-  homeClassesTitle:"Kategorien",
+  modeSessionHint:"Ein Mitschnitt, Runde für Runde: Delta, Sektoren, Reifen und Setup.",
+  modeCircuitHint:"Alle deine Runden eines Layouts und einer Klasse – dort siehst du den Fortschritt.",
+  modeCarHint:"Leistung und Schaltpunkte aus deinen Volllast-Beschleunigungen.",
+  homeSessionsTitle:"Session wählen", homeSessionsLead:"Jede Zeile ist eine Datei aus dem Telemetrie-Ordner.",
+  kindRace:"Rennen", kindQual:"Qualifying", kindPrac:"Training",
+  homeCircuitsTitle:"Strecke wählen", homeCircuitsLead:"Nach Layout gruppiert. Danach wählst du die Klasse.",
+  homeCarsTitle:"Fahrzeug wählen", homeCarsLead:"Marke und Klasse, über alle Strecken.",
+  homeClassesTitle:"Verglichen werden nur die Runden dieser Klasse.",
   homeNoSessions:"Keine Telemetrie-Dateien gefunden.",
   homeNoCircuits:"Noch keine Strecken indexiert.",
   homeNoCars:"Noch keine Fahrzeuge indexiert.",
   homeNoClasses:"Keine Kategorie für diese Strecke.",
   circuitSessionsN:(n)=>n+" Session"+(n===1?"":"s"),
-  circuitLapsN:(n)=>n+" Runden",
+  circuitLapsN:(n)=>n===1?"1 Runde":n+" Runden",
   circuitLast:(d)=>"zuletzt "+d,
-  classLapsN:(n)=>n+" Runden",
+  classLapsN:(n)=>n===1?"1 Runde":n+" Runden",
   carBrandOther:"Andere",
   carVariantsN:(n)=>n+" Variante"+(n===1?"":"n"),
   packLapLbl:(lap,car,file)=>"R"+lap+" · "+car+" · "+file,
@@ -703,6 +747,8 @@ const STR = {
   driverK:(n)=>"Driver "+n, stintsN:(n)=>`${n} stint${n===1?"":"s"}`, driverInfo:(m,l)=>`~${m} min · ~${l} laps`,
   moreDrivers:(D,S)=>`More drivers (${D}) than stints (${S}) – not everyone will drive.`,
   teleNote:(tr,a,b,v,f,w)=>`From telemetry · <b>${tr}</b> · avg lap <b>${a}</b> · best ${b} · VE ${v} · fuel ${f} · wear ${w}. Tip: enter your expected <b>race pace</b> for planning (not the out-lap).`,
+  pitSrcMeasured:(n,sec)=>`Pit loss measured on this circuit: ${sec} s (median of ${n} stop${n===1?"":"s"}, In Pits event). Pace, fuel, energy and wear: flying laps, pit laps excluded.`,
+  pitSrcGeneric:"No pit stop (In Pits) recorded on this circuit. Pit loss is not estimated. Race length, drivers and tyre sets are not in the telemetry.",
   mTrack:"Track", mVehicle:"Vehicle", mClass:"Class", mSession:"Session", mWeather:"Weather", mDriver:"Driver", mRecording:"Recording",
   pressure:"Pressure", restProfile:"Remaining", noTyreTemp:"No tyre temperature channels in this recording.", noTyreData:"Tyre temperatures look fine (or too little data, e.g. only out-lap).",
   noBrakeTemp:"No brake temperature data.", noWearData:"No wear data.", wRest:(w)=>w+" rem.", usedPct:(p)=>p+" % used",
@@ -754,24 +800,27 @@ const STR = {
   steerL:"Steering", gearL:"Gear", missingLapDist:"Channel 'Lap Dist' is missing – laps cannot be detected.",
   lapNotSaved:"Lap incomplete – not saved",
   storageFull:"Storage full – could not save best lap/setup (browser limit).",
-  homeTitle:"Session · Track · Car",
-  homeHint:"Pick a mode, then an entry. Analysis starts only after the final choice.",
+  homeHeadline:"What do you want to look at?",
+  homeLead:"Three ways in. Analysis opens only after the last choice.",
   homePickSession:"Choose a session…",
-  goHome:"⌂ Home", homeBack:"← Back",
+  goHome:"Home", tipSidebar:"Show or hide the sidebar", tipQuit:"Quit the app", homeBack:"← Back",
   modeSession:"Session", modeCircuit:"Track", modeCar:"Car",
-  modeSessionHint:"Load one recording and analyse it as before.",
-  modeCircuitHint:"Compare every lap of one layout and class.",
-  modeCarHint:"Brand + class: power and shift points from every full-throttle acceleration.",
-  homeSessionsTitle:"Sessions", homeCircuitsTitle:"Tracks", homeCarsTitle:"Cars",
-  homeClassesTitle:"Categories",
+  modeSessionHint:"One recording, lap by lap: delta, sectors, tyres and setup.",
+  modeCircuitHint:"Every lap of one layout and class, so you can see where you improved.",
+  modeCarHint:"Power and shift points from your full-throttle accelerations.",
+  homeSessionsTitle:"Choose a session", homeSessionsLead:"Each row is a file from the telemetry folder.",
+  kindRace:"Race", kindQual:"Qualifying", kindPrac:"Practice",
+  homeCircuitsTitle:"Choose a track", homeCircuitsLead:"Grouped by layout. You pick the class next.",
+  homeCarsTitle:"Choose a car", homeCarsLead:"Brand and class, across every track.",
+  homeClassesTitle:"Only laps in this class are compared.",
   homeNoSessions:"No telemetry files found.",
   homeNoCircuits:"No tracks indexed yet.",
   homeNoCars:"No cars indexed yet.",
   homeNoClasses:"No category for this track.",
   circuitSessionsN:(n)=>n+" session"+(n===1?"":"s"),
-  circuitLapsN:(n)=>n+" laps",
+  circuitLapsN:(n)=>n+" lap"+(n===1?"":"s"),
   circuitLast:(d)=>"last "+d,
-  classLapsN:(n)=>n+" laps",
+  classLapsN:(n)=>n+" lap"+(n===1?"":"s"),
   carBrandOther:"Other",
   carVariantsN:(n)=>n+" variant"+(n===1?"":"s"),
   packLapLbl:(lap,car,file)=>"L"+lap+" · "+car+" · "+file,
@@ -863,6 +912,8 @@ const STR = {
   driverK:(n)=>"Pilote "+n, stintsN:(n)=>`${n} relais`, driverInfo:(m,l)=>`~${m} min · ~${l} tours`,
   moreDrivers:(D,S)=>`Plus de pilotes (${D}) que de relais (${S}) – tout le monde ne roulera pas.`,
   teleNote:(tr,a,b,v,f,w)=>`Issu de la télémétrie · <b>${tr}</b> · tour moy. <b>${a}</b> · meilleur ${b} · VE ${v} · essence ${f} · usure ${w}. Conseil : saisis ton <b>rythme de course</b> prévu (pas l'outlap).`,
+  pitSrcMeasured:(n,sec)=>`Perte aux stands mesurée sur ce circuit : ${sec} s (médiane de ${n} passage${n>1?"s":""}, événement In Pits). Rythme, essence, énergie et usure : tours lancés, hors arrêt.`,
+  pitSrcGeneric:"Aucun passage aux stands (In Pits) enregistré sur ce circuit. La perte d'arrêt n'est pas estimée. La durée de course, les pilotes et les trains de pneus ne sont pas dans la télémétrie.",
   mTrack:"Circuit", mVehicle:"Voiture", mClass:"Classe", mSession:"Session", mWeather:"Météo", mDriver:"Pilote", mRecording:"Enregistrement",
   pressure:"Pression", restProfile:"Profil restant", noTyreTemp:"Aucun canal de température pneus dans cet enregistrement.", noTyreData:"Températures pneus sans anomalie (ou trop peu de données, p. ex. seulement une outlap).",
   noBrakeTemp:"Pas de données de température freins.", noWearData:"Pas de données d'usure.", wRest:(w)=>w+" restant", usedPct:(p)=>p+" % usé",
@@ -914,24 +965,27 @@ const STR = {
   steerL:"Direction", gearL:"Rapport", missingLapDist:"Le canal « Lap Dist » manque – les tours ne peuvent pas être détectés.",
   lapNotSaved:"Tour incomplet – non enregistré",
   storageFull:"Stockage plein – impossible d'enregistrer le meilleur tour / setup (limite du navigateur).",
-  homeTitle:"Session · Circuit · Voiture",
-  homeHint:"Choisis un mode, puis une entrée. L'analyse ne démarre qu'après le choix final.",
+  homeHeadline:"Que veux-tu analyser ?",
+  homeLead:"Trois entrées. L'analyse s'ouvre seulement après le dernier choix.",
   homePickSession:"Choisir une session…",
-  goHome:"⌂ Accueil", homeBack:"← Retour",
+  goHome:"Accueil", tipSidebar:"Afficher ou masquer la barre latérale", tipQuit:"Quitter l'application", homeBack:"← Retour",
   modeSession:"Session", modeCircuit:"Circuit", modeCar:"Voiture",
-  modeSessionHint:"Charger un enregistrement et l'analyser comme avant.",
-  modeCircuitHint:"Comparer tous les tours d'un layout et d'une classe.",
-  modeCarHint:"Marque + classe : puissance et passages à partir de toutes les accélérations plein gaz.",
-  homeSessionsTitle:"Sessions", homeCircuitsTitle:"Circuits", homeCarsTitle:"Voitures",
-  homeClassesTitle:"Catégories",
+  modeSessionHint:"Un enregistrement, tour par tour : delta, secteurs, pneus et setup.",
+  modeCircuitHint:"Tous tes tours d'un tracé et d'une classe, pour voir où tu progresses.",
+  modeCarHint:"Puissance et points de passage, à partir de tes accélérations plein gaz.",
+  homeSessionsTitle:"Choisir une session", homeSessionsLead:"Chaque ligne est un enregistrement du dossier télémétrie.",
+  kindRace:"Course", kindQual:"Qualifications", kindPrac:"Essais",
+  homeCircuitsTitle:"Choisir un circuit", homeCircuitsLead:"Regroupé par tracé. Tu choisis ensuite la catégorie.",
+  homeCarsTitle:"Choisir une voiture", homeCarsLead:"Marque et catégorie, toutes pistes confondues.",
+  homeClassesTitle:"Seuls les tours de cette catégorie sont comparés.",
   homeNoSessions:"Aucun fichier télémétrie trouvé.",
   homeNoCircuits:"Aucun circuit indexé pour l'instant.",
   homeNoCars:"Aucune voiture indexée pour l'instant.",
   homeNoClasses:"Aucune catégorie pour ce circuit.",
   circuitSessionsN:(n)=>n+" session"+(n===1?"":"s"),
-  circuitLapsN:(n)=>n+" tours",
+  circuitLapsN:(n)=>n+" tour"+(n>1?"s":""),
   circuitLast:(d)=>"dernier "+d,
-  classLapsN:(n)=>n+" tours",
+  classLapsN:(n)=>n+" tour"+(n>1?"s":""),
   carBrandOther:"Autres",
   carVariantsN:(n)=>n+" variante"+(n===1?"":"s"),
   packLapLbl:(lap,car,file)=>"T"+lap+" · "+car+" · "+file,
@@ -972,6 +1026,8 @@ function t(k,...a){ let v=(STR[LANG]&&STR[LANG][k]); if(v==null)v=STR.fr[k]; if(
 function applyStaticI18n(){
   document.querySelectorAll("[data-i18n]").forEach(el=>{ el.textContent=t(el.dataset.i18n); });
   document.querySelectorAll("[data-i18n-html]").forEach(el=>{ el.innerHTML=t(el.dataset.i18nHtml); });
+  document.querySelectorAll("[data-i18n-title]").forEach(el=>{ el.title=t(el.dataset.i18nTitle); });
+  document.querySelectorAll("canvas").forEach(cv=>{ if(cv._zoomInit) cv.title=t("mapZoomHint"); });
 }
 function setLang(l, pick){
   LANG=l; try{ localStorage.setItem("lmuLang",JSON.stringify(l)); if(pick) localStorage.setItem("lmuLangPick",JSON.stringify(true)); }catch(e){}
@@ -1042,10 +1098,38 @@ function buildModel(js){
     const t0=i0/cDist.freq, t1=i1/cDist.freq, lapTime=t1-t0;
     let maxD=0; for(let i=i0;i<=i1;i++){ const d=cDist.data[i]; if(d>maxD)maxD=d; }
     const complete = maxD >= 0.9*trackLen && lapTime>20;
-    laps.push({ index:laps.length, t0, t1, lapTime, trackLen, i0, i1, maxDist:maxD, complete,
-                outlap:(b===0), inlap:(b===bounds.length-2 && bounds.length>2) });
+    laps.push({ index:laps.length, t0, t1, lapTime, trackLen, i0, i1, maxDist:maxD, complete, outlap:false, inlap:false });
   }
-  return { fileName:js.file, meta:js.meta||{}, channels, events, wheels:js.wheels||{}, cDist, cSpeed, trackLen, channelStartTs, laps };
+  const pitStops=pitStopsFromEvents(events);
+  if(Array.isArray(events["In Pits"])){
+    if(laps[0]) laps[0].outlap=true;
+    pitStops.forEach(s=>{
+      laps.forEach(l=>{
+        const a=channelStartTs+l.t0, b=channelStartTs+l.t1;
+        if(!(s.enter<b && s.exit>a)) return;
+        l.pit=true;
+        if(s.enter>=a-0.5) l.inlap=true;
+        if(s.exit<=b+0.5) l.outlap=true;
+      });
+    });
+  } else if(laps.length){
+    laps[0].outlap=true;
+    if(laps.length>2) laps[laps.length-1].inlap=true;
+  }
+  return { fileName:js.file, meta:js.meta||{}, channels, events, wheels:js.wheels||{}, cDist, cSpeed, trackLen, channelStartTs, laps, pitStops };
+}
+function pitStopsFromEvents(events){
+  const ev=(events&&events["In Pits"])||[];
+  const stops=[]; let enter=null;
+  ev.forEach(e=>{
+    const on=e.v===1||e.v===true||e.v==="1";
+    if(on){ enter=e.ts; return; }
+    if(enter==null) return;
+    const dur=e.ts-enter;
+    if(dur>5 && dur<400) stops.push({ enter, exit:e.ts, dur });
+    enter=null;
+  });
+  return stops;
 }
 const WHEEL_LABELS=["VL","VR","HL","HR"];   // FL,FR,RL,RR
 function wheelVal(wh,t){ // wert je Rad zur Zeit t (sek, relativ Aufnahmestart)
@@ -1583,6 +1667,15 @@ function fmtSessionDate(s){
   const ms=sessionDateMs(s);
   return ms? new Date(ms).toLocaleString(loc()) : "—";
 }
+function sessionKindLabel(s){
+  const raw=String(s.stype||"");
+  if(/race/i.test(raw)) return t("kindRace");
+  if(/qual/i.test(raw)) return t("kindQual");
+  if(/pract|train|essai/i.test(raw)) return t("kindPrac");
+  const m=String(s.file||"").match(/_([RQP])_/);
+  if(!m) return "";
+  return t(m[1]==="R"?"kindRace":m[1]==="Q"?"kindQual":"kindPrac");
+}
 const CAR_BRANDS=["BMW","Porsche","Ferrari","Mercedes","Audi","Lamborghini","McLaren","Aston Martin","Ford","Chevrolet","Cadillac","Alpine","Peugeot","Toyota","Lexus","Honda","Nissan","Hyundai","Oreca","Ligier","Duqueine","ADESS","Ginetta","Vanwall","Isotta","Corvette"];
 const TEAM_BRAND=[
   [/iron\s*lynx/i,"Lamborghini"],[/\bwrt\b/i,"BMW"],[/af\s*corse/i,"Ferrari"],
@@ -1629,8 +1722,6 @@ function showAnalysis(on){
   if(app) app.style.display=on?"":"none";
   document.body.classList.toggle("home-only", !on);
   document.body.classList.toggle("car-only", on && STATE.mode==="car");
-  const btn=document.getElementById("btnHome");
-  if(btn) btn.style.display=on?"":"none";
   applyModeChrome();
 }
 function applyModeChrome(){
@@ -1647,7 +1738,7 @@ function goHomeRoot(){
   STATE.loadedKey=null; STATE.model=null; STATE.refLap=null; STATE.cmpLap=null;
   STATE.refModel=null; STATE.cmpModel=null; STATE.refPack=null; STATE.cmpPack=null; STATE.packLaps=[];
   showAnalysis(false);
-  setStatus(t("homeTitle"));
+  setStatus(t("goHome"));
   showConn("");
   renderHome();
 }
@@ -1673,6 +1764,8 @@ function bindHomeNav(){
     btn.addEventListener("click",()=>enterMode(btn.dataset.mode));
   });
   document.getElementById("homeBack").addEventListener("click", homeBack);
+  const analysisBack=document.getElementById("analysisBack");
+  if(analysisBack) analysisBack.addEventListener("click", ()=>{ showAnalysis(false); renderHome(); });
   const btnHome=document.getElementById("btnHome");
   if(btnHome) btnHome.addEventListener("click", goHomeRoot);
 }
@@ -1707,16 +1800,18 @@ function renderHome(){
 }
 function renderSessionHomeList(title, hint, list){
   title.textContent=t("homeSessionsTitle");
-  hint.textContent="";
+  hint.textContent=t("homeSessionsLead");
   const pool=STATE.sessions.slice();
   if(!pool.length){ list.innerHTML=`<div class="hint">${t("homeNoSessions")}</div>`; return; }
   list.innerHTML=pool.map(s=>{
-    const extra=[s.nLaps? s.nLaps+" "+t("garageLapsShort"):"", fmtSessionDate(s)].filter(Boolean).join(" · ");
+    const when=fmtSessionDate(s);
+    const laps=s.nLaps? t("circuitLapsN", s.nLaps) : "";
+    const named=s.track? circuitDisplayName(s.track, s.layout||"") : prettyName(s.file);
     return pickCardHtml({
       key:s.file,
-      title:prettyName(s.file),
-      sub:circuitDisplayName(s.track||"", s.layout||""),
-      meta:extra
+      title:named,
+      sub:[sessionKindLabel(s), s.classKey||s.class||"", s.car?prettyName(s.car):""].filter(Boolean).join(" · "),
+      meta:[laps, when&&when!=="—"?when:""].filter(Boolean).join(" · ")
     });
   }).join("");
   list.querySelectorAll(".pick-card").forEach(btn=>{
@@ -1738,7 +1833,7 @@ function circuitGroups(){
 }
 function renderCircuitHomeList(title, hint, list){
   title.textContent=t("homeCircuitsTitle");
-  hint.textContent="";
+  hint.textContent=t("homeCircuitsLead");
   const groups=circuitGroups();
   if(!groups.length){ list.innerHTML=`<div class="hint">${t("homeNoCircuits")}</div>`; return; }
   list.innerHTML=groups.map(g=>{
@@ -1870,7 +1965,7 @@ function carGroups(){
 }
 function renderCarHomeList(title, hint, list){
   title.textContent=t("homeCarsTitle");
-  hint.textContent="";
+  hint.textContent=t("homeCarsLead");
   const groups=carGroups();
   if(!groups.length){ list.innerHTML=`<div class="hint">${t("homeNoCars")}</div>`; return; }
   list.innerHTML=groups.map(g=>pickCardHtml({
@@ -1894,7 +1989,9 @@ function openCarGroup(groupKey){
   setStatus(displayGroup({brand:groupKey.split(" · ")[0], classKey:groupKey.split(" · ")[1]}));
 }
 
-function prettyName(f){ return String(f||"").replace(/\.duckdb$/i,"").replace(/_([A-Z])_/," · $1 · ").replace(/_\d{4}-\d\d-\d\dT.*$/,""); }
+function prettyName(f){
+  return String(f||"").replace(/\.duckdb$/i,"").replace(/_([A-Z])_/," · $1 · ").replace(/(?:^|[ _·])\d{4}-\d\d-\d\dT.*$/,"").replace(/\s*·\s*$/,"").trim();
+}
 function buildLapTable(){
   if(STATE.mode==="circuit"){ buildPackLapTable(); return; }
   const m=STATE.model, laps=m.laps;
@@ -1985,7 +2082,9 @@ async function loadSession(file){
     let others=m.laps.filter(l=>l!==best&&l.complete&&!l.outlap&&!l.inlap).sort((a,b)=>a.lapTime-b.lapTime);
     if(!others.length) others=m.laps.filter(l=>l!==best&&l.complete).sort((a,b)=>a.lapTime-b.lapTime);
     STATE.cmpLap=others[0]||best;
-    refreshRefSrc(); pitPrefill(m);
+    refreshRefSrc();
+    ["piLap","piVE","piFuel","piWear","piPit","piTank"].forEach(id=>{ delete pitUserEdit[id]; });
+    pitPrefill(m);
     applyModeChrome();
     renderMeta(); renderWeather(); renderDiag(); showAnalysis(true);
     if(!m.error) showConn("");
@@ -2016,12 +2115,14 @@ async function poll(){
     STATE.sessions.forEach(s=>{ prev[s.file]=s; });
     STATE.sessions=(r.sessions||[]).map(s=>{
       const p=prev[s.file];
-      if(p){
+      if(p && p.mtime===s.mtime && p.size===s.size){
         if(!s.car && p.car){ s.car=p.car; s.track=p.track; s.layout=p.layout; s.class=p.class; s.classKey=p.classKey; s.stype=p.stype; s.date=p.date; }
         if((!s.laps||!s.laps.length) && p.laps) s.laps=p.laps;
         if(s.nLaps==null) s.nLaps=p.nLaps;
         else if(p.nLaps && p.nLaps>(s.nLaps||0)) s.nLaps=p.nLaps;
-        if(p._metaTried) s._metaTried=p._metaTried;
+        if((!s.pits||!s.pits.length) && Array.isArray(p.pits)) s.pits=p.pits;
+        if(s.fuelMax==null && p.fuelMax!=null) s.fuelMax=p.fuelMax;
+        if(p._metaTried && Array.isArray(p.pits)) s._metaTried=p._metaTried;
       }
       if(s.class && !s.classKey) s.classKey=normalizeClassKey(s.class);
       return s;
@@ -2033,7 +2134,7 @@ async function poll(){
     const analyzing=!!STATE.loadedKey || STATE.mode==="car";
     if(!analyzing){
       showAnalysis(false);
-      setStatus(t("homeTitle"));
+      setStatus(t("goHome"));
       showConn("");
     }
     applyModeChrome();
@@ -2059,7 +2160,7 @@ document.getElementById("btnReload").onclick=()=>{ if(STATE.mode==="circuit" && 
 let metaBusy=false;
 async function fillSessionMeta(){
   if(metaBusy) return;
-    const missing=STATE.sessions.filter(s=>(!s.car || s.laps==null) && !s._metaTried);
+    const missing=STATE.sessions.filter(s=>!s._metaTried && (!s.car || s.laps==null || !Array.isArray(s.pits)));
     if(!missing.length) return;
     metaBusy=true;
     try{
@@ -2078,11 +2179,14 @@ async function fillSessionMeta(){
           live.date=m.date||live.date;
           if(m.laps) live.laps=m.laps;
           if(m.nLaps!=null) live.nLaps=Math.max(live.nLaps||0, m.nLaps||0);
+          if(Array.isArray(m.pits)) live.pits=m.pits;
+          if(m.fuelMax!=null) live.fuelMax=m.fuelMax;
           live._metaTried=true;
           rememberGarageMeta(live);
         }catch(e){ if(e.code===423) s._metaTried=false; }
       }
       renderHome();
+      if(STATE.model) pitPrefill(STATE.model);
     }finally{ metaBusy=false; }
 }
 let ingestGen=0;
@@ -2139,7 +2243,7 @@ function computeConsumption(m){
   const cVE=findChan(m.channels,["Virtual Energy"]);
   const cFuel=findChan(m.channels,["Fuel Level","Fuel"]);
   const complete=m.laps.filter(l=>l.complete);
-  let pool=complete.filter(l=>!l.outlap&&!l.inlap); if(!pool.length) pool=complete;   // repräsentative Renn-Runden
+  const pool=complete.filter(l=>!l.outlap&&!l.inlap);
   const wearWh=m.wheels&&m.wheels["Tyres Wear"];
   let veS=0,veN=0,fS=0,fN=0,lS=0,lN=0,wS=0,wN=0;
   pool.forEach(l=>{ lS+=l.lapTime;lN++;
@@ -2153,9 +2257,12 @@ function computeConsumption(m){
     if(cFuel){const a=sampleChanAtTime(cFuel,l.t0),b=sampleChanAtTime(cFuel,l.t1); if(a!=null&&b!=null) l.fuelLap=Math.max(0,a-b);}
     if(wearWh){const a=wheelVal(wearWh,l.t0),b=wheelVal(wearWh,l.t1); if(a&&b){let w=0;for(let k=0;k<a.length;k++){const d=a[k]-b[k];if(d>w)w=d;} l.wearLap=w;}}
   });
-  m.avgLap = lN? lS/lN : (m.laps[0]?m.laps[0].lapTime:0);
-  const bestPool=complete.filter(l=>!l.outlap&&!l.inlap); const bestSrc=bestPool.length?bestPool:complete;
-  m.bestLap = bestSrc.length? arrMin(bestSrc, l=>l.lapTime) : m.avgLap;
+  if(!pool.length){
+    m.avgLap=m.bestLap=m.vePerLap=m.fuelPerLap=m.wearPerLap=null;
+    return;
+  }
+  m.avgLap = lS/lN;
+  m.bestLap = arrMin(pool, l=>l.lapTime);
   m.vePerLap = veN? veS/veN : null;
   m.fuelPerLap = fN? fS/fN : null;
   m.wearPerLap = wN? wS/wN : null;     // % Verschleiß (schlechtestes Rad) pro Runde
@@ -2475,14 +2582,75 @@ const PIT_MAXSAVE=15;   // % Virtual Energy, die per Lift&Coast realistisch spar
 function parseLapInput(s){ s=(s||"").trim(); if(!s)return null; if(s.includes(":")){const p=s.split(":");return (+p[0])*60+(parseFloat(p[1])||0);} return parseFloat(s); }
 function fmtClock(sec){ if(!isFinite(sec))return "—"; sec=Math.round(sec); const h=Math.floor(sec/3600),mm=Math.floor((sec%3600)/60),ss=sec%60; return (h>0?h+":"+String(mm).padStart(2,"0"):String(mm))+":"+String(ss).padStart(2,"0"); }
 function pitKpi(l,v,d,cls){ return `<div class="stat"><div class="l">${l}</div><div class="v">${v}</div><div class="d ${cls==='up'?'up':cls==='down'?'down':'muted'}">${d||''}</div></div>`; }
+function circuitSamples(track, layout, classKey){
+  if(!classKey) return [];
+  const id=circuitIdOf(track, layout);
+  return (STATE.sessions||[]).filter(s=>{
+    if(!s||sessionCircuitId(s)!==id) return false;
+    const ck=s.classKey||normalizeClassKey(s.class);
+    return !!ck && ck===classKey;
+  });
+}
+function circuitPitDurs(track, layout, classKey, model){
+  const durs=[];
+  const seen=new Set();
+  circuitSamples(track, layout, classKey).forEach(s=>{
+    (s.pits||[]).forEach(d=>{ if(+d>5){ durs.push(+d); seen.add(s.file); } });
+  });
+  const meta=model&&model.meta;
+  const same=!!meta && circuitIdOf(meta.TrackName, meta.TrackLayout)===circuitIdOf(track, layout);
+  if(model && same && !seen.has(model.fileName)){
+    (model.pitStops||[]).forEach(s=>{ if(s.dur>5) durs.push(s.dur); });
+  }
+  durs.sort((a,b)=>a-b);
+  return durs;
+}
+function sessionFuelMax(m){
+  if(!m||!m.channels) return null;
+  const c=findChan(m.channels,["Fuel Level","Fuel"]);
+  if(!c||!c.data) return null;
+  let max=0;
+  for(let i=0;i<c.data.length;i++){ const v=+c.data[i]; if(v>max) max=v; }
+  return max>1?max:null;
+}
+function circuitFuelMax(track, layout, classKey, car, model){
+  let max=0;
+  if(car) circuitSamples(track, layout, classKey).forEach(s=>{
+    if(s.car!==car) return;
+    if(+s.fuelMax>max) max=+s.fuelMax;
+  });
+  const meta=model&&model.meta;
+  const same=!!meta && circuitIdOf(meta.TrackName, meta.TrackLayout)===circuitIdOf(track, layout);
+  const cur=same?sessionFuelMax(model):null;
+  if(cur>max) max=cur;
+  return max>1?max:null;
+}
+const pitUserEdit={};
+function setPitField(id, value, digits){
+  const el=document.getElementById(id); if(!el||pitUserEdit[id]) return;
+  el.value = value==null||value==="" ? "" : (digits==null?String(value):Number(value).toFixed(digits));
+}
 function pitPrefill(m){
-  if(m.avgLap) document.getElementById("piLap").value=fmtTime(m.avgLap);
-  document.getElementById("piVE").value = m.vePerLap!=null? m.vePerLap.toFixed(2):"";
-  document.getElementById("piFuel").value = m.fuelPerLap!=null? m.fuelPerLap.toFixed(1):"";
-  document.getElementById("piWear").value = m.wearPerLap!=null? m.wearPerLap.toFixed(2):"";
+  const meta=m&&m.meta||{};
+  const track=meta.TrackName||"";
+  const layout=meta.TrackLayout||"";
+  const car=meta.CarName||"";
+  const ck=normalizeClassKey(meta.CarClass);
+  const measuredLap=!!(m&&m.avgLap>10);
+  const durs=circuitPitDurs(track, layout, ck, m);
+  const pit=durs.length?durs[durs.length>>1]:null;
+  const tank=circuitFuelMax(track, layout, ck, car, m);
+  setPitField("piLap", measuredLap?fmtTime(m.avgLap):"");
+  setPitField("piVE", m&&m.vePerLap!=null?m.vePerLap:null, 2);
+  setPitField("piFuel", m&&m.fuelPerLap!=null?m.fuelPerLap:null, 1);
+  setPitField("piWear", m&&m.wearPerLap!=null?m.wearPerLap:null, 2);
+  setPitField("piPit", pit!=null?Math.round(pit):"");
+  setPitField("piTank", tank!=null?Math.round(tank):"");
   const pl = perLap();
-  const veS = m.vePerLap!=null?m.vePerLap.toFixed(2)+" %"+pl:"—", fuS = m.fuelPerLap!=null?m.fuelPerLap.toFixed(1)+" L"+pl:"—", wS = m.wearPerLap!=null?m.wearPerLap.toFixed(2)+" %"+pl:"—";
-  document.getElementById("piTeleNote").innerHTML=t("teleNote",escapeHtml(m.meta.TrackName||""),fmtTime(m.avgLap),fmtTime(m.bestLap),veS,fuS,wS);
+  const veShow=m&&m.vePerLap!=null?m.vePerLap:null, fuShow=m&&m.fuelPerLap!=null?m.fuelPerLap:null, wShow=m&&m.wearPerLap!=null?m.wearPerLap:null;
+  const veS = veShow!=null?veShow.toFixed(2)+" %"+pl:"—", fuS = fuShow!=null?fuShow.toFixed(1)+" L"+pl:"—", wS = wShow!=null?wShow.toFixed(2)+" %"+pl:"—";
+  const src = pit!=null ? t("pitSrcMeasured", durs.length, Math.round(pit)) : t("pitSrcGeneric");
+  document.getElementById("piTeleNote").innerHTML=t("teleNote",escapeHtml(track),fmtTime(measuredLap?m.avgLap:null),fmtTime(m&&m.bestLap),veS,fuS,wS)+`<div style="margin-top:4px">${src}</div>`;
 }
 /* ---------- Lift & Coast: beste Sprit-Spar-Zonen ---------- */
 // Coast-Dauer (s) aus nötiger Ersparnis: 0 % -> kurz, PIT_MAXSAVE -> lange segeln.
@@ -2642,7 +2810,13 @@ function renderPit(){
   plan.innerHTML='<div class="grid2">'+html+'</div>'+(S<D?`<div class="hint" style="margin-top:8px">${t("moreDrivers",D,S)}</div>`:'');
 }
 // Eingaben verdrahten
-["piRace","piLaps","piTyres","piDrivers","piPit","piLap","piVE","piFuel","piTank","piWear","piPenalty"].forEach(id=>{ const e=document.getElementById(id); if(e) e.addEventListener("input",renderPit); });
+["piRace","piLaps","piTyres","piDrivers","piPit","piLap","piVE","piFuel","piTank","piWear","piPenalty"].forEach(id=>{
+  const e=document.getElementById(id); if(!e) return;
+  e.addEventListener("input",()=>{
+    if(id==="piPit"||id==="piLap"||id==="piVE"||id==="piFuel"||id==="piTank"||id==="piWear") pitUserEdit[id]=true;
+    renderPit();
+  });
+});
 document.getElementById("piDurTime").addEventListener("click",()=>setPitDurationMode("time"));
 document.getElementById("piDurLaps").addEventListener("click",()=>setPitDurationMode("laps"));
 document.getElementById("refSrcSel").addEventListener("change",e=>{ STATE.refSource = e.target.value; recompute(); });

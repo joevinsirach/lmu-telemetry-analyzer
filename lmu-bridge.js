@@ -416,7 +416,7 @@ function metaStr(v) {
   return "";
 }
 
-const INDEX_VER = 2;
+const INDEX_VER = 3;
 function normalizeClassKey(cls) {
   const s = String(cls || "").toUpperCase();
   if (!s) return "";
@@ -454,7 +454,33 @@ async function loadSessionMeta(full) {
     'SessionType', (SELECT value FROM metadata WHERE key='SessionType' LIMIT 1),
     'RecordingTime', (SELECT value FROM metadata WHERE key='RecordingTime' LIMIT 1),
     'nLaps', COALESCE((SELECT count(*) FROM "Lap Time" WHERE try_cast(value AS DOUBLE) > 20), 0),
+    'laps', (SELECT to_json(list(try_cast(value AS DOUBLE) ORDER BY ts)) FROM "Lap Time" WHERE try_cast(value AS DOUBLE) > 20),
+    'pits', COALESCE((SELECT to_json(list(dur ORDER BY dur)) FROM (
+      SELECT lead(ts) OVER (ORDER BY ts) - ts AS dur, value FROM "In Pits"
+    ) s WHERE value = 1 AND dur BETWEEN 5 AND 400), '[]'),
+    'fuelMax', (SELECT max(try_cast(value AS DOUBLE)) FROM "Fuel Level")
+  ))::VARCHAR AS doc`;
+  const sqlBase = `SELECT (json_object(
+    'CarName', (SELECT value FROM metadata WHERE key='CarName' LIMIT 1),
+    'TrackName', (SELECT value FROM metadata WHERE key='TrackName' LIMIT 1),
+    'TrackLayout', (SELECT value FROM metadata WHERE key='TrackLayout' LIMIT 1),
+    'Layout', (SELECT value FROM metadata WHERE key='Layout' LIMIT 1),
+    'TrackConfig', (SELECT value FROM metadata WHERE key='TrackConfig' LIMIT 1),
+    'TrackConfiguration', (SELECT value FROM metadata WHERE key='TrackConfiguration' LIMIT 1),
+    'CircuitLayout', (SELECT value FROM metadata WHERE key='CircuitLayout' LIMIT 1),
+    'CarClass', (SELECT value FROM metadata WHERE key='CarClass' LIMIT 1),
+    'SessionType', (SELECT value FROM metadata WHERE key='SessionType' LIMIT 1),
+    'RecordingTime', (SELECT value FROM metadata WHERE key='RecordingTime' LIMIT 1),
+    'nLaps', COALESCE((SELECT count(*) FROM "Lap Time" WHERE try_cast(value AS DOUBLE) > 20), 0),
     'laps', (SELECT to_json(list(try_cast(value AS DOUBLE) ORDER BY ts)) FROM "Lap Time" WHERE try_cast(value AS DOUBLE) > 20)
+  ))::VARCHAR AS doc`;
+  const sqlPits = `SELECT (json_object(
+    'pits', COALESCE((SELECT to_json(list(dur ORDER BY dur)) FROM (
+      SELECT lead(ts) OVER (ORDER BY ts) - ts AS dur, value FROM "In Pits"
+    ) s WHERE value = 1 AND dur BETWEEN 5 AND 400), '[]')
+  ))::VARCHAR AS doc`;
+  const sqlFuel = `SELECT (json_object(
+    'fuelMax', (SELECT max(try_cast(value AS DOUBLE)) FROM "Fuel Level")
   ))::VARCHAR AS doc`;
   const sqlLite = `SELECT (json_object(
     'CarName', (SELECT value FROM metadata WHERE key='CarName' LIMIT 1),
@@ -469,7 +495,29 @@ async function loadSessionMeta(full) {
     'laps', json_array()
   ))::VARCHAR AS doc`;
   try { return await duck(full, sqlFull); }
-  catch (_) { return await duck(full, sqlLite); }
+  catch (e) { if (!isMissingTable(e)) throw e; }
+  let raw;
+  try { raw = await duck(full, sqlBase); }
+  catch (e) {
+    if (!isMissingTable(e)) throw e;
+    raw = await duck(full, sqlLite);
+  }
+  raw = raw || {};
+  try {
+    const extra = await duck(full, sqlPits);
+    raw.pits = extra && extra.pits != null ? extra.pits : [];
+  } catch (e) {
+    if (!isMissingTable(e)) throw e;
+    raw.pits = [];
+  }
+  try {
+    const extra = await duck(full, sqlFuel);
+    raw.fuelMax = extra ? extra.fuelMax : null;
+  } catch (e) {
+    if (!isMissingTable(e)) throw e;
+    raw.fuelMax = null;
+  }
+  return raw;
 }
 function indexRecordFromRaw(st, raw) {
   const cls = metaStr(raw.CarClass);
@@ -483,15 +531,25 @@ function indexRecordFromRaw(st, raw) {
     stype: metaStr(raw.SessionType),
     date: metaStr(raw.RecordingTime),
     nLaps: Number(raw.nLaps) || laps.length || 0,
-    laps
+    laps,
+    pits: pitDursFromRaw(raw.pits),
+    fuelMax: Number(raw.fuelMax) > 1 ? Number(raw.fuelMax) : null
   };
+}
+function pitDursFromRaw(raw) {
+  let arr = raw;
+  if (typeof arr === "string") { try { arr = JSON.parse(arr); } catch (_) { arr = []; } }
+  if (!Array.isArray(arr)) return [];
+  return arr.map(Number).filter(d => d > 5 && d < 400);
 }
 function publicSessionMeta(name, rec) {
   return {
     file: name, car: rec.car, track: rec.track, layout: rec.layout || "",
     class: rec.class, classKey: rec.classKey || normalizeClassKey(rec.class),
     stype: rec.stype, date: rec.date || "", nLaps: rec.nLaps,
-    laps: rec.laps || []
+    laps: rec.laps || [],
+    pits: rec.pits || [],
+    fuelMax: rec.fuelMax || null
   };
 }
 function enrichSession(s) {
@@ -500,7 +558,8 @@ function enrichSession(s) {
     return {
       ...s, car: e.car, track: e.track, layout: e.layout || "",
       class: e.class, classKey: e.classKey || normalizeClassKey(e.class),
-      stype: e.stype, date: e.date || "", nLaps: e.nLaps, laps: e.laps || []
+      stype: e.stype, date: e.date || "", nLaps: e.nLaps, laps: e.laps || [],
+      pits: e.pits || [], fuelMax: e.fuelMax || null
     };
   }
   return s;
@@ -626,6 +685,10 @@ function duckLockMsg(e) {
 }
 function isInvalidDb(msg) {
   return /not a valid DuckDB database/i.test(msg);
+}
+function isMissingTable(e) {
+  const msg = duckLockMsg(e);
+  return /Catalog Error/i.test(msg) && /does not exist/i.test(msg);
 }
 function isLockErr(msg) {
   if (isInvalidDb(msg)) return false;
