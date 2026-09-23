@@ -9,9 +9,11 @@
 <style>
   :root{
     --bg:#0e1116; --panel:#161b22; --panel2:#1c2230; --line:#283040;
-    --txt:#e6edf3; --muted:#8b97a7; --accent:#ff7a00; --accent2:#2f81f7;
+    --txt:#e6edf3; --muted:#8b97a7; --accent:#ff1d44; --accent2:#2f81f7;
     --good:#3fb950; --bad:#f85149; --warn:#d29922; --cyan:#39d0d8;
-    --ref:#2f81f7; --cmp:#ff7a00; --shadow:0 6px 24px rgba(0,0,0,.4);
+    --ref:#2f81f7; --cmp:#ff1d44; --shadow:0 6px 24px rgba(0,0,0,.4);
+    --accent-ink:#fff;
+    --sb-w:320px;
   }
   *{box-sizing:border-box}
   html{color-scheme:dark}
@@ -35,12 +37,12 @@
   .grow{flex:1}
   button,.btn{background:var(--panel2);color:var(--txt);border:1px solid var(--line);padding:7px 12px;border-radius:7px;cursor:pointer;font-size:13px;display:inline-flex;align-items:center;gap:7px;transition:.15s}
   button:hover{border-color:var(--accent);background:#222a38}
-  button.primary{background:var(--accent);border-color:var(--accent);color:#1a1205;font-weight:600}
+  button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
   button:disabled{opacity:.4;cursor:not-allowed}
   .status{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:min(280px,24vw)}
   .langsw{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
   .langsw button{border:0;border-radius:0;padding:6px 10px;font-size:12px;background:var(--panel2);color:var(--muted)}
-  .langsw button.active{background:var(--accent);color:#1a1205;font-weight:700}
+  .langsw button.active{background:var(--accent);color:var(--accent-ink);font-weight:700}
   .vbadge{font-size:11px;color:var(--muted);font-family:Consolas,monospace;white-space:nowrap}
   .vbadge.update a{color:var(--accent);font-weight:700;text-decoration:none;border:1px solid var(--accent);border-radius:6px;padding:2px 7px}
   .iconbtn{background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:7px;padding:6px 10px;font-size:12px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
@@ -48,7 +50,7 @@
   body.sb-collapsed .layout{grid-template-columns:1fr}
   body.sb-collapsed aside{display:none}
   #sbToggle{
-    position:fixed; left:0; z-index:30;
+    position:fixed; left:calc(var(--sb-w) - 1px); z-index:30;
     top:calc(var(--hdr-h, 53px) + (100vh - var(--hdr-h, 53px)) / 2);
     transform:translateY(-50%);
     width:16px; height:52px; padding:0; margin:0;
@@ -58,13 +60,14 @@
     box-shadow:2px 0 10px rgba(0,0,0,.25);
   }
   #sbToggle::before{content:"‹"; font-size:18px; line-height:1; font-weight:700}
+  body.sb-collapsed #sbToggle{left:0}
   body.sb-collapsed #sbToggle::before{content:"›"}
   #sbToggle:hover{color:var(--txt); border-color:var(--accent); background:#222a38}
   body.home-only #sbToggle, body.car-only #sbToggle{display:none}
-  .layout{display:grid;grid-template-columns:320px 1fr;height:calc(100% - var(--hdr-h, 53px))}
+  .layout{display:grid;grid-template-columns:var(--sb-w) 1fr;height:calc(100% - var(--hdr-h, 53px))}
   body.loading main, body.loading aside{pointer-events:none;opacity:.6}
   @media (max-width:1100px){
-    .layout{grid-template-columns:260px 1fr}
+    :root{--sb-w:260px}
     .iconbtn{padding:6px 8px}
   }
   aside{background:var(--panel);border-right:1px solid var(--line);overflow:auto;padding:16px 14px 24px}
@@ -94,7 +97,7 @@
   .legend i{width:14px;height:3px;border-radius:2px;display:inline-block}
   .tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
   .tab{padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:transparent;cursor:pointer;font-size:13px;color:var(--muted)}
-  .tab.active{color:var(--txt);border-color:var(--accent);background:#2a1c0e}
+  .tab.active{color:var(--txt);border-color:var(--accent);background:#2a1018}
   .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
   .stat{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
   .stat .v{font-size:20px;font-weight:700}
@@ -153,7 +156,7 @@
   .shiftrow{display:grid;grid-template-columns:72px 1fr minmax(140px,auto);gap:10px;align-items:center;margin:8px 0}
   .shiftlbl{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
   .shiftbar{position:relative;height:16px;background:#0b0e13;border-radius:5px;border:1px solid var(--line);overflow:visible}
-  .shiftbar .you{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,#c45a00,#ff7a00);min-width:2px}
+  .shiftbar .you{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,#c41230,var(--accent));min-width:2px}
   .shiftbar .opt{position:absolute;top:-3px;bottom:-3px;width:3px;margin-left:-1.5px;background:var(--good);border-radius:2px;box-shadow:0 0 0 1px #0b0e13}
   .shiftnums{font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap;text-align:right}
   .shiftnums b{color:var(--txt)}
@@ -166,7 +169,7 @@
   .home-lead:empty{display:none}
   .mode-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
   .mode-card{display:flex;flex-direction:column;align-items:flex-start;gap:0;padding:22px 20px 18px;min-height:228px;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:16px;cursor:pointer;width:100%;box-shadow:0 1px 0 rgba(255,255,255,.03);transition:border-color .15s,background .15s,transform .15s}
-  .mode-card:hover{border-color:#c56a1a;background:#1a2130;transform:translateY(-2px)}
+  .mode-card:hover{border-color:var(--accent);background:#1a2130;transform:translateY(-2px)}
   .mode-card .mode-ico{width:42px;height:42px;margin-bottom:20px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);color:var(--accent);display:flex;align-items:center;justify-content:center}
   .mode-card .mode-ico svg{display:block}
   .mode-card strong{font-size:18px;font-weight:650;letter-spacing:-.01em;margin-bottom:8px}
@@ -389,10 +392,10 @@
         </div>
         <div class="card">
           <h2 data-i18n="carPowerTitle">Couple &amp; puissance (plein gaz)</h2>
-          <div class="hint" data-i18n="carPowerHint">Estimé aux roues à partir de l'accélération × vitesse observées en course : kW/t et N·m/t. Un point par régime = valeur observée, sans moyenne qui abaisse le haut de régime.</div>
+          <div class="hint" data-i18n="carPowerHint">Plein gaz de 0 à 100 % du régime max, ligne droite et courbe. Un point par régime = puissance produite, qu'elle passe ou non entièrement au bitume.</div>
           <div class="grid2" style="margin-top:10px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">
             <div>
-              <div class="legend"><span><i style="background:#ff7a00"></i> <span data-i18n="carPowerSeries">Puissance</span> (kW/t)</span></div>
+              <div class="legend"><span><i style="background:#ff1d44"></i> <span data-i18n="carPowerSeries">Puissance</span> (kW/t)</span></div>
               <div class="chartwrap"><canvas id="cCarPower" height="220"></canvas><div class="tooltip" id="ttCarPower"></div></div>
             </div>
             <div>
@@ -404,7 +407,7 @@
         <div class="card">
           <h2 data-i18n="carBarsTitle">Passagen in % RPM</h2>
           <div class="legend" style="margin-bottom:10px">
-            <span><i style="background:#ff7a00"></i> <span data-i18n="carYouBar">deine Schaltung (Ø)</span></span>
+            <span><i style="background:#ff1d44"></i> <span data-i18n="carYouBar">deine Schaltung (Ø)</span></span>
             <span><i style="background:#3fb950;height:12px;width:3px"></i> <span data-i18n="carOptMark">Optimum</span></span>
           </div>
           <div id="carBars"></div>
@@ -418,7 +421,7 @@
         <div class="card">
           <h2 data-i18n="carTableTitle">Schaltpunkte je Gangwechsel</h2>
           <div class="scrollx" id="carTable"></div>
-          <div class="hint" style="margin-top:8px" data-i18n="carMethodHint">Optimum = Drehzahl, bei der die Beschleunigung im nächsten Gang die des aktuellen übertrifft (aus Vollgas-Phasen). Deine Werte = mittlere Hochschalt-Drehzahl. % bezogen auf die geschätzte Maximaldrehzahl dieses Autos.</div>
+          <div class="hint" style="margin-top:8px" data-i18n="carMethodHint">Optimum = régime où la courbe de couple donne plus de poussée au rapport suivant qu'au rapport actuel. Ligne droite et courbe comptent pareil.</div>
         </div>
         <div class="card"><h2 data-i18n="carTipsTitle">Hinweise zu den Schaltpunkten</h2><div id="carTips"></div></div>
         <div class="card"><h2 data-i18n="carPerSession">Runden je Session (dieses Auto)</h2><div class="scrollx" id="carSessTable"></div></div>
@@ -445,7 +448,7 @@
           </div>
           <div class="pitgrid">
             <label><span data-i18n="tyreSets">Reifensätze</span><input id="piTyres" type="number" min="1" value="3"></label>
-            <label><span data-i18n="numDrivers">Anzahl Fahrer</span><input id="piDrivers" type="number" min="1" value="2"></label>
+            <label><span data-i18n="numDrivers">Anzahl Fahrer</span><input id="piDrivers" type="number" min="1" value="1"></label>
             <label><span data-i18n="pitLoss">Boxenstopp-Verlust (s)</span><input id="piPit" type="number" min="0" value=""></label>
             <label><span data-i18n="avgLapInput">Ø Rundenzeit (m:ss.s)</span><input id="piLap" type="text" value=""></label>
             <label><span data-i18n="vePerLapInput">Virtual Energy / Runde (%)</span><input id="piVE" type="number" step="0.01" value=""></label>
@@ -673,7 +676,7 @@ const STR = {
   carShiftHint:"Mittelwert aller vollständigen Runden dieser Marke + Klasse über alle Strecken. Alle Beschleunigungen bei 100 % Gas. Hochschaltpunkte in Prozent der geschätzten Maximaldrehzahl.",
   carBarsTitle:"Passagen in % RPM", carYouBar:"deine Schaltung (Ø)", carOptMark:"Optimum",
   carTableTitle:"Schaltpunkte je Gangwechsel", carTipsTitle:"Hinweise zu den Schaltpunkten",
-  carMethodHint:"Optimum = Drehzahl, bei der die Beschleunigung im nächsten Gang die des aktuellen übertrifft (aus Vollgas-Phasen). Deine Werte = mittlere Hochschalt-Drehzahl. % bezogen auf die geschätzte Maximaldrehzahl dieses Autos.",
+  carMethodHint:"Optimum = Drehzahl, an der das Drehmoment der Kurve im nächsten Gang mehr Vortrieb gibt als im aktuellen. Gerade und Kurve zählen gleich: bei einer Drehzahl ist die erzeugte Leistung dieselbe. Deine Werte = mittlere Hochschalt-Drehzahl.",
   carRedline:"Max. Drehzahl (geschätzt)", carPctOfRedline:"Schätzung Begrenzer", carLapsUsed:"Runden in die Mittelung", carSessionsUsed:"Sessions (dieses Auto)",
   carShiftsN:"Hochschaltungen", carYourShift:"Deine Schaltung", carOptShift:"Optimum",
   thShift:"Gangwechsel", thYouRpm:"Ø RPM (du)", thYouPct:"% RPM", thOptRpm:"RPM opt.", thOptPct:"% opt.", thShiftN:"n", thDeltaPct:"Δ",
@@ -686,7 +689,7 @@ const STR = {
   carAccelTitle:"Längsbeschleunigung je Gang (% Drehzahl)",
   carAccelHint:"Beobachtete Vollgas-Beschleunigung über die Drehzahl. Optimaler Schaltpunkt = Schnitt benachbarter Gangkurven.",
   carPowerTitle:"Drehmoment & Leistung (Vollgas)",
-  carPowerHint:"An den Rädern aus beobachteter Beschleunigung × Geschwindigkeit: kW/t und N·m/t. Volllast ohne Durchdrehen und TC. Ein Punkt je Drehzahl = beobachteter Wert (90. Perzentil).",
+  carPowerHint:"Volllast von 0 bis 100 % der Maximaldrehzahl, Gerade und Kurve. Ein Punkt je Drehzahl = erzeugte Leistung, auch wenn sie nicht voll auf die Straße kommt (oberes Ende der Messungen).",
   carPowerSeries:"Leistung", carTorqueSeries:"Drehmoment",
   carPeakPower:"Spitzenleistung", carPeakTorque:"Spitzendrehmoment",
   carPerTonne:"pro Tonne"
@@ -838,7 +841,7 @@ const STR = {
   carShiftHint:"Average of all complete laps for this brand + class across every track. All 100% throttle accelerations. Upshift points as a percentage of the estimated rev limiter.",
   carBarsTitle:"Shifts in % RPM", carYouBar:"your shifts (avg)", carOptMark:"Optimum",
   carTableTitle:"Shift points per gear change", carTipsTitle:"Shift-point notes",
-  carMethodHint:"Optimum = RPM where acceleration in the next gear beats the current one (from full-throttle phases). Your values = average upshift RPM. Percentages are relative to this car's estimated max RPM.",
+  carMethodHint:"Optimum = RPM where the torque curve gives more drive in the next gear than in the current one. Straights and corners count the same: at a given RPM the power produced is the same. Your values = average upshift RPM.",
   carRedline:"Max RPM (estimated)", carPctOfRedline:"Limiter estimate", carLapsUsed:"Laps in the average", carSessionsUsed:"Sessions (this car)",
   carShiftsN:"Upshifts", carYourShift:"Your shift", carOptShift:"Optimum",
   thShift:"Gear change", thYouRpm:"Avg RPM (you)", thYouPct:"% RPM", thOptRpm:"Opt. RPM", thOptPct:"% opt.", thShiftN:"n", thDeltaPct:"Δ",
@@ -851,7 +854,7 @@ const STR = {
   carAccelTitle:"Longitudinal acceleration by gear (% RPM)",
   carAccelHint:"Observed full-throttle acceleration vs RPM. Optimal shift = intersection of neighbouring gear curves.",
   carPowerTitle:"Torque & power (full throttle)",
-  carPowerHint:"Estimated at the wheels from acceleration × speed observed on track: kW/t and N·m/t. Full throttle without wheelspin or TC cut. One point per RPM = observed value (90th percentile).",
+  carPowerHint:"Full throttle from 0 to 100% of max RPM, straights and corners. One point per RPM = power produced, whether or not it all reaches the tarmac (upper end of the measurements).",
   carPowerSeries:"Power", carTorqueSeries:"Torque",
   carPeakPower:"Peak power", carPeakTorque:"Peak torque",
   carPerTonne:"per tonne"
@@ -1003,7 +1006,7 @@ const STR = {
   carShiftHint:"Moyenne de tous les tours complets de cette marque + classe, tous circuits. Toutes les accélérations à 100 % d'accélérateur. Points de passage en pourcentage du régime max estimé (rupteur).",
   carBarsTitle:"Passages en % RPM", carYouBar:"tes passages (moy.)", carOptMark:"Optimum",
   carTableTitle:"Points de passage par rapport", carTipsTitle:"Conseils sur les passages",
-  carMethodHint:"Optimum = régime où l'accélération au rapport suivant dépasse celle du rapport actuel (phases plein gaz). Tes valeurs = régime moyen de montée de rapport. % par rapport au régime max estimé de cette voiture.",
+  carMethodHint:"Optimum = régime où la courbe de couple donne plus de poussée au rapport suivant qu'au rapport actuel. Ligne droite et courbe comptent pareil : à un régime donné, la puissance produite est la même. Tes valeurs = régime moyen de montée de rapport.",
   carRedline:"Régime max (estimé)", carPctOfRedline:"Estimation rupteur", carLapsUsed:"Tours dans la moyenne", carSessionsUsed:"Sessions (cette voiture)",
   carShiftsN:"Montées de rapport", carYourShift:"Tes passages", carOptShift:"Optimum",
   thShift:"Passage", thYouRpm:"RPM moy. (toi)", thYouPct:"% RPM", thOptRpm:"RPM opt.", thOptPct:"% opt.", thShiftN:"n", thDeltaPct:"Δ",
@@ -1016,7 +1019,7 @@ const STR = {
   carAccelTitle:"Accélération longitudinale par rapport (% régime)",
   carAccelHint:"Accélération plein gaz observée selon le régime. Passage optimal = intersection des courbes de rapports voisins.",
   carPowerTitle:"Couple & puissance (plein gaz)",
-  carPowerHint:"Estimé aux roues à partir de l'accélération × vitesse observées en course : kW/t et N·m/t. Plein gaz sans glisse ni TC. Un point par régime = valeur observée (90e percentile).",
+  carPowerHint:"Plein gaz de 0 à 100 % du régime max, ligne droite et courbe. Un point par régime = puissance produite, qu'elle passe ou non entièrement au bitume (haut des mesures).",
   carPowerSeries:"Puissance", carTorqueSeries:"Couple",
   carPeakPower:"Puissance max", carPeakTorque:"Couple max",
   carPerTonne:"par tonne"
@@ -1405,13 +1408,13 @@ function renderInsights(){
 }
 function buildCharts(){
   const refP=STATE.refP,cmpP=STATE.cmpP,a=STATE.ana,L=refP.L;
-  registerChart("cDelta","ttDelta",()=>plot(document.getElementById("cDelta"),{xmax:L,yfmt:v=>v.toFixed(2)+"s",series:[{ys:a.delta,color:"#ff7a00",width:2,fill:"rgba(255,122,0,.12)"}],zones:a.zones.slice(0,6)}),
-    x=>{const i=gIdx(x);return[{l:"Delta",v:fmtDelta(a.delta[i])+" s",c:"#ff7a00"}];});
-  if(document.getElementById("cDelta2")) registerChart("cDelta2","ttDelta2",()=>plot(document.getElementById("cDelta2"),{xmax:L,yfmt:v=>v.toFixed(2)+"s",series:[{ys:a.delta,color:"#ff7a00",width:2,fill:"rgba(255,122,0,.12)"}],zones:a.zones.slice(0,6)}),
-    x=>{const i=gIdx(x);return[{l:"Delta",v:fmtDelta(a.delta[i])+" s",c:"#ff7a00"}];});
+  registerChart("cDelta","ttDelta",()=>plot(document.getElementById("cDelta"),{xmax:L,yfmt:v=>v.toFixed(2)+"s",series:[{ys:a.delta,color:"#ff1d44",width:2,fill:"rgba(255,29,68,.12)"}],zones:a.zones.slice(0,6)}),
+    x=>{const i=gIdx(x);return[{l:"Delta",v:fmtDelta(a.delta[i])+" s",c:"#ff1d44"}];});
+  if(document.getElementById("cDelta2")) registerChart("cDelta2","ttDelta2",()=>plot(document.getElementById("cDelta2"),{xmax:L,yfmt:v=>v.toFixed(2)+"s",series:[{ys:a.delta,color:"#ff1d44",width:2,fill:"rgba(255,29,68,.12)"}],zones:a.zones.slice(0,6)}),
+    x=>{const i=gIdx(x);return[{l:"Delta",v:fmtDelta(a.delta[i])+" s",c:"#ff1d44"}];});
   const spd=t("speedKmh").replace(/\s*\(.*\)/,""), rS=t("refShort"), cS=t("cmpShort");
-  registerChart("cSpeed","ttSpeed",()=>plot(document.getElementById("cSpeed"),{xmax:L,yfmt:v=>v.toFixed(0),series:[{ys:refP.speed,color:"#2f81f7",width:1.8},{ys:cmpP.speed,color:"#ff7a00",width:1.8}],zones:a.zones.slice(0,6)}),
-    x=>{const i=gIdx(x);return[{l:spd+" "+rS,v:refP.speed[i].toFixed(0)+" km/h",c:"#2f81f7"},{l:spd+" "+cS,v:cmpP.speed[i].toFixed(0)+" km/h",c:"#ff7a00"},{l:"Δ",v:(cmpP.speed[i]-refP.speed[i]).toFixed(0)+" km/h"}];});
+  registerChart("cSpeed","ttSpeed",()=>plot(document.getElementById("cSpeed"),{xmax:L,yfmt:v=>v.toFixed(0),series:[{ys:refP.speed,color:"#2f81f7",width:1.8},{ys:cmpP.speed,color:"#ff1d44",width:1.8}],zones:a.zones.slice(0,6)}),
+    x=>{const i=gIdx(x);return[{l:spd+" "+rS,v:refP.speed[i].toFixed(0)+" km/h",c:"#2f81f7"},{l:spd+" "+cS,v:cmpP.speed[i].toFixed(0)+" km/h",c:"#ff1d44"},{l:"Δ",v:(cmpP.speed[i]-refP.speed[i]).toFixed(0)+" km/h"}];});
   registerChart("cPedals","ttPedals",()=>plot(document.getElementById("cPedals"),{xmax:L,ymin:0,ymax:105,yfmt:v=>v.toFixed(0)+"%",series:[refP.thr&&{ys:refP.thr,color:"#3fb950",width:1.6},cmpP.thr&&{ys:cmpP.thr,color:"#8fe3a3",width:1.4},refP.brk&&{ys:refP.brk,color:"#f85149",width:1.6},cmpP.brk&&{ys:cmpP.brk,color:"#ff9b95",width:1.4}]}),
     x=>{const i=gIdx(x);const r=[];if(refP.thr)r.push({l:t("gasL")+" "+rS,v:refP.thr[i].toFixed(0)+"%",c:"#3fb950"});if(cmpP.thr)r.push({l:t("gasL")+" "+cS,v:cmpP.thr[i].toFixed(0)+"%",c:"#8fe3a3"});if(refP.brk)r.push({l:t("brakeL")+" "+rS,v:refP.brk[i].toFixed(0)+"%",c:"#f85149"});if(cmpP.brk)r.push({l:t("brakeL")+" "+cS,v:cmpP.brk[i].toFixed(0)+"%",c:"#ff9b95"});return r;});
   registerChart("cSteer","ttSteer",()=>plot(document.getElementById("cSteer"),{xmax:L,series:[refP.steer&&{ys:refP.steer,color:"#39d0d8",width:1.6},cmpP.steer&&{ys:cmpP.steer,color:"#d29922",width:1.4}]}),
@@ -1423,7 +1426,7 @@ function fillChanSelect(){
   const sel=document.getElementById("chanSel"), chans=STATE.model.channels;
   sel.innerHTML=chans.map((c,i)=>`<option value="${i}">${escapeHtml(c.name)}${c.unit?" ["+escapeHtml(c.unit)+"]":""}</option>`).join("");
   sel.onchange=renderChan;
-  registerChart("cChan","ttChan",()=>renderChanPlot(),x=>{const i=gIdx(x);return[{l:chanName+" "+t("refShort"),v:chanRef?chanRef[i].toFixed(2):"—",c:"#2f81f7"},{l:chanName+" "+t("cmpShort"),v:chanCmp?chanCmp[i].toFixed(2):"—",c:"#ff7a00"}];});
+  registerChart("cChan","ttChan",()=>renderChanPlot(),x=>{const i=gIdx(x);return[{l:chanName+" "+t("refShort"),v:chanRef?chanRef[i].toFixed(2):"—",c:"#2f81f7"},{l:chanName+" "+t("cmpShort"),v:chanCmp?chanCmp[i].toFixed(2):"—",c:"#ff1d44"}];});
   renderChan();
 }
 function chanOnGrid(m,lap,c){
@@ -1451,7 +1454,7 @@ function renderChan(){
   chanCmp=(cCmp&&STATE.cmpLap)?chanOnGrid(cmpModel, STATE.cmpLap, cCmp):null;
   renderChanPlot();
 }
-function renderChanPlot(){ plot(document.getElementById("cChan"),{xmax:STATE.refP.L,series:[{ys:chanRef,color:"#2f81f7",width:1.7},{ys:chanCmp,color:"#ff7a00",width:1.5}],zones:STATE.ana.zones.slice(0,6)}); }
+function renderChanPlot(){ plot(document.getElementById("cChan"),{xmax:STATE.refP.L,series:[{ys:chanRef,color:"#2f81f7",width:1.7},{ys:chanCmp,color:"#ff1d44",width:1.5}],zones:STATE.ana.zones.slice(0,6)}); }
 
 function projectTrack(p,w,h,pad){
   const N=p.lat.length, lat0=p.lat[N>>1]*Math.PI/180;
@@ -1554,7 +1557,7 @@ function mapTipRows(i){ const rp=STATE.refP,cp=STATE.cmpP,a=STATE.ana; if(!rp)re
   const sp=t("speedKmh").replace(/\s*\(.*\)/,"");
   let h=`<div class="row" style="color:#8b97a7"><span>${t("distanceL")}</span><b>${rp.grid[i].toFixed(0)} m</b></div>`;
   h+=`<div class="row"><span style="color:#2f81f7">${sp} ${t("refShort")}</span><b>${rp.speed[i].toFixed(0)} km/h</b></div>`;
-  h+=`<div class="row"><span style="color:#ff7a00">${sp} ${t("cmpShort")}</span><b>${cp.speed[i].toFixed(0)} km/h</b></div>`;
+  h+=`<div class="row"><span style="color:#ff1d44">${sp} ${t("cmpShort")}</span><b>${cp.speed[i].toFixed(0)} km/h</b></div>`;
   if(a) h+=`<div class="row"><span>Delta</span><b>${fmtDelta(a.delta[i])} s</b></div>`;
   if(rp.thr&&cp.thr) h+=`<div class="row"><span style="color:#3fb950">${t("gasL")} ${t("refShort")}/${t("cmpShort")}</span><b>${rp.thr[i].toFixed(0)} / ${cp.thr[i].toFixed(0)} %</b></div>`;
   if(rp.brk&&cp.brk) h+=`<div class="row"><span style="color:#f85149">${t("brakeL")} ${t("refShort")}/${t("cmpShort")}</span><b>${rp.brk[i].toFixed(0)} / ${cp.brk[i].toFixed(0)} %</b></div>`;
@@ -1715,7 +1718,7 @@ function carIdentity(src, setup){
 }
 function displayBrand(brand){ return brand==="Autres"? t("carBrandOther") : brand; }
 function displayGroup(id){ return displayBrand(id.brand)+" · "+(id.classKey||"?"); }
-function shiftStoreKey(groupKey){ return (groupKey||"Autres · ?")+"|obs90grip"; }
+function shiftStoreKey(groupKey){ return (groupKey||"Autres · ?")+"|rpmcurve"; }
 
 function showAnalysis(on){
   const app=document.getElementById("app");
@@ -3048,29 +3051,12 @@ function analyzeShifts(m){
   if(!gearEv||gearEv.length<3) return { ok:false, reason:"gear" };
   const cSpeed=m.cSpeed||findChan(m.channels, ALIAS.speed);
   const cThr=findChan(m.channels, ALIAS.throttle);
-  const cThrRaw=findChan(m.channels, ALIAS.throttleRaw);
   const cBrk=findChan(m.channels, ALIAS.brake);
   const cWheel=findChan(m.channels, ALIAS.wheelSpd);
   const cGear=m.channels.find(c=>c.name==="Gear");
-  const thrT=pedalTransform(cThr), rawT=pedalTransform(cThrRaw), brkT=pedalTransform(cBrk);
+  const thrT=pedalTransform(cThr), brkT=pedalTransform(cBrk);
   const spdF=speedToKmh(cSpeed);
   const wheelF=speedToKmh(cWheel);
-  const evTC=m.events&&m.events["TC"], evCut=m.events&&m.events["TCCut"];
-  const tcToggles=eventToggles(evTC);
-  const gripOk=t=>{
-    const absT=t+(m.channelStartTs||0);
-    if(evCut && eventHeld(evCut, absT)>0.05) return false;
-    if(tcToggles && eventHeld(evTC, absT)>0.05) return false;
-    if(cThr&&cThrRaw&&thrT&&rawT){
-      const f=thrT(chanAtT(cThr,t)), u=rawT(chanAtT(cThrRaw,t));
-      if(u!=null && f!=null && u>=80 && (u-f)>8) return false;
-    }
-    if(cWheel&&cSpeed){
-      const g=chanAtT(cSpeed,t)*spdF, w=chanAtT(cWheel,t)*wheelF;
-      if(g>20 && w!=null && isFinite(w) && w<g*4+50 && (w-g)>Math.max(5, g*0.08)) return false;
-    }
-    return true;
-  };
   const laps=flyingLaps(m);
   if(!laps.length) return { ok:false, reason:"laps" };
   const inLap=t=>{
@@ -3112,7 +3098,7 @@ function analyzeShifts(m){
     const step=Math.max(1, Math.round(cRpm.freq*0.04));
     for(let i=i0;i<=i1;i+=step){
       const t=i/cRpm.freq, rpm=cRpm.data[i];
-      if(!(rpm>1500)) continue;
+      if(!(rpm>600)) continue;
       if(!cGear) continue;
       const g=Math.round(chanAtT(cGear,t));
       if(!(g>=1 && g<=9)) continue;
@@ -3120,12 +3106,19 @@ function analyzeShifts(m){
       const brk=cBrk&&brkT? brkT(chanAtT(cBrk,t)) : 0;
       if(thr>55 && brk<12){ if(!(rpm<(maxByGear[g]||0))) maxByGear[g]=rpm; }
       if(thr<WOT || brk>8) continue;
-      if(!gripOk(t)) continue;
       const spd=cSpeed? chanAtT(cSpeed,t)*spdF : null;
-      if(!(spd>35)) continue;
+      if(!(spd>8)) continue;
       wotRpm.push(rpm);
-      const b=wotByGear[g]||(wotByGear[g]={rpm:[],spd:[],acc:[]});
-      if(!nearShift(t)){ b.rpm.push(rpm); b.spd.push(spd); }
+      const b=wotByGear[g]||(wotByGear[g]={rpm:[],spd:[],hookRpm:[],hookSpd:[],acc:[]});
+      if(!nearShift(t)){
+        b.rpm.push(rpm); b.spd.push(spd);
+        let hooked=true;
+        if(cWheel){
+          const w=chanAtT(cWheel,t)*wheelF;
+          if(spd>20 && w!=null && isFinite(w) && (w-spd)>Math.max(8, spd*0.06)) hooked=false;
+        }
+        if(hooked){ b.hookRpm.push(rpm); b.hookSpd.push(spd); }
+      }
       if(inShiftCut(t)) continue;
       const spd2=cSpeed? chanAtT(cSpeed, t+dt)*spdF : null;
       if(spd2!=null){ const acc=(spd2-spd)/3.6/dt; if(acc>0.15 && acc<18) b.acc.push({rpm,spd,acc}); }
@@ -3143,34 +3136,40 @@ function analyzeShifts(m){
   const k={};
   Object.keys(wotByGear).forEach(g=>{
     const b=wotByGear[g], ratios=[];
-    for(let i=0;i<b.rpm.length;i++){ if(b.spd[i]>40) ratios.push(b.rpm[i]/b.spd[i]); }
+    const rr=b.hookRpm.length>12?b.hookRpm:b.rpm, ss=b.hookRpm.length>12?b.hookSpd:b.spd;
+    for(let i=0;i<rr.length;i++){ if(ss[i]>15) ratios.push(rr[i]/ss[i]); }
     const med=pctile(ratios, 0.5);
     if(med>0) k[+g]=med;
   });
-  const OBS=0.9;
+  const OBS=0.98;
   const accelRpm={};
   Object.keys(wotByGear).forEach(g=>{
-    accelRpm[+g]=observedPctileMap(wotByGear[g].acc||[], s=>s.acc, OBS);
+    accelRpm[+g]=observedPctileMap(wotByGear[g].acc||[], s=>s.acc, 0.9);
   });
+  const allAcc=[];
+  Object.keys(wotByGear).forEach(g=>{ (wotByGear[g].acc||[]).forEach(s=>allAcc.push(s)); });
+  const powerMap=observedPctileMap(allAcc, s=>(s.spd/3.6)*s.acc, OBS);
+  const torqueMap=observedPctileMap(allAcc, s=>{
+    const p=(s.spd/3.6)*s.acc, omega=s.rpm*Math.PI/30;
+    return omega>1? 1000*p/omega : 0;
+  }, OBS);
 
   function optRpmFor(from){
     const next=from+1, kg=k[from], kn=k[next];
     const fallback=(maxByGear[from]||redline)*0.97;
-    if(!(kg>0 && kn>0) || !wotByGear[from] || !accelRpm[from] || !accelRpm[next] || accelRpm[from].size<2 || accelRpm[next].size<2)
-      return fallback;
-    const spdLo=pctile(wotByGear[from].spd, 0.12);
-    const spdHi=pctile(wotByGear[from].spd, 0.92);
-    if(!(spdHi>spdLo+8)) return fallback;
+    if(!(kg>0 && kn>0) || torqueMap.size<4) return fallback;
     let cross=null, prevBetter=false;
-    for(let s=spdLo; s<=spdHi; s+=1.5){
-      const a0=interpMap(accelRpm[from], s*kg, 350);
-      const a1=interpMap(accelRpm[next], s*kn, 350);
-      if(a0==null||a1==null) continue;
-      if(a0>a1) prevBetter=true;
-      else if(prevBetter && a1>=a0*0.98){ cross=s*kg; break; }
+    for(let rpm=Math.max(1200, redline*0.2); rpm<=redline; rpm+=40){
+      const rpmNext=(rpm/kg)*kn;
+      const t0=interpMap(torqueMap, rpm, 600);
+      const t1=interpMap(torqueMap, rpmNext, 600);
+      if(t0==null||t1==null) continue;
+      const f0=t0*kg, f1=t1*kn;
+      if(f0>f1) prevBetter=true;
+      else if(prevBetter && f1>=f0*0.98){ cross=rpm; break; }
     }
     if(cross==null) return fallback;
-    return Math.max(from===1?3000:4000, Math.min(redline, cross));
+    return Math.max(from===1?2500:3500, Math.min(redline, cross));
   }
 
   const froms=new Set([...Object.keys(up).map(Number), ...Object.keys(maxByGear).map(Number)]);
@@ -3189,13 +3188,6 @@ function analyzeShifts(m){
   });
   const accel={};
   Object.keys(accelRpm).forEach(g=>{ accel[+g]=curveFromMap(accelRpm[g]); });
-  const allAcc=[];
-  Object.keys(wotByGear).forEach(g=>{ (wotByGear[g].acc||[]).forEach(s=>allAcc.push(s)); });
-  const powerMap=observedPctileMap(allAcc, s=>(s.spd/3.6)*s.acc, OBS);
-  const torqueMap=observedPctileMap(allAcc, s=>{
-    const p=(s.spd/3.6)*s.acc, omega=s.rpm*Math.PI/30;
-    return omega>1? 1000*p/omega : 0;
-  }, OBS);
   const power=curveFromMap(powerMap), torque=curveFromMap(torqueMap);
   let peakPower=0, peakPowerRpm=null, peakTorque=0, peakTorqueRpm=null;
   powerMap.forEach((v,k)=>{ if(v>peakPower){ peakPower=v; peakPowerRpm=k; } });
@@ -3212,7 +3204,7 @@ function persistCarShifts(m){
   rec.class=id.classKey||rec.class; rec.brand=id.brand||rec.brand; rec.wot=true;
   const snap={ file:m.fileName, date:m.meta.RecordingTime, track:m.meta.TrackName, car:m.meta.CarName, nLaps:s.nLaps||flyingLaps(m).length, redline:s.redline,
     gears:s.gears.map(g=>({from:g.from, n:g.n, meanRpm:g.meanRpm, maxRpm:g.maxRpm, optRpm:g.optRpm, k:g.k})),
-    power:s.power, torque:s.torque, peakPower:s.peakPower, peakPowerRpm:s.peakPowerRpm, peakTorque:s.peakTorque, peakTorqueRpm:s.peakTorqueRpm };
+    power:s.power, torque:s.torque, accel:s.accel, peakPower:s.peakPower, peakPowerRpm:s.peakPowerRpm, peakTorque:s.peakTorque, peakTorqueRpm:s.peakTorqueRpm };
   const i=rec.sessions.findIndex(x=>x.file===snap.file);
   if(i>=0) rec.sessions[i]=snap; else rec.sessions.push(snap);
   if(rec.sessions.length>40) rec.sessions.splice(0, rec.sessions.length-40);
@@ -3227,15 +3219,15 @@ function aggregateCarShifts(groupKey, extra){
   const sessions=rec.sessions.slice();
   if(extra){ const i=sessions.findIndex(x=>x.file===extra.file); if(i>=0) sessions[i]=extra; else sessions.push(extra); }
   const by={}; let nLaps=0, redline=0;
-  const power={}, torque={};
+  const power={}, torque={}, accel={};
   let peakPower=0, peakPowerRpm=null, peakTorque=0, peakTorqueRpm=null;
   function mergeCurve(dst, src){
-    Object.keys(src||{}).forEach(k=>{ const v=src[k]; if(dst[k]==null || v>dst[k]) dst[k]=v; });
+    Object.keys(src||{}).forEach(k=>{ const v=src[k]; if(typeof v==="object" && v){ dst[k]=dst[k]||{}; mergeCurve(dst[k], v); return; } if(dst[k]==null || v>dst[k]) dst[k]=v; });
   }
   sessions.forEach(s=>{
     nLaps+=s.nLaps||0;
     if(s.redline>redline) redline=s.redline;
-    mergeCurve(power, s.power); mergeCurve(torque, s.torque);
+    mergeCurve(power, s.power); mergeCurve(torque, s.torque); mergeCurve(accel, s.accel);
     if((s.peakPower||0)>peakPower){ peakPower=s.peakPower; peakPowerRpm=s.peakPowerRpm; }
     if((s.peakTorque||0)>peakTorque){ peakTorque=s.peakTorque; peakTorqueRpm=s.peakTorqueRpm; }
     (s.gears||[]).forEach(g=>{
@@ -3253,7 +3245,7 @@ function aggregateCarShifts(groupKey, extra){
     return { from, to:from+1, n:b.n, meanRpm, maxRpm:b.maxRpm||null, optRpm:b.wOpt? b.sumOpt/b.wOpt : null, k:b.wK? b.sumK/b.wK : null };
   });
   return { nSessions:sessions.length, nLaps, redline, gears, tracks:[...new Set(sessions.map(s=>s.track).filter(Boolean))],
-    power, torque, peakPower, peakPowerRpm, peakTorque, peakTorqueRpm };
+    power, torque, accel, peakPower, peakPowerRpm, peakTorque, peakTorqueRpm };
 }
 function fmtRpm(n){ return n==null||!isFinite(n)?"—":Math.round(n).toLocaleString(loc()); }
 function rpmPct(rpm, redline){ return (rpm==null||!(redline>0))?null: 100*rpm/redline; }
@@ -3297,8 +3289,8 @@ function renderCarShifts(){
   }
   const extra=(sess&&sess.ok)?{ file:m.fileName, date:m.meta.RecordingTime, track:m.meta.TrackName, nLaps:sess.nLaps, redline:sess.redline,
     gears:sess.gears.map(g=>({from:g.from, n:g.n, meanRpm:g.meanRpm, maxRpm:g.maxRpm, optRpm:g.optRpm, k:g.k})),
-    power:sess.power, torque:sess.torque, peakPower:sess.peakPower, peakPowerRpm:sess.peakPowerRpm, peakTorque:sess.peakTorque, peakTorqueRpm:sess.peakTorqueRpm }:null;
-  const agg=groupKey? aggregateCarShifts(groupKey, extra) : { nSessions:1, nLaps:sess&&sess.nLaps, redline:sess&&sess.redline, gears:(sess&&sess.gears)||[], power:sess&&sess.power, torque:sess&&sess.torque, peakPower:sess&&sess.peakPower, peakPowerRpm:sess&&sess.peakPowerRpm, peakTorque:sess&&sess.peakTorque, peakTorqueRpm:sess&&sess.peakTorqueRpm };
+    power:sess.power, torque:sess.torque, accel:sess.accel, peakPower:sess.peakPower, peakPowerRpm:sess.peakPowerRpm, peakTorque:sess.peakTorque, peakTorqueRpm:sess.peakTorqueRpm }:null;
+  const agg=groupKey? aggregateCarShifts(groupKey, extra) : { nSessions:1, nLaps:sess&&sess.nLaps, redline:sess&&sess.redline, gears:(sess&&sess.gears)||[], power:sess&&sess.power, torque:sess&&sess.torque, accel:sess&&sess.accel, peakPower:sess&&sess.peakPower, peakPowerRpm:sess&&sess.peakPowerRpm, peakTorque:sess&&sess.peakTorque, peakTorqueRpm:sess&&sess.peakTorqueRpm };
   const hasPower=agg.power&&Object.keys(agg.power).length;
   if((!sess||!sess.ok) && !(agg.gears&&agg.gears.length) && !hasPower){
     const why=sess&&(sess.reason==="rpm"||sess.reason==="gear")? t("carNoRpm"): t("carNoData");
@@ -3326,9 +3318,12 @@ function renderCarShifts(){
     pitKpi(t("carPeakPower"), pkP? pkP.toFixed(0)+" kW/t" : "—", pkPRpm? fmtRpm(pkPRpm)+" rpm" : t("carPerTonne")),
     pitKpi(t("carPeakTorque"), pkT? pkT.toFixed(0)+" N·m/t" : "—", pkTRpm? fmtRpm(pkTRpm)+" rpm" : t("carPerTonne"))
   ].join("");
-  plotCarCurve("cCarPower","ttCarPower", {curve:agg.power||(sess&&sess.power), redline, color:"#ff7a00", unit:"kW/t", digits:0});
-  plotCarCurve("cCarTorque","ttCarTorque", {curve:agg.torque||(sess&&sess.torque), redline, color:"#39d0d8", unit:"N·m/t", digits:0});
-  if(!gears.length){ bars.innerHTML=`<div class="hint">${t("carNoData")}</div>`; table.innerHTML=""; tips.innerHTML=""; plotCarAccel(null); renderCarSessTable(groupKey); return; }
+  const shiftMarks=gears.filter(g=>g.optPct!=null).map(g=>({pct:g.optPct}));
+  plotCarCurve("cCarPower","ttCarPower", {curve:agg.power||(sess&&sess.power), redline, color:"#ff1d44", unit:"kW/t", digits:0, marks:shiftMarks});
+  plotCarCurve("cCarTorque","ttCarTorque", {curve:agg.torque||(sess&&sess.torque), redline, color:"#39d0d8", unit:"N·m/t", digits:0, marks:shiftMarks});
+  const accelCurve=(agg.accel&&Object.keys(agg.accel).length)?agg.accel:(sess&&sess.accel);
+  plotCarAccel(accelCurve, redline, gears);
+  if(!gears.length){ bars.innerHTML=`<div class="hint">${t("carNoData")}</div>`; table.innerHTML=""; tips.innerHTML=""; renderCarSessTable(groupKey); return; }
   bars.innerHTML=gears.map(g=>{
     const you=g.youPct==null?0:Math.max(0,Math.min(100,g.youPct));
     const opt=g.optPct==null?null:Math.max(0,Math.min(100,g.optPct));
@@ -3355,14 +3350,13 @@ function renderCarShifts(){
   if(nShifts<8) notes.push({title:"n", body:t("carHintLowN")});
   notes.push({title:"—", body:t("carStraightHint")});
   tips.innerHTML = notes.map(h=>`<div class="insight" style="background:var(--panel2)"><div class="badge" style="background:#16202e;color:var(--cyan);min-width:auto;padding:6px 10px">${escapeHtml(h.title)}</div><div class="body"><div class="sub">${h.body}</div></div></div>`).join("");
-  plotCarAccel(sess&&sess.ok?sess:null, redline, gears);
   renderCarSessTable(groupKey);
 }
-const GEAR_COL=["#8b97a7","#2f81f7","#3fb950","#d29922","#ff7a00","#f85149","#a371f7","#39d0d8","#f778ba"];
-function plotCarAccel(sess, redline, gears){
+const GEAR_COL=["#8b97a7","#2f81f7","#3fb950","#d29922","#818cf8","#f85149","#a371f7","#39d0d8","#f778ba"];
+function plotCarAccel(accel, redline, gears){
   const cv=document.getElementById("cCarRpm"), tt=document.getElementById("ttCarRpm"), leg=document.getElementById("carLegend");
   if(!cv) return;
-  const acc=sess&&sess.accel;
+  const acc=accel;
   if(!acc||!redline){ const f=fitCanvas(cv); if(f) f.ctx.clearRect(0,0,f.w,f.h); if(leg)leg.innerHTML=""; return; }
   const fitted=fitCanvas(cv); if(!fitted) return;
   const {ctx,w,h}=fitted; ctx.clearRect(0,0,w,h);
@@ -3422,7 +3416,7 @@ function plotCarCurve(cvId, ttId, spec){
   if(map.size<2){ const f=fitCanvas(cv); if(f) f.ctx.clearRect(0,0,f.w,f.h); return; }
   const fitted=fitCanvas(cv); if(!fitted) return;
   const {ctx,w,h}=fitted; ctx.clearRect(0,0,w,h);
-  const x0=PAD.l,x1=w-PAD.r,y0=h-PAD.b,y1=PAD.t, xmin=40, xmax=100;
+  const x0=PAD.l,x1=w-PAD.r,y0=h-PAD.b,y1=PAD.t, xmin=0, xmax=100;
   const xs=[], ys=[]; let ymax=0;
   [...map.keys()].map(Number).sort((a,b)=>a-b).forEach(rpm=>{
     const pct=100*rpm/redline, a=map.get(rpm);
@@ -3432,14 +3426,21 @@ function plotCarCurve(cvId, ttId, spec){
   if(xs.length<2) return;
   const ymin=0; ymax=(ymax*1.14)||1;
   const X=p=>x0+(x1-x0)*(p-xmin)/(xmax-xmin), Y=v=>y0+(y1-y0)*(v-ymin)/(ymax-ymin||1);
-  const unit=(spec&&spec.unit)||"", digits=spec&&spec.digits!=null?spec.digits:0, color=(spec&&spec.color)||"#ff7a00";
+  const unit=(spec&&spec.unit)||"", digits=spec&&spec.digits!=null?spec.digits:0, color=(spec&&spec.color)||"#ff1d44";
   ctx.strokeStyle="#1d2530"; ctx.fillStyle="#6b7686"; ctx.lineWidth=1; ctx.font="11px Consolas";
   for(let i=0;i<=4;i++){ const v=ymin+(ymax-ymin)*i/4,y=Y(v); ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(x1,y);ctx.stroke(); ctx.fillText(v.toFixed(digits),6,y+3); }
   ctx.textAlign="center";
-  for(let p=40;p<=100;p+=20){ const x=X(p); ctx.strokeStyle="#161d27"; ctx.beginPath();ctx.moveTo(x,y1);ctx.lineTo(x,y0);ctx.stroke(); ctx.fillStyle="#6b7686"; ctx.fillText(p+"%",x,y0+16); }
+  for(let p=0;p<=100;p+=20){ const x=X(p); ctx.strokeStyle="#161d27"; ctx.beginPath();ctx.moveTo(x,y1);ctx.lineTo(x,y0);ctx.stroke(); ctx.fillStyle="#6b7686"; ctx.fillText(p+"%",x,y0+16); }
   ctx.textAlign="left";
   ctx.strokeStyle=color; ctx.lineWidth=2; ctx.beginPath();
   xs.forEach((x,i)=>{ const px=X(x), py=Y(ys[i]); if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py); }); ctx.stroke();
+  (spec.marks||[]).forEach(mk=>{
+    if(mk.pct==null||!isFinite(mk.pct)) return;
+    const x=X(Math.max(xmin, Math.min(xmax, mk.pct)));
+    ctx.strokeStyle="#ffd166"; ctx.globalAlpha=0.85; ctx.lineWidth=1.2;
+    ctx.beginPath(); ctx.moveTo(x,y1); ctx.lineTo(x,y0); ctx.stroke();
+    ctx.globalAlpha=1;
+  });
   cv._curveGeom={x0,x1,xmin,xmax,X,xs,ys,redline,unit,digits,color};
   if(!cv._curveBound){
     cv._curveBound=true;
