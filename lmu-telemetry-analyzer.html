@@ -182,7 +182,11 @@
   .banner.err{border-color:var(--bad);background:var(--banner-err)}
   details summary{cursor:pointer;color:var(--muted);font-size:12px;margin-top:6px}
   .kbd{font-family:Consolas,monospace;background:var(--inset);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px;font-size:12px}
-  input[type=number],input[type=text]{width:100%;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:7px;padding:7px 8px;font-size:13px}
+  input[type=number],input[type=text],input[type=search]{width:100%;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:7px;padding:7px 8px;font-size:13px}
+  .home-filter{display:block;max-width:440px;margin:-8px 0 16px}
+  .home-filter[hidden]{display:none}
+  .chkline{display:flex;align-items:center;gap:8px;margin:10px 0 0;font-size:12.5px;color:var(--muted);text-transform:none;letter-spacing:0;font-weight:400;cursor:pointer}
+  .chkline input{width:auto;margin:0}
   input:focus{outline:none;border-color:var(--accent)}
   .pitgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px}
   .pitgrid label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:flex;flex-direction:column;gap:4px}
@@ -330,6 +334,7 @@
       <select id="refSel"></select>
       <label class="fld" data-i18n="cmpLap">Vergleichs-Runde</label>
       <select id="cmpSel"></select>
+      <label id="hideOutInPitLbl" class="chkline" style="display:none"><input type="checkbox" id="hideOutInPit"> <span data-i18n="hideOutInPit">Masquer out / in / arrêts</span></label>
       <div class="scrollx" style="margin-top:12px">
         <table id="lapTable"><thead><tr><th>#</th><th data-i18n="lapTime">Rundenzeit</th><th data-i18n="topSpeed">Top-Speed</th></tr></thead><tbody></tbody></table>
       </div>
@@ -366,6 +371,7 @@
         <button type="button" id="homeBack" class="home-back" data-i18n="homeBack">← Retour</button>
         <h2 id="homeDrillTitle"></h2>
         <p class="home-lead" id="homeDrillHint"></p>
+        <input id="homeFilter" type="search" class="home-filter" autocomplete="off" hidden>
         <div id="homeList" class="home-list"></div>
       </div>
       <p class="home-note" id="garageNote"></p>
@@ -374,6 +380,7 @@
 
     <div id="app" style="display:none">
       <button type="button" id="analysisBack" class="home-back" data-i18n="homeBack">← Retour</button>
+      <p class="home-note" id="analysisNote" style="margin:0 0 14px"></p>
       <div class="tabs">
         <div class="tab active" data-tab="improve" data-i18n="tabImprove">🎯 Wo verliere ich Zeit?</div>
         <div class="tab" data-tab="compare" data-i18n="tabCompare">📈 Vergleich</div>
@@ -581,7 +588,7 @@ const STATE = { sessions:[], model:null, refLap:null, cmpLap:null,
                 refSource:"session", uploadedRef:null, guest:null, refInfo:null,
                 ingest:null,
                 mode:"", circuitId:"", classKey:"", carGroup:"",
-                homeStep:"modes", packLaps:[],
+                homeStep:"modes", packLaps:[], homeFilter:"", hideOutInPit:false,
                 refModel:null, cmpModel:null, refPack:null, cmpPack:null };
 
 /* ---------- API ---------- */
@@ -589,6 +596,17 @@ async function apiGet(path, signal){
   const r = await fetch(API + path, {cache:"no-store", signal});
   if(!r.ok){ const j = await r.json().catch(()=>({error:r.status})); const e=new Error(j.error||r.status); e.code=r.status; e.body=j; throw e; }
   return r.json();
+}
+function sessionKey(src, file){ return String(src||"")+"/"+String(file||""); }
+function parseSessionKey(key){
+  const s=String(key||""), i=s.indexOf("/");
+  if(i<0) return { src:"", file:s };
+  return { src:s.slice(0,i), file:s.slice(i+1) };
+}
+function sessionQuery(file, src){
+  let q="file="+encodeURIComponent(file||"");
+  if(src) q+="&src="+encodeURIComponent(src);
+  return q;
 }
 async function apiSend(method, path, body){
   const r = await fetch(API + path, {method, cache:"no-store", headers:body?{"content-type":"application/json"}:undefined, body:body?JSON.stringify(body):undefined});
@@ -674,7 +692,7 @@ const STR = {
   driverK:(n)=>"Fahrer "+n, stintsN:(n)=>`${n} Stint${n===1?"":"s"}`, driverInfo:(m,l)=>`~${m} min · ~${l} Runden`,
   moreDrivers:(D,S)=>`Mehr Fahrer (${D}) als Stints (${S}) – nicht jeder kommt zum Einsatz.`,
   teleNote:(tr,a,b,v,f,w)=>`Aus Telemetrie · <b>${tr}</b> · Ø Runde <b>${a}</b> · Bestzeit ${b} · VE ${v} · Sprit ${f} · Verschleiß ${w}. Tipp: trage für die Planung deine erwartete <b>Renn-Pace</b> ein (nicht die Outlap).`,
-  pitSrcMeasured:(n,sec)=>`Boxenverlust gemessen auf diesem Circuit: ${sec} s (Median aus ${n} Einfahrt${n===1?"":"en"}, Ereignis In Pits). Pace, Sprit, Energie und Verschleiß: fliegende Runden ohne Box.`,
+  pitSrcMeasured:(n,sec)=>`Boxenverlust gemessen auf diesem Circuit: ${sec} s (Median aus ${n} Boxenstopp${n===1?"":"s"} nur aus Rennen, Ereignis In Pits). Pace, Sprit, Energie und Verschleiß: fliegende Runden ohne Box.`,
   pitSrcGeneric:"Kein Boxenstopp (In Pits) auf diesem Circuit aufgezeichnet. Der Boxenverlust wird nicht geschätzt. Renndauer, Fahrer und Reifensätze stehen nicht in der Telemetrie.",
   mTrack:"Strecke", mVehicle:"Fahrzeug", mClass:"Klasse", mSession:"Session", mWeather:"Wetter", mDriver:"Fahrer", mRecording:"Aufnahme",
   pressure:"Druck", restProfile:"Rest-Profil", noTyreTemp:"Keine Reifen-Temperatur-Kanäle in dieser Aufnahme.", noTyreData:"Reifentemperaturen unauffällig (oder Datenbasis zu klein, z. B. nur Outlap).",
@@ -736,6 +754,8 @@ const STR = {
   modeCircuitHint:"Alle deine Runden eines Layouts und einer Klasse – dort siehst du den Fortschritt.",
   modeCarHint:"Leistung und Schaltpunkte aus deinen Volllast-Beschleunigungen.",
   homeSessionsTitle:"Session wählen", homeSessionsLead:"Jede Zeile ist eine Datei aus dem Telemetrie-Ordner.",
+  homeFilter:"Strecke, Fahrzeug, Datum…", homeNoMatch:"Keine Aufnahme passt zu diesem Filter.",
+  hideOutInPit:"Out / In / Boxenstopps ausblenden",
   kindRace:"Rennen", kindQual:"Qualifying", kindPrac:"Training",
   homeCircuitsTitle:"Strecke wählen", homeCircuitsLead:"Nach Layout gruppiert. Danach wählst du die Klasse.",
   homeCarsTitle:"Fahrzeug wählen", homeCarsLead:"Marke und Klasse, über alle Strecken.",
@@ -839,7 +859,7 @@ const STR = {
   driverK:(n)=>"Driver "+n, stintsN:(n)=>`${n} stint${n===1?"":"s"}`, driverInfo:(m,l)=>`~${m} min · ~${l} laps`,
   moreDrivers:(D,S)=>`More drivers (${D}) than stints (${S}) – not everyone will drive.`,
   teleNote:(tr,a,b,v,f,w)=>`From telemetry · <b>${tr}</b> · avg lap <b>${a}</b> · best ${b} · VE ${v} · fuel ${f} · wear ${w}. Tip: enter your expected <b>race pace</b> for planning (not the out-lap).`,
-  pitSrcMeasured:(n,sec)=>`Pit loss measured on this circuit: ${sec} s (median of ${n} stop${n===1?"":"s"}, In Pits event). Pace, fuel, energy and wear: flying laps, pit laps excluded.`,
+  pitSrcMeasured:(n,sec)=>`Pit loss measured on this circuit: ${sec} s (median of ${n} stop${n===1?"":"s"} from races only, In Pits event). Pace, fuel, energy and wear: flying laps, pit laps excluded.`,
   pitSrcGeneric:"No pit stop (In Pits) recorded on this circuit. Pit loss is not estimated. Race length, drivers and tyre sets are not in the telemetry.",
   mTrack:"Track", mVehicle:"Vehicle", mClass:"Class", mSession:"Session", mWeather:"Weather", mDriver:"Driver", mRecording:"Recording",
   pressure:"Pressure", restProfile:"Remaining", noTyreTemp:"No tyre temperature channels in this recording.", noTyreData:"Tyre temperatures look fine (or too little data, e.g. only out-lap).",
@@ -901,6 +921,8 @@ const STR = {
   modeCircuitHint:"Every lap of one layout and class, so you can see where you improved.",
   modeCarHint:"Power and shift points from your full-throttle accelerations.",
   homeSessionsTitle:"Choose a session", homeSessionsLead:"Each row is a file from the telemetry folder.",
+  homeFilter:"Track, car, date…", homeNoMatch:"No recording matches this filter.",
+  hideOutInPit:"Hide out / in / pit stops",
   kindRace:"Race", kindQual:"Qualifying", kindPrac:"Practice",
   homeCircuitsTitle:"Choose a track", homeCircuitsLead:"Grouped by layout. You pick the class next.",
   homeCarsTitle:"Choose a car", homeCarsLead:"Brand and class, across every track.",
@@ -1004,7 +1026,7 @@ const STR = {
   driverK:(n)=>"Pilote "+n, stintsN:(n)=>`${n} relais`, driverInfo:(m,l)=>`~${m} min · ~${l} tours`,
   moreDrivers:(D,S)=>`Plus de pilotes (${D}) que de relais (${S}) – tout le monde ne roulera pas.`,
   teleNote:(tr,a,b,v,f,w)=>`Issu de la télémétrie · <b>${tr}</b> · tour moy. <b>${a}</b> · meilleur ${b} · VE ${v} · essence ${f} · usure ${w}. Conseil : saisis ton <b>rythme de course</b> prévu (pas l'outlap).`,
-  pitSrcMeasured:(n,sec)=>`Perte aux stands mesurée sur ce circuit : ${sec} s (médiane de ${n} passage${n>1?"s":""}, événement In Pits). Rythme, essence, énergie et usure : tours lancés, hors arrêt.`,
+  pitSrcMeasured:(n,sec)=>`Perte aux stands mesurée sur ce circuit : ${sec} s (médiane de ${n} arrêt${n>1?"s":""} en course seulement, événement In Pits). Rythme, essence, énergie et usure : tours lancés, hors arrêt.`,
   pitSrcGeneric:"Aucun passage aux stands (In Pits) enregistré sur ce circuit. La perte d'arrêt n'est pas estimée. La durée de course, les pilotes et les trains de pneus ne sont pas dans la télémétrie.",
   mTrack:"Circuit", mVehicle:"Voiture", mClass:"Classe", mSession:"Session", mWeather:"Météo", mDriver:"Pilote", mRecording:"Enregistrement",
   pressure:"Pression", restProfile:"Profil restant", noTyreTemp:"Aucun canal de température pneus dans cet enregistrement.", noTyreData:"Températures pneus sans anomalie (ou trop peu de données, p. ex. seulement une outlap).",
@@ -1066,6 +1088,8 @@ const STR = {
   modeCircuitHint:"Tous tes tours d'un tracé et d'une classe, pour voir où tu progresses.",
   modeCarHint:"Puissance et points de passage, à partir de tes accélérations plein gaz.",
   homeSessionsTitle:"Choisir une session", homeSessionsLead:"Chaque ligne est un enregistrement du dossier télémétrie.",
+  homeFilter:"Circuit, voiture, date…", homeNoMatch:"Aucun enregistrement ne correspond.",
+  hideOutInPit:"Masquer out / in / arrêts",
   kindRace:"Course", kindQual:"Qualifications", kindPrac:"Essais",
   homeCircuitsTitle:"Choisir un circuit", homeCircuitsLead:"Regroupé par tracé. Tu choisis ensuite la catégorie.",
   homeCarsTitle:"Choisir une voiture", homeCarsLead:"Marque et catégorie, toutes pistes confondues.",
@@ -1158,7 +1182,7 @@ function buildModel(js){
   const events = js.events||{};
   const cDist = findChan(channels, ALIAS.lapdist);
   const cSpeed = findChan(channels, ALIAS.speed);
-  if(!cDist){ return { error:t("missingLapDist"), channels, meta:js.meta, events, fileName:js.file }; }
+  if(!cDist){ return { error:t("missingLapDist"), channels, meta:js.meta, events, fileName:js.file, src:js.src||"" }; }
 
   const trackLen = arrMax(cDist.data, v=>isFinite(v)?v:-Infinity);
   // channelStartTs: Lap-Dist-Resets gegen Lap-Event matchen
@@ -1207,7 +1231,7 @@ function buildModel(js){
     laps[0].outlap=true;
     if(laps.length>2) laps[laps.length-1].inlap=true;
   }
-  return { fileName:js.file, meta:js.meta||{}, channels, events, wheels:js.wheels||{}, cDist, cSpeed, trackLen, channelStartTs, laps, pitStops };
+  return { fileName:js.file, src:js.src||"", meta:js.meta||{}, channels, events, wheels:js.wheels||{}, cDist, cSpeed, trackLen, channelStartTs, laps, pitStops };
 }
 function pitStopsFromEvents(events){
   const ev=(events&&events["In Pits"])||[];
@@ -1731,7 +1755,7 @@ function applyKnownMeta(){
     if((!s.laps||!s.laps.length) && e.laps) s.laps=e.laps;
     if(s.nLaps==null && e.nLaps!=null) s.nLaps=e.nLaps;
     else if(e.nLaps && (s.nLaps||0)<e.nLaps) s.nLaps=e.nLaps;
-    if(s.class && !s.classKey) s.classKey=normalizeClassKey(s.class);
+    if(s.classKey||s.class) s.classKey=normalizeClassKey(s.classKey||s.class);
   });
 }
 function normalizeClassKey(cls){
@@ -1740,7 +1764,7 @@ function normalizeClassKey(cls){
   if(/GT3|LMGT3/.test(s)) return "GT3";
   if(/LMP2|^P2\b/.test(s)) return "P2";
   if(/LMP3|^P3\b/.test(s)) return "P3";
-  if(/HYPERCAR|\bHY\b|\bLMH\b|\bLMDH\b/.test(s)) return "HY";
+  if(/HYPERCAR|\bHYPER\b|\bHY\b|\bLMH\b|\bLMDH\b/.test(s)) return "HY";
   return s;
 }
 function classLabel(key){ return key||"—"; }
@@ -1807,6 +1831,20 @@ function carIdentity(src, setup){
 function displayBrand(brand){ return brand==="Autres"? t("carBrandOther") : brand; }
 function displayGroup(id){ return displayBrand(id.brand)+" · "+(id.classKey||"?"); }
 function shiftStoreKey(groupKey){ return (groupKey||"Autres · ?")+"|rpmcurve"; }
+function readCarShift(groupKey){
+  const all=lsGet("lmuCarShift",{});
+  const cur=all[shiftStoreKey(groupKey)];
+  const gk=String(groupKey||"");
+  // Alias lecture seule : anciennes clés « · HYPER » → « · HY »
+  const legacy=/ · HY$/.test(gk) ? all[shiftStoreKey(gk.replace(/ · HY$/, " · HYPER"))] : null;
+  if(cur && legacy){
+    const sessions=(cur.sessions||[]).slice();
+    const have=new Set(sessions.map(s=>s&&s.file));
+    (legacy.sessions||[]).forEach(s=>{ if(s&&s.file&&!have.has(s.file)) sessions.push(s); });
+    return Object.assign({}, cur, {sessions});
+  }
+  return cur || legacy || null;
+}
 
 function showAnalysis(on){
   const app=document.getElementById("app");
@@ -1834,12 +1872,14 @@ function goHomeRoot(){
   renderHome();
 }
 function renderCarMenuNote(){
-  const note=document.getElementById("garageNote"); if(!note) return;
-  const missing=STATE.sessions.filter(s=>!s.car).length;
+  const missing=STATE.sessions.filter(s=>!s.car || s.laps==null).length;
   let txt="";
   if(missing) txt=t("garageIndexing", missing);
-  if(STATE.ingest&&STATE.ingest.total) txt=t("garageIngest", STATE.ingest.done, STATE.ingest.total);
-  note.textContent=txt;
+  else if(STATE.ingest&&STATE.ingest.total) txt=t("garageIngest", STATE.ingest.done, STATE.ingest.total);
+  ["garageNote","analysisNote"].forEach(id=>{
+    const note=document.getElementById(id);
+    if(note) note.textContent=txt;
+  });
 }
 function pickCardHtml(opts){
   return `<button type="button" class="pick-card" data-key="${escapeHtml(opts.key)}">
@@ -1859,6 +1899,26 @@ function bindHomeNav(){
   if(analysisBack) analysisBack.addEventListener("click", ()=>{ showAnalysis(false); renderHome(); });
   const btnHome=document.getElementById("btnHome");
   if(btnHome) btnHome.addEventListener("click", goHomeRoot);
+  const filt=document.getElementById("homeFilter");
+  if(filt && !filt._bound){
+    filt._bound=true;
+    filt.addEventListener("input", ()=>{
+      STATE.homeFilter=filt.value;
+      if(STATE.homeStep!=="session") return;
+      const title=document.getElementById("homeDrillTitle");
+      const hint=document.getElementById("homeDrillHint");
+      const list=document.getElementById("homeList");
+      if(title&&hint&&list) renderSessionHomeList(title, hint, list);
+    });
+  }
+  const hidePit=document.getElementById("hideOutInPit");
+  if(hidePit && !hidePit._bound){
+    hidePit._bound=true;
+    hidePit.addEventListener("change", ()=>{
+      STATE.hideOutInPit=hidePit.checked;
+      if(STATE.mode==="circuit") buildPackLapTable();
+    });
+  }
 }
 function enterMode(mode){
   STATE.mode=mode; STATE.homeStep=mode==="circuit"?"circuit":mode;
@@ -1882,24 +1942,39 @@ function renderHome(){
   const onModes=step==="modes"||!STATE.mode;
   modes.style.display=onModes?"":"none";
   drill.style.display=onModes?"none":"";
-  if(onModes){ renderCarMenuNote(); return; }
+  if(onModes){ syncHomeFilter(); renderCarMenuNote(); return; }
+  syncHomeFilter();
   if(step==="session") renderSessionHomeList(title, hint, list);
   else if(step==="circuit") renderCircuitHomeList(title, hint, list);
   else if(step==="circuit-class") renderCircuitClassList(title, hint, list);
   else if(step==="car") renderCarHomeList(title, hint, list);
   renderCarMenuNote();
 }
+function syncHomeFilter(){
+  const inp=document.getElementById("homeFilter");
+  if(!inp) return;
+  const on=STATE.homeStep==="session";
+  inp.hidden=!on;
+  if(!on) return;
+  inp.placeholder=t("homeFilter");
+  if(document.activeElement!==inp && inp.value!==(STATE.homeFilter||"")) inp.value=STATE.homeFilter||"";
+}
+function sessionSearchHay(s){
+  return [s.track, s.layout, s.track?circuitDisplayName(s.track, s.layout||""):"", s.car, s.car?prettyName(s.car):"", s.class, s.classKey, sessionKindLabel(s), s.date, fmtSessionDate(s), prettyName(s.file)].filter(Boolean).join(" ").toLowerCase();
+}
 function renderSessionHomeList(title, hint, list){
   title.textContent=t("homeSessionsTitle");
   hint.textContent=t("homeSessionsLead");
-  const pool=STATE.sessions.slice();
-  if(!pool.length){ list.innerHTML=`<div class="hint">${t("homeNoSessions")}</div>`; return; }
+  const parts=(STATE.homeFilter||"").trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const pool=parts.length ? STATE.sessions.filter(s=>parts.every(p=>sessionSearchHay(s).includes(p))) : STATE.sessions.slice();
+  if(!STATE.sessions.length){ list.innerHTML=`<div class="hint">${t("homeNoSessions")}</div>`; return; }
+  if(!pool.length){ list.innerHTML=`<div class="hint">${t("homeNoMatch")}</div>`; return; }
   list.innerHTML=pool.map(s=>{
     const when=fmtSessionDate(s);
     const laps=s.nLaps? t("circuitLapsN", s.nLaps) : "";
     const named=s.track? circuitDisplayName(s.track, s.layout||"") : prettyName(s.file);
     return pickCardHtml({
-      key:s.file,
+      key:sessionKey(s.src, s.file),
       title:named,
       sub:[sessionKindLabel(s), s.classKey||s.class||"", s.car?prettyName(s.car):""].filter(Boolean).join(" · "),
       meta:[laps, when&&when!=="—"?when:""].filter(Boolean).join(" · ")
@@ -1917,7 +1992,7 @@ function circuitGroups(){
     const g=map[id]||(map[id]={circuitId:id, track:s.track, layout:s.layout||"", nSess:0, nLaps:0, last:0, classes:new Set()});
     g.nSess++; g.nLaps+=(s.nLaps||(s.laps&&s.laps.length)||0);
     const ms=sessionDateMs(s); if(ms>g.last) g.last=ms;
-    const ck=s.classKey||normalizeClassKey(s.class);
+    const ck=normalizeClassKey(s.classKey||s.class);
     if(ck) g.classes.add(ck);
   });
   return Object.values(map).sort((a,b)=>b.last-a.last||b.nLaps-a.nLaps||a.track.localeCompare(b.track));
@@ -1947,7 +2022,7 @@ function renderCircuitClassList(title, hint, list){
   const counts={};
   STATE.sessions.forEach(s=>{
     if(sessionCircuitId(s)!==STATE.circuitId) return;
-    const ck=s.classKey||normalizeClassKey(s.class); if(!ck) return;
+    const ck=normalizeClassKey(s.classKey||s.class); if(!ck) return;
     const c=counts[ck]||(counts[ck]={classKey:ck, nLaps:0, nSess:0});
     c.nSess++; c.nLaps+=(s.nLaps||(s.laps&&s.laps.length)||0);
   });
@@ -1966,10 +2041,12 @@ function collectPackLaps(circuitId, classKey){
   const out=[];
   STATE.sessions.forEach(s=>{
     if(sessionCircuitId(s)!==circuitId) return;
-    if((s.classKey||normalizeClassKey(s.class))!==classKey) return;
+    if(normalizeClassKey(s.classKey||s.class)!==classKey) return;
     const date=s.date||(s.mtime?new Date(s.mtime).toISOString():"");
     (s.laps||[]).forEach(l=>{
-      out.push({file:s.file, lapIndex:l.lapIndex, lapTime:l.lapTime, date, car:s.car||"", class:classKey});
+      const row={file:s.file, src:s.src||"", lapIndex:l.lapIndex, lapTime:l.lapTime, date, car:s.car||"", class:classKey};
+      if(typeof l._slow==="boolean") row._slow=l._slow;
+      out.push(row);
     });
   });
   return out.sort((a,b)=>a.lapTime-b.lapTime);
@@ -1981,49 +2058,88 @@ function packLapLabel(pack, lap){
   const file=pack&&pack.file? prettyName(pack.file) : "";
   return t("packLapLbl", idx, car||"—", file||"—");
 }
+function closestLap(laps, t){
+  if(!laps||!laps.length) return null;
+  let best=laps[0], bd=Math.abs(laps[0].lapTime-t);
+  for(let i=1;i<laps.length;i++){ const d=Math.abs(laps[i].lapTime-t); if(d<bd){ bd=d; best=laps[i]; } }
+  return { lap:best, d:bd };
+}
 function matchPackLap(m, pack){
-  const pool=flyingLaps(m);
-  const src=pool.length?pool:(m.laps||[]);
-  if(!src.length) return null;
-  let best=src[0], bd=Math.abs(src[0].lapTime-pack.lapTime);
-  src.forEach(l=>{ const d=Math.abs(l.lapTime-pack.lapTime); if(d<bd){bd=d;best=l;} });
-  return best;
+  const all=m.laps||[];
+  if(!all.length) return null;
+  const hit=closestLap(all, pack.lapTime);
+  if(hit.d<=1) return hit.lap;
+  const fly=closestLap(flyingLaps(m), pack.lapTime);
+  return fly ? fly.lap : hit.lap;
+}
+function applySlowFlag(l, m){
+  if(!l || typeof l._slow==="boolean" || !m || !m.laps || !m.laps.length) return;
+  const hit=closestLap(m.laps, l.lapTime);
+  if(!hit || hit.d>1) return;
+  l._slow=!!(hit.lap.outlap||hit.lap.inlap||hit.lap.pit);
+}
+function noteSlowLaps(m, src){
+  if(!m||!m.fileName) return;
+  const key=sessionKey(src!=null?src:(m.src||""), m.fileName);
+  STATE.sessions.forEach(s=>{
+    if(sessionKey(s.src, s.file)!==key) return;
+    (s.laps||[]).forEach(l=>applySlowFlag(l, m));
+  });
+  (STATE.packLaps||[]).forEach(p=>{
+    if(sessionKey(p.src, p.file)!==key) return;
+    applySlowFlag(p, m);
+  });
 }
 const MODEL_CACHE_MAX=4;
 const modelCache=new Map();
-async function getCachedModel(file, signal){
-  if(modelCache.has(file)){
-    const e=modelCache.get(file);
-    modelCache.delete(file); modelCache.set(file,e);
+async function getCachedModel(file, src, signal){
+  const key=sessionKey(src, file);
+  if(modelCache.has(key)){
+    const e=modelCache.get(key);
+    modelCache.delete(key); modelCache.set(key,e);
     e.t=Date.now();
+    noteSlowLaps(e.model, src);
     return e.model;
   }
-  const js=await apiGet("/api/session?file="+encodeURIComponent(file), signal);
+  const js=await apiGet("/api/session?"+sessionQuery(file, src), signal);
   const m=buildModel(js);
+  if(m.error||!m.laps) throw new Error(m.error||t("missingLapDist"));
   computeSectors(m); computeTopSpeeds(m); computeConsumption(m);
+  noteSlowLaps(m, src);
   try{ await recordSetupHistory(m, signal); }catch(e){ if(e&&e.name==="AbortError") throw e; }
   while(modelCache.size>=MODEL_CACHE_MAX){
     const oldest=modelCache.keys().next().value;
     modelCache.delete(oldest);
   }
-  modelCache.set(file,{model:m, t:Date.now()});
+  modelCache.set(key,{model:m, t:Date.now()});
   return m;
 }
 async function selectPackLap(pack, asRef, fromUser){
-  const m=await getCachedModel(pack.file);
-  const lap=matchPackLap(m, pack); if(!lap) return;
-  if(asRef){
-    STATE.refPack=pack; STATE.refModel=m; STATE.refLap=lap;
-    if(fromUser && STATE.refSource==="guest"){ STATE.refSource="session"; refreshRefSrc(); }
-  }
-  else { STATE.cmpPack=pack; STATE.cmpModel=m; STATE.cmpLap=lap; STATE.model=m; STATE.loadedKey=pack.file; }
-  if(!STATE.model) STATE.model=m;
-  if(STATE.refLap && STATE.cmpLap){
-    renderMeta(); renderWeather(); renderDiag();
-    recompute(); renderSetup();
+  if(fromUser) setLoading(true);
+  try{
+    const m=await getCachedModel(pack.file, pack.src);
+    const lap=matchPackLap(m, pack); if(!lap) return;
+    if(asRef){
+      STATE.refPack=pack; STATE.refModel=m; STATE.refLap=lap;
+      if(fromUser && STATE.refSource==="guest"){ STATE.refSource="session"; refreshRefSrc(); }
+    }
+    else { STATE.cmpPack=pack; STATE.cmpModel=m; STATE.cmpLap=lap; STATE.model=m; STATE.loadedKey=sessionKey(m.src||pack.src, pack.file); }
+    if(!STATE.model) STATE.model=m;
+    if(STATE.refLap && STATE.cmpLap){
+      renderMeta(); renderWeather(); renderDiag();
+      recompute(); renderSetup();
+    }
+  }catch(e){
+    if(!fromUser) throw e;
+    if(e&&e.name==="AbortError") return;
+    showConn(`<div class="banner err">${t("errLoad",escapeHtml(e.message||String(e)))}</div>`);
+    setStatus(t("errPrefix", e.message||String(e)));
+  }finally{
+    if(fromUser) setLoading(false);
   }
 }
 async function openCircuitAnalysis(circuitId, classKey){
+  ["piLap","piVE","piFuel","piWear","piPit","piTank"].forEach(id=>{ delete pitUserEdit[id]; });
   STATE.mode="circuit"; STATE.circuitId=circuitId; STATE.classKey=classKey;
   STATE.homeStep="circuit-class";
   const pack=collectPackLaps(circuitId, classKey);
@@ -2037,7 +2153,9 @@ async function openCircuitAnalysis(circuitId, classKey){
     applyModeChrome();
     showAnalysis(true);
     switchTab("improve");
-    setStatus(t("loaded", pack.length, pack.length));
+    pitPrefill(STATE.model);
+    const m=STATE.model, n=(m&&m.laps||[]).length, c=(m&&m.laps||[]).filter(l=>l.complete).length;
+    setStatus(t("loaded", n, c));
   }catch(e){
     showConn(`<div class="banner err">${t("errLoad",escapeHtml(e.message))}</div>`);
     setStatus(t("errPrefix",e.message));
@@ -2084,6 +2202,7 @@ function prettyName(f){
   return String(f||"").replace(/\.duckdb$/i,"").replace(/_([A-Z])_/," · $1 · ").replace(/(?:^|[ _·])\d{4}-\d\d-\d\dT.*$/,"").replace(/\s*·\s*$/,"").trim();
 }
 function buildLapTable(){
+  syncOutInPitToggle();
   if(STATE.mode==="circuit"){ buildPackLapTable(); return; }
   const m=STATE.model, laps=m.laps;
   const best=bestLap(laps);
@@ -2102,10 +2221,51 @@ function buildLapTable(){
   tb.querySelectorAll("tr.lap").forEach(tr=>tr.onclick=e=>{ const l=laps.find(x=>x.index==tr.dataset.i); if(e.shiftKey||refMode){ STATE.refLap=l; if(guestRef()){STATE.refSource="session"; refreshRefSrc();} } else STATE.cmpLap=l;
     document.getElementById("refSel").value=STATE.refLap.index; document.getElementById("cmpSel").value=STATE.cmpLap.index; recompute(); });
 }
-function packKey(p){ return p? p.file+"#"+p.lapIndex : ""; }
-function buildPackLapTable(){
+function syncOutInPitToggle(){
+  const lbl=document.getElementById("hideOutInPitLbl");
+  const cb=document.getElementById("hideOutInPit");
+  if(lbl) lbl.style.display=STATE.mode==="circuit"?"":"none";
+  if(cb) cb.checked=!!STATE.hideOutInPit;
+}
+function packLapIsOutInPit(p){
+  if(!p) return false;
+  if(typeof p._slow==="boolean") return p._slow;
+  const key=sessionKey(p.src, p.file);
+  let m=null;
+  const cached=modelCache.get(key);
+  if(cached) m=cached.model;
+  else if(STATE.refModel && sessionKey(STATE.refModel.src, STATE.refModel.fileName)===key) m=STATE.refModel;
+  else if(STATE.cmpModel && sessionKey(STATE.cmpModel.src, STATE.cmpModel.fileName)===key) m=STATE.cmpModel;
+  if(!m) return false;
+  applySlowFlag(p, m);
+  return p._slow===true;
+}
+function visiblePackLaps(){
   const pack=STATE.packLaps||[];
-  const best=pack[0];
+  if(!STATE.hideOutInPit) return pack;
+  return pack.filter(p=>!packLapIsOutInPit(p));
+}
+function packKey(p){ return p? sessionKey(p.src, p.file)+"#"+p.lapIndex : ""; }
+function buildPackLapTable(){
+  syncOutInPitToggle();
+  const seenSlow=new Set();
+  const consider=(m, src)=>{
+    if(!m||!m.fileName) return;
+    const useSrc=src!=null?src:(m.src||"");
+    const k=sessionKey(useSrc, m.fileName);
+    if(seenSlow.has(k)) return;
+    seenSlow.add(k);
+    noteSlowLaps(m, useSrc);
+  };
+  if(STATE.refModel) consider(STATE.refModel, STATE.refPack?STATE.refPack.src:STATE.refModel.src);
+  if(STATE.cmpModel) consider(STATE.cmpModel, STATE.cmpPack?STATE.cmpPack.src:STATE.cmpModel.src);
+  modelCache.forEach((e, key)=>{
+    if(!e||!e.model) return;
+    consider(e.model, parseSessionKey(key).src);
+  });
+  const all=STATE.packLaps||[];
+  const pack=visiblePackLaps();
+  const best=all[0];
   const label=p=>`${fmtTime(p.lapTime)} · ${prettyName(p.car||"")} · ${prettyName(p.file)}`;
   const opt=p=>`<option value="${escapeHtml(packKey(p))}">${escapeHtml(label(p))}</option>`;
   const refSel=document.getElementById("refSel"),cmpSel=document.getElementById("cmpSel");
@@ -2114,15 +2274,15 @@ function buildPackLapTable(){
   refSel.innerHTML=pack.map(opt).join(""); cmpSel.innerHTML=pack.map(opt).join("");
   refSel.value=packKey(STATE.refPack); cmpSel.value=packKey(STATE.cmpPack);
   const guestRef=STATE.refSource==="guest"&&STATE.guest;
-  refSel.onchange=()=>{ const p=pack.find(x=>packKey(x)===refSel.value); if(p) selectPackLap(p,true,true); };
-  cmpSel.onchange=()=>{ const p=pack.find(x=>packKey(x)===cmpSel.value); if(p) selectPackLap(p,false,true); };
+  refSel.onchange=()=>{ const p=all.find(x=>packKey(x)===refSel.value); if(p) selectPackLap(p,true,true); };
+  cmpSel.onchange=()=>{ const p=all.find(x=>packKey(x)===cmpSel.value); if(p) selectPackLap(p,false,true); };
   const tb=document.querySelector("#lapTable tbody");
   tb.innerHTML=pack.map(p=>{
     const cls=["lap", (!guestRef&&packKey(p)===packKey(STATE.refPack))?"ref":"", packKey(p)===packKey(STATE.cmpPack)?"cmp":"", p===best?"best":""].join(" ");
     return `<tr class="${cls}" data-k="${escapeHtml(packKey(p))}"><td>${p.lapIndex+1}</td><td class="lt">${fmtTime(p.lapTime)}</td><td>${escapeHtml(prettyName(p.car||"—"))}</td></tr>`;
   }).join("");
   tb.querySelectorAll("tr.lap").forEach(tr=>tr.onclick=e=>{
-    const p=pack.find(x=>packKey(x)===tr.dataset.k); if(!p) return;
+    const p=all.find(x=>packKey(x)===tr.dataset.k); if(!p) return;
     selectPackLap(p, e.shiftKey||refMode, true);
   });
 }
@@ -2136,7 +2296,9 @@ function computeTopSpeeds(m){ const cs=m.cSpeed; if(!cs)return; const f=speedToK
 
 /* ---------- Laden ---------- */
 let loadGen=0, loadCtrl=null;
-async function loadSession(file){
+async function loadSession(key){
+  const parsed=parseSessionKey(key);
+  const file=parsed.file, src=parsed.src;
   const gen=++loadGen;
   if(loadCtrl) try{ loadCtrl.abort(); }catch(e){}
   loadCtrl=new AbortController();
@@ -2144,23 +2306,30 @@ async function loadSession(file){
   try{
     setLoading(true);
     setStatus(t("loadingFile",file));
-    const js=await apiGet("/api/session?file="+encodeURIComponent(file), signal);
+    const js=await apiGet("/api/session?"+sessionQuery(file, src), signal);
     if(gen!==loadGen) return "stale";
     const m=buildModel(js);
+    if(m.error||!m.laps){
+      showConn(`<div class="banner err">${m.error||t("missingLapDist")}</div>`);
+      setStatus(t("errPrefix", m.error||t("missingLapDist")));
+      return "error";
+    }
     computeSectors(m); computeTopSpeeds(m); computeConsumption(m);
+    noteSlowLaps(m, src);
     computeAndStoreShifts(m);
     await recordSetupHistory(m, signal);
     if(gen!==loadGen) return "stale";
-    if(m.error){ showConn(`<div class="banner err">${m.error}</div>`); }
-    STATE.model=m; STATE.loadedKey=file; STATE.mode="session"; STATE.homeStep="session";
+    const loadedId=sessionKey(m.src||src, m.fileName||file);
+    STATE.model=m; STATE.loadedKey=loadedId; STATE.mode="session"; STATE.homeStep="session";
     STATE.refModel=m; STATE.cmpModel=m; STATE.refPack=null; STATE.cmpPack=null; STATE.packLaps=[];
-    const rec=STATE.sessions.find(s=>s.file===file);
+    const rec=STATE.sessions.find(s=>sessionKey(s.src, s.file)===loadedId);
     if(rec){
       rec.car=m.meta&&m.meta.CarName||rec.car;
       rec.track=m.meta&&m.meta.TrackName||rec.track;
       rec.layout=m.meta&&m.meta.TrackLayout||rec.layout;
-      rec.class=m.meta&&m.meta.CarClass||rec.class;
-      rec.classKey=normalizeClassKey(rec.class);
+      const fromMeta=metaText(m.meta&&m.meta.CarClass);
+      if(fromMeta) rec.class=fromMeta;
+      rec.classKey=normalizeClassKey(fromMeta||rec.class||rec.classKey);
       rec.stype=m.meta&&m.meta.SessionType||rec.stype;
       rec.date=m.meta&&m.meta.RecordingTime||rec.date;
       const n=flyingLaps(m).length;
@@ -2203,9 +2372,9 @@ async function poll(){
     const r=await apiGet("/api/sessions");
     if(r.error){ showBridgeHelp(r); return; }
     const prev={};
-    STATE.sessions.forEach(s=>{ prev[s.file]=s; });
+    STATE.sessions.forEach(s=>{ prev[sessionKey(s.src, s.file)]=s; });
     STATE.sessions=(r.sessions||[]).map(s=>{
-      const p=prev[s.file];
+      const p=prev[sessionKey(s.src, s.file)];
       if(p && p.mtime===s.mtime && p.size===s.size){
         if(!s.car && p.car){ s.car=p.car; s.track=p.track; s.layout=p.layout; s.class=p.class; s.classKey=p.classKey; s.stype=p.stype; s.date=p.date; }
         if((!s.laps||!s.laps.length) && p.laps) s.laps=p.laps;
@@ -2215,7 +2384,7 @@ async function poll(){
         if(s.fuelMax==null && p.fuelMax!=null) s.fuelMax=p.fuelMax;
         if(p._metaTried && Array.isArray(p.pits)) s._metaTried=p._metaTried;
       }
-      if(s.class && !s.classKey) s.classKey=normalizeClassKey(s.class);
+      if(s.classKey||s.class) s.classKey=normalizeClassKey(s.classKey||s.class);
       return s;
     });
     STATE.telDir=r.telDir; checkVersion();
@@ -2272,20 +2441,21 @@ let metaBusy=false;
 async function fillSessionMeta(){
   if(metaBusy) return;
     const missing=STATE.sessions.filter(s=>!s._metaTried && (!s.car || s.laps==null || !Array.isArray(s.pits)));
-    if(!missing.length) return;
+    if(!missing.length){ renderCarMenuNote(); return; }
     metaBusy=true;
+    renderCarMenuNote();
     try{
       const batch=missing.slice(0,8);
       for(const s of batch){
         s._metaTried=true;
         try{
-          const m=await apiGet("/api/session-meta?file="+encodeURIComponent(s.file));
+          const m=await apiGet("/api/session-meta?"+sessionQuery(s.file, s.src));
           if(m.locked){ s._metaTried=false; continue; }
-          const live=STATE.sessions.find(x=>x.file===s.file)||s;
+          const live=STATE.sessions.find(x=>x.file===s.file && x.src===s.src)||s;
           live.car=m.car||live.car; live.track=m.track||live.track;
           live.layout=m.layout!=null?m.layout:(live.layout||"");
           live.class=m.class||live.class;
-          live.classKey=m.classKey||normalizeClassKey(live.class);
+          live.classKey=normalizeClassKey(m.classKey||live.class);
           live.stype=m.stype||live.stype;
           live.date=m.date||live.date;
           if(m.laps) live.laps=m.laps;
@@ -2295,20 +2465,20 @@ async function fillSessionMeta(){
           live._metaTried=true;
           rememberGarageMeta(live);
         }catch(e){ if(e.code===423) s._metaTried=false; }
+        renderCarMenuNote();
       }
       renderHome();
       if(STATE.model) pitPrefill(STATE.model);
-    }finally{ metaBusy=false; }
+    }finally{ metaBusy=false; renderCarMenuNote(); }
 }
 let ingestGen=0;
 async function ingestCarBackground(groupKey){
   if(!groupKey) return;
   const gen=++ingestGen;
-  const cacheKey=shiftStoreKey(groupKey);
-  const known=new Set((((lsGet("lmuCarShift",{})[cacheKey])||{}).sessions||[]).map(s=>s.file));
+  const known=new Set((((readCarShift(groupKey))||{}).sessions||[]).map(s=>s.file));
   const todo=STATE.sessions.filter(s=>{
     const id=carIdentity(s);
-    return id.groupKey===groupKey && s.file!==STATE.loadedKey && !known.has(s.file);
+    return id.groupKey===groupKey && sessionKey(s.src, s.file)!==STATE.loadedKey && !known.has(s.file);
   }).slice(0,18);
   if(!todo.length) return;
   STATE.ingest={car:groupKey, done:0, total:todo.length};
@@ -2316,21 +2486,26 @@ async function ingestCarBackground(groupKey){
   for(const s of todo){
     if(gen!==ingestGen) break;
     try{
-      const js=await apiGet("/api/session?file="+encodeURIComponent(s.file));
+      const js=await apiGet("/api/session?"+sessionQuery(s.file, s.src));
       if(gen!==ingestGen) break;
       const m=buildModel(js);
-      computeSectors(m); computeTopSpeeds(m); computeConsumption(m);
-      try{ await recordSetupHistory(m); }catch(_){}
-      computeAndStoreShifts(m);
-      const n=flyingLaps(m).length;
-      const live=STATE.sessions.find(x=>x.file===s.file)||s;
-      if(n) live.nLaps=Math.max(live.nLaps||0, n);
-      if(m.meta){
-        live.car=m.meta.CarName||live.car; live.track=m.meta.TrackName||live.track;
-        live.layout=m.meta.TrackLayout||live.layout;
-        live.class=m.meta.CarClass||live.class; live.classKey=normalizeClassKey(live.class);
+      if(!(m.error||!m.laps)){
+        computeSectors(m); computeTopSpeeds(m); computeConsumption(m);
+        noteSlowLaps(m, s.src);
+        try{ await recordSetupHistory(m); }catch(_){}
+        computeAndStoreShifts(m);
+        const n=flyingLaps(m).length;
+        const live=STATE.sessions.find(x=>x.file===s.file && x.src===s.src)||s;
+        if(n) live.nLaps=Math.max(live.nLaps||0, n);
+        if(m.meta){
+          live.car=m.meta.CarName||live.car; live.track=m.meta.TrackName||live.track;
+          live.layout=m.meta.TrackLayout||live.layout;
+          const cls=metaText(m.meta.CarClass);
+          if(cls) live.class=cls;
+          live.classKey=normalizeClassKey(cls||live.classKey||live.class);
+        }
+        rememberGarageMeta(live);
       }
-      rememberGarageMeta(live);
     }catch(e){}
     if(STATE.ingest && STATE.ingest.car===groupKey) STATE.ingest.done++;
     renderCarMenuNote();
@@ -2698,19 +2873,28 @@ function circuitSamples(track, layout, classKey){
   const id=circuitIdOf(track, layout);
   return (STATE.sessions||[]).filter(s=>{
     if(!s||sessionCircuitId(s)!==id) return false;
-    const ck=s.classKey||normalizeClassKey(s.class);
+    const ck=normalizeClassKey(s.classKey||s.class);
     return !!ck && ck===classKey;
   });
+}
+function isRaceSession(stype, file){
+  const raw=metaText(stype);
+  if(/race/i.test(raw)) return true;
+  if(/qual/i.test(raw) || /pract|train|essai/i.test(raw)) return false;
+  const m=String(file||"").match(/_([RQP])_/);
+  return !!(m && m[1]==="R");
 }
 function circuitPitDurs(track, layout, classKey, model){
   const durs=[];
   const seen=new Set();
   circuitSamples(track, layout, classKey).forEach(s=>{
-    (s.pits||[]).forEach(d=>{ if(+d>5){ durs.push(+d); seen.add(s.file); } });
+    if(!isRaceSession(s.stype, s.file)) return;
+    (s.pits||[]).forEach(d=>{ if(+d>5){ durs.push(+d); seen.add(sessionKey(s.src, s.file)); } });
   });
   const meta=model&&model.meta;
-  const same=!!meta && circuitIdOf(meta.TrackName, meta.TrackLayout)===circuitIdOf(track, layout);
-  if(model && same && !seen.has(model.fileName)){
+  const same=!!meta && circuitIdOf(metaText(meta.TrackName), metaText(meta.TrackLayout))===circuitIdOf(track, layout);
+  const modelKey=model? sessionKey(model.src, model.fileName) : "";
+  if(model && same && !seen.has(modelKey) && isRaceSession(meta.SessionType, model.fileName)){
     (model.pitStops||[]).forEach(s=>{ if(s.dur>5) durs.push(s.dur); });
   }
   durs.sort((a,b)=>a-b);
@@ -2743,10 +2927,10 @@ function setPitField(id, value, digits){
 }
 function pitPrefill(m){
   const meta=m&&m.meta||{};
-  const track=meta.TrackName||"";
-  const layout=meta.TrackLayout||"";
-  const car=meta.CarName||"";
-  const ck=normalizeClassKey(meta.CarClass);
+  const track=metaText(meta.TrackName)||"";
+  const layout=metaText(meta.TrackLayout)||"";
+  const car=metaText(meta.CarName)||"";
+  const ck=(STATE.mode==="circuit" && STATE.classKey) ? normalizeClassKey(STATE.classKey) : normalizeClassKey(metaText(meta.CarClass));
   const measuredLap=!!(m&&m.avgLap>10);
   const durs=circuitPitDurs(track, layout, ck, m);
   const pit=durs.length?durs[durs.length>>1]:null;
@@ -3019,7 +3203,7 @@ function setupLabel(k){ const [SL,WT]=setupDicts();
   return k.replace(/^VM_|^WM_/,"").replace(/_/g," ").toLowerCase(); }
 function countSetupChanges(a,b){ if(!a||!b)return 0; let n=0; new Set([...Object.keys(a),...Object.keys(b)]).forEach(k=>{ if(a[k]!==b[k])n++; }); return n; }
 async function recordSetupHistory(m, signal){
-  try{ const r=await apiGet("/api/setup?file="+encodeURIComponent(m.fileName), signal); m.setup=r.setup; }catch(e){ if(e&&e.name==="AbortError") throw e; m.setup=null; }
+  try{ const r=await apiGet("/api/setup?"+sessionQuery(m.fileName, m.src), signal); m.setup=r.setup; }catch(e){ if(e&&e.name==="AbortError") throw e; m.setup=null; }
   if(!m.setup) return;
   const hist=lsGet("lmuHist",[]); const compact={}; for(const k in m.setup) compact[k]=m.setup[k].s;
   const rec={file:m.fileName,track:m.meta.TrackName,car:m.meta.CarName,date:m.meta.RecordingTime,bestLap:m.bestLap,avgLap:m.avgLap,setup:compact};
@@ -3323,7 +3507,7 @@ function computeAndStoreShifts(m){
   if(m.shifts&&m.shifts.ok) persistCarShifts(m);
 }
 function aggregateCarShifts(groupKey, extra){
-  const rec=(lsGet("lmuCarShift",{})[shiftStoreKey(groupKey)])||{sessions:[]};
+  const rec=readCarShift(groupKey)||{sessions:[]};
   const sessions=rec.sessions.slice();
   if(extra){ const i=sessions.findIndex(x=>x.file===extra.file); if(i>=0) sessions[i]=extra; else sessions.push(extra); }
   const by={}; let nLaps=0, redline=0;
@@ -3360,7 +3544,7 @@ function rpmPct(rpm, redline){ return (rpm==null||!(redline>0))?null: 100*rpm/re
 function renderCarSessTable(groupKey){
   const el=document.getElementById("carSessTable"); if(!el) return;
   if(!groupKey){ el.innerHTML=""; return; }
-  const rec=lsGet("lmuCarShift",{})[shiftStoreKey(groupKey)];
+  const rec=readCarShift(groupKey);
   const disk=STATE.sessions.filter(s=>carIdentity(s).groupKey===groupKey);
   const by={};
   disk.forEach(s=>{ by[s.file]={file:s.file, track:s.track, date:s.mtime?new Date(s.mtime).toISOString():"", nLaps:s.nLaps||0, analyzed:false}; });

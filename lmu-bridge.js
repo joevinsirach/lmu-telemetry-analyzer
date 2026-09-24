@@ -95,7 +95,7 @@ if (process.pkg) {
 function ensureDuckDB() {
   if (fs.existsSync(DUCKDB)) return;
   console.log("Téléchargement de la CLI DuckDB (une seule fois)...");
-  const dir = path.join(BASE, "duckdbcli");
+  const dir = path.dirname(DUCKDB);
   try { fs.mkdirSync(dir, { recursive: true }); } catch (_) {}
   try {
     if (process.platform === "win32") {
@@ -545,15 +545,18 @@ function metaStr(v) {
   return "";
 }
 
-const INDEX_VER = 3;
+const INDEX_VER = 4;
 function normalizeClassKey(cls) {
   const s = String(cls || "").toUpperCase();
   if (!s) return "";
   if (/GT3|LMGT3/.test(s)) return "GT3";
   if (/LMP2|^P2\b/.test(s)) return "P2";
   if (/LMP3|^P3\b/.test(s)) return "P3";
-  if (/HYPERCAR|\bHY\b|\bLMH\b|\bLMDH\b/.test(s)) return "HY";
+  if (/HYPERCAR|\bHYPER\b|\bHY\b|\bLMH\b|\bLMDH\b/.test(s)) return "HY";
   return s;
+}
+function indexKey(src, name) {
+  return String(src || "") + "/" + String(name || "");
 }
 function pickLayout(raw) {
   return metaStr(raw.TrackLayout) || metaStr(raw.Layout) || metaStr(raw.TrackConfig)
@@ -682,7 +685,7 @@ function publicSessionMeta(name, rec) {
   };
 }
 function enrichSession(s) {
-  const e = SESSION_INDEX[s.file];
+  const e = SESSION_INDEX[indexKey(s.src, s.file)];
   if (e && e.v === INDEX_VER && e.mtime === s.mtime && e.size === s.size) {
     return {
       ...s, car: e.car, track: e.track, layout: e.layout || "",
@@ -705,7 +708,7 @@ function listSessions() {
   } catch (e) {
     return { error: String(e.message), telDir: TEL_DIR, lmuDir: TEL.lmuDir, manualDir: TEL.manualDir, downloadsDir: TEL.downloadsDir, sessions: [], ...publicDirs() };
   }
-  const live = new Set(files.map(s => s.file));
+  const live = new Set(files.map(s => indexKey(s.src, s.file)));
   let pruned = false;
   Object.keys(SESSION_INDEX).forEach(f => { if (!live.has(f)) { delete SESSION_INDEX[f]; pruned = true; } });
   if (pruned) saveSessionIndex();
@@ -833,6 +836,10 @@ function sessionOpenError(res, msg) {
 
 /* ---- HTTP ---- */
 async function handleRequest(req, res) {
+  const site = String(req.headers["sec-fetch-site"] || "");
+  if (site && site !== "same-origin" && site !== "none") {
+    return json(res, 403, { error: "forbidden" });
+  }
   const u = new URL(req.url, "http://localhost");
   // CORS nur für lokale Origins – sonst könnte jede besuchte Website die
   // Telemetrie auslesen oder die Bridge per /api/quit beenden.
@@ -882,13 +889,14 @@ async function handleRequest(req, res) {
     if (!resolved) return json(res, 404, { error: "Datei nicht gefunden" });
     try {
       const st = fs.statSync(resolved.full);
-      const cached = SESSION_INDEX[name];
+      const key = indexKey(resolved.src, name);
+      const cached = SESSION_INDEX[key];
       if (cached && cached.v === INDEX_VER && cached.mtime === st.mtimeMs && cached.size === st.size) {
         return json(res, 200, publicSessionMeta(name, cached));
       }
       const raw = await loadSessionMeta(resolved.full) || {};
       const rec = indexRecordFromRaw(st, raw);
-      SESSION_INDEX[name] = rec; saveSessionIndex();
+      SESSION_INDEX[key] = rec; saveSessionIndex();
       return json(res, 200, publicSessionMeta(name, rec));
     } catch (e) {
       const msg = duckLockMsg(e);

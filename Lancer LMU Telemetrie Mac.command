@@ -34,7 +34,7 @@ if [ -z "$NODE_EXE" ]; then
   exit 1
 fi
 
-cp "$SRC/lmu-bridge.js" "$SRC/lmu-telemetry-analyzer.html" "$SUPPORT/" || {
+cp "$SRC/lmu-bridge.js" "$SRC/lmu-telemetry-analyzer.html" "$SRC/LOGO_LM2.svg" "$SUPPORT/" || {
   echo "Impossible de copier les fichiers vers :"
   echo "  $SUPPORT"
   echo
@@ -43,9 +43,6 @@ cp "$SRC/lmu-bridge.js" "$SRC/lmu-telemetry-analyzer.html" "$SUPPORT/" || {
 }
 
 export LMU_APP_SRC="$SRC"
-if [ -z "$LMU_TELEMETRY_DIR" ] && [ -d "$SRC/telemetry" ]; then
-  export LMU_TELEMETRY_DIR="$SRC/telemetry"
-fi
 
 # Remplace une ancienne instance de l'app, mais ne touche pas à un autre
 # programme qui utiliserait éventuellement le même port.
