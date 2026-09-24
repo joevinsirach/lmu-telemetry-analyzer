@@ -217,41 +217,170 @@ function samePath(a, b) {
   if (!a || !b) return false;
   try { return path.resolve(a).toLowerCase() === path.resolve(b).toLowerCase(); } catch { return false; }
 }
+function regValue(key, name) {
+  try {
+    const out = execFileSync("reg", ["query", key, "/v", name], { encoding: "utf8", windowsHide: true });
+    const m = out.match(/REG_(?:SZ|EXPAND_SZ)\s+(.+)/);
+    if (!m) return "";
+    return m[1].trim().replace(/%([^%]+)%/g, (_, k) => process.env[k] || process.env[k.toUpperCase()] || "");
+  } catch (_) { return ""; }
+}
+function findSteamRoots() {
+  const roots = [];
+  const add = (p) => { if (p && !roots.some(r => samePath(r, p))) roots.push(p); };
+  if (process.platform === "win32") {
+    add(regValue("HKCU\\Software\\Valve\\Steam", "SteamPath"));
+    add(regValue("HKLM\\SOFTWARE\\WOW6432Node\\Valve\\Steam", "InstallPath"));
+    add(regValue("HKLM\\SOFTWARE\\Valve\\Steam", "InstallPath"));
+    add(path.join(process.env["ProgramFiles(x86)"] || "C:\\Program Files (x86)", "Steam"));
+    add(path.join(process.env.ProgramFiles || "C:\\Program Files", "Steam"));
+  } else if (process.platform === "darwin") {
+    add(path.join(os.homedir(), "Library", "Application Support", "Steam"));
+  } else {
+    add(path.join(os.homedir(), ".steam", "steam"));
+    add(path.join(os.homedir(), ".local", "share", "Steam"));
+  }
+  return roots;
+}
 function findLmuTelemetryDir() {
   if (ARG.dir) return ARG.dir;
   if (process.env.LMU_TELEMETRY_DIR) return process.env.LMU_TELEMETRY_DIR;
   const libs = [];
-  const vdfs = [
-    "C:\\Program Files (x86)\\Steam\\steamapps\\libraryfolders.vdf",
-    "C:\\Program Files\\Steam\\steamapps\\libraryfolders.vdf",
-  ];
-  for (const v of vdfs) {
+  for (const root of findSteamRoots()) {
     try {
-      const t = fs.readFileSync(v, "utf8");
+      const t = fs.readFileSync(path.join(root, "steamapps", "libraryfolders.vdf"), "utf8");
       for (const m of t.matchAll(/"path"\s*"([^"]+)"/g)) libs.push(m[1].replace(/\\\\/g, "\\"));
-    } catch {}
+    } catch (_) {}
+    libs.push(root);
   }
-  libs.push("D:\\SteamLibrary", "C:\\Program Files (x86)\\Steam", "E:\\SteamLibrary");
   for (const lib of libs) {
     const p = path.join(lib, "steamapps", "common", "Le Mans Ultimate", "UserData", "Telemetry");
-    try { if (fs.existsSync(p)) return p; } catch {}
+    try { if (fs.existsSync(p)) return p; } catch (_) {}
   }
   return null;
 }
 function findManualTelemetryDir() {
   const srcBase = process.env.LMU_APP_SRC || BASE;
   const localTel = path.join(srcBase, "telemetry");
-  try { if (fs.existsSync(localTel)) return localTel; } catch {}
+  try { fs.mkdirSync(localTel, { recursive: true }); return localTel; } catch (_) { return null; }
+}
+function findDownloadsDir() {
+  if (process.platform === "win32") {
+    const guid = "{374DE290-123F-4565-9164-39C4925E467B}";
+    for (const key of [
+      "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders",
+      "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders",
+    ]) {
+      const p = regValue(key, guid);
+      try { if (p && fs.existsSync(p) && fs.statSync(p).isDirectory()) return p; } catch (_) {}
+    }
+  }
+  const home = os.homedir();
+  for (const name of ["Downloads", "Téléchargements", "Telechargements"]) {
+    const p = path.join(home, name);
+    try { if (fs.existsSync(p) && fs.statSync(p).isDirectory()) return p; } catch (_) {}
+  }
   return null;
 }
 function findTelemetryDirs() {
   let lmuDir = findLmuTelemetryDir();
   const manualDir = findManualTelemetryDir();
+  const downloadsDir = findDownloadsDir();
   if (lmuDir && manualDir && samePath(lmuDir, manualDir)) lmuDir = null;
-  return { lmuDir, manualDir };
+  return { lmuDir, manualDir, downloadsDir };
 }
 const TEL = findTelemetryDirs();
-const TEL_DIR = TEL.lmuDir || TEL.manualDir;
+const TEL_DIR = TEL.lmuDir || TEL.manualDir || TEL.downloadsDir;
+const EXTRA_DIRS_PATH = path.join(DATA_DIR, "telemetry-dirs.json");
+let EXTRA_DIRS = [];
+function loadExtraDirs() {
+  try {
+    const j = JSON.parse(fs.readFileSync(EXTRA_DIRS_PATH, "utf8"));
+    EXTRA_DIRS = (Array.isArray(j.extra) ? j.extra : []).filter(p => typeof p === "string" && p);
+  } catch (_) { EXTRA_DIRS = []; }
+}
+function saveExtraDirs() {
+  try { fs.writeFileSync(EXTRA_DIRS_PATH, JSON.stringify({ extra: EXTRA_DIRS }, null, 2)); } catch (_) {}
+}
+loadExtraDirs();
+function telDirs() {
+  const dirs = [];
+  const push = (dir, src) => {
+    if (!dir) return;
+    if (dirs.some(d => samePath(d.dir, dir))) return;
+    dirs.push({ dir: path.resolve(dir), src });
+  };
+  push(TEL.lmuDir, "lmu");
+  push(TEL.manualDir, "manual");
+  push(TEL.downloadsDir, "downloads");
+  EXTRA_DIRS.forEach(p => push(p, "extra"));
+  return dirs;
+}
+function publicDirs() {
+  const used = [];
+  const take = (kind, dir) => {
+    if (!dir) return null;
+    if (used.some(p => samePath(p, dir))) return null;
+    const abs = path.resolve(dir);
+    used.push(abs);
+    return { kind, path: abs };
+  };
+  const defaults = [take("lmu", TEL.lmuDir), take("manual", TEL.manualDir), take("downloads", TEL.downloadsDir)].filter(Boolean);
+  const extra = [];
+  EXTRA_DIRS.forEach(p => {
+    if (!p || used.some(u => samePath(u, p)) || extra.some(u => samePath(u, p))) return;
+    extra.push(path.resolve(p));
+  });
+  return { defaults, extra };
+}
+function addExtraDir(raw) {
+  let dir;
+  try { dir = path.resolve(String(raw || "")); } catch (_) { return { ok: false, status: 400, error: "dossier invalide" }; }
+  let st;
+  try { st = fs.statSync(dir); } catch (_) { return { ok: false, status: 400, error: "dossier introuvable" }; }
+  if (!st.isDirectory()) return { ok: false, status: 400, error: "dossier introuvable" };
+  if (telDirs().some(d => samePath(d.dir, dir))) return { ok: true, status: 200, already: true, ...publicDirs() };
+  EXTRA_DIRS.push(dir);
+  saveExtraDirs();
+  return { ok: true, status: 200, ...publicDirs() };
+}
+function removeExtraDir(raw) {
+  const before = EXTRA_DIRS.length;
+  EXTRA_DIRS = EXTRA_DIRS.filter(p => !samePath(p, raw));
+  if (EXTRA_DIRS.length !== before) saveExtraDirs();
+  return { ok: true, status: 200, ...publicDirs() };
+}
+function pickFolder() {
+  return new Promise((resolve, reject) => {
+    if (process.platform !== "win32") return resolve("");
+    const ps = [
+      "Add-Type -AssemblyName System.Windows.Forms",
+      "$f = New-Object System.Windows.Forms.FolderBrowserDialog",
+      "$f.Description = 'Dossier de telemetrie'",
+      "$f.ShowNewFolderButton = $false",
+      "if ($f.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { $f.SelectedPath }"
+    ].join("; ");
+    execFile("powershell.exe", ["-NoProfile", "-STA", "-Command", ps],
+      { windowsHide: false, timeout: 120000, encoding: "utf8" },
+      (err, stdout) => {
+        if (err && err.killed) return reject(err);
+        const line = String(stdout || "").trim().split(/\r?\n/).map(s => s.trim()).filter(Boolean).pop() || "";
+        resolve(line);
+      });
+  });
+}
+function readJsonBody(req, limit) {
+  return new Promise((resolve, reject) => {
+    let n = 0, d = "";
+    req.on("data", c => {
+      n += c.length;
+      if (n > limit) { req.destroy(); reject(Object.assign(new Error("corps trop grand"), { status: 413 })); return; }
+      d += c;
+    });
+    req.on("end", () => { try { resolve(d ? JSON.parse(d) : {}); } catch (e) { reject(Object.assign(e, { status: 400 })); } });
+    req.on("error", reject);
+  });
+}
 
 /* ---- Gewünschte Kanäle (Name -> Ziel-Frequenz Hz fürs Downsampling) ---- */
 const WANT_CH = {
@@ -565,21 +694,22 @@ function enrichSession(s) {
   return s;
 }
 function listSessions() {
-  if (!TEL.lmuDir && !TEL.manualDir)
-    return { error: "Telemetrie-Ordner nicht gefunden", telDir: null, lmuDir: null, manualDir: null, sessions: [] };
+  const dirs = telDirs();
+  if (!dirs.length)
+    return { error: "Telemetrie-Ordner nicht gefunden", telDir: null, lmuDir: null, manualDir: null, downloadsDir: null, sessions: [], ...publicDirs() };
   let files = [];
   try {
-    files = [...listDirSessions(TEL.lmuDir, "lmu"), ...listDirSessions(TEL.manualDir, "manual")]
+    files = dirs.flatMap(d => listDirSessions(d.dir, d.src))
       .sort((a, b) => b.mtime - a.mtime || b.sessionTime - a.sessionTime || b.file.localeCompare(a.file) || a.src.localeCompare(b.src))
       .map(({ sessionTime, ...session }) => session);
   } catch (e) {
-    return { error: String(e.message), telDir: TEL_DIR, lmuDir: TEL.lmuDir, manualDir: TEL.manualDir, sessions: [] };
+    return { error: String(e.message), telDir: TEL_DIR, lmuDir: TEL.lmuDir, manualDir: TEL.manualDir, downloadsDir: TEL.downloadsDir, sessions: [], ...publicDirs() };
   }
   const live = new Set(files.map(s => s.file));
   let pruned = false;
   Object.keys(SESSION_INDEX).forEach(f => { if (!live.has(f)) { delete SESSION_INDEX[f]; pruned = true; } });
   if (pruned) saveSessionIndex();
-  return { telDir: TEL_DIR, lmuDir: TEL.lmuDir, manualDir: TEL.manualDir, sessions: files.map(enrichSession) };
+  return { telDir: TEL_DIR, lmuDir: TEL.lmuDir, manualDir: TEL.manualDir, downloadsDir: TEL.downloadsDir, sessions: files.map(enrichSession), ...publicDirs() };
 }
 function guestDir() {
   const d = path.join(DATA_DIR, "guest-sessions");
@@ -661,18 +791,16 @@ function resolveSessionFile(name, src) {
     if (fs.existsSync(full)) return { full, src: "guest", dir };
     return null;
   }
-  const bySrc = src === "manual" ? TEL.manualDir : src === "lmu" ? TEL.lmuDir : null;
-  const order = [bySrc, TEL.lmuDir, TEL.manualDir].filter(Boolean);
+  const known = telDirs();
+  const preferred = known.find(d => d.src === src);
+  const order = preferred ? [preferred, ...known.filter(d => d !== preferred)] : known;
   const seen = new Set();
-  for (const dir of order) {
-    const key = path.resolve(dir).toLowerCase();
+  for (const entry of order) {
+    const key = entry.dir.toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
-    const full = path.join(dir, name);
-    if (fs.existsSync(full)) {
-      const resolvedSrc = (TEL.manualDir && samePath(dir, TEL.manualDir)) ? "manual" : "lmu";
-      return { full, src: resolvedSrc, dir };
-    }
+    const full = path.join(entry.dir, name);
+    if (fs.existsSync(full)) return { full, src: entry.src, dir: entry.dir };
   }
   return null;
 }
@@ -726,7 +854,7 @@ async function handleRequest(req, res) {
     return res.end(buf);
   }
   if (u.pathname === "/api/config") {
-    return json(res, 200, { telDir: TEL_DIR, lmuDir: TEL.lmuDir, manualDir: TEL.manualDir, port: PORT, duckdb: fs.existsSync(DUCKDB), version: APP_VERSION });
+    return json(res, 200, { telDir: TEL_DIR, lmuDir: TEL.lmuDir, manualDir: TEL.manualDir, downloadsDir: TEL.downloadsDir, port: PORT, duckdb: fs.existsSync(DUCKDB), version: APP_VERSION, ...publicDirs() });
   }
   if (u.pathname === "/api/version") {
     return new Promise(resolve => {
@@ -749,7 +877,7 @@ async function handleRequest(req, res) {
     const name = u.searchParams.get("file") || "";
     const src = u.searchParams.get("src") || "";
     if (!name || /[\\/]/.test(name) || !/\.duckdb$/i.test(name)) return json(res, 400, { error: "Ungültiger Dateiname" });
-    if (src && src !== "lmu" && src !== "manual" && src !== "guest") return json(res, 400, { error: "Ungültige Quelle" });
+    if (src && src !== "lmu" && src !== "manual" && src !== "downloads" && src !== "extra" && src !== "guest") return json(res, 400, { error: "Ungültige Quelle" });
     const resolved = resolveSessionFile(name, src);
     if (!resolved) return json(res, 404, { error: "Datei nicht gefunden" });
     try {
@@ -771,8 +899,8 @@ async function handleRequest(req, res) {
     const name = u.searchParams.get("file") || "";
     const src = u.searchParams.get("src") || "";
     if (!name || /[\\/]/.test(name) || !/\.duckdb$/i.test(name)) return json(res, 400, { error: "Ungültiger Dateiname" });
-    if (src && src !== "lmu" && src !== "manual" && src !== "guest") return json(res, 400, { error: "Ungültige Quelle" });
-    if (src !== "guest" && !TEL.lmuDir && !TEL.manualDir) return json(res, 500, { error: "Telemetrie-Ordner unbekannt" });
+    if (src && src !== "lmu" && src !== "manual" && src !== "downloads" && src !== "extra" && src !== "guest") return json(res, 400, { error: "Ungültige Quelle" });
+    if (src !== "guest" && !telDirs().length) return json(res, 500, { error: "Telemetrie-Ordner unbekannt" });
     const resolved = resolveSessionFile(name, src);
     if (!resolved) return json(res, 404, { error: "Datei nicht gefunden" });
     try {
@@ -792,8 +920,8 @@ async function handleRequest(req, res) {
     const name = u.searchParams.get("file") || "";
     const src = u.searchParams.get("src") || "";
     if (!name || /[\\/]/.test(name) || !/\.duckdb$/i.test(name)) return json(res, 400, { error: "Ungültiger Dateiname" });
-    if (src && src !== "lmu" && src !== "manual" && src !== "guest") return json(res, 400, { error: "Ungültige Quelle" });
-    if (src !== "guest" && !TEL.lmuDir && !TEL.manualDir) return json(res, 500, { error: "Telemetrie-Ordner unbekannt" });
+    if (src && src !== "lmu" && src !== "manual" && src !== "downloads" && src !== "extra" && src !== "guest") return json(res, 400, { error: "Ungültige Quelle" });
+    if (src !== "guest" && !telDirs().length) return json(res, 500, { error: "Telemetrie-Ordner unbekannt" });
     const resolved = resolveSessionFile(name, src);
     if (!resolved) return json(res, 404, { error: "Datei nicht gefunden" });
     const full = resolved.full;
@@ -802,6 +930,25 @@ async function handleRequest(req, res) {
     } catch (e) {
       const msg = duckLockMsg(e);
       return sessionOpenError(res, msg);
+    }
+  }
+  if (u.pathname === "/api/telemetry-dirs" && req.method === "GET") {
+    return json(res, 200, publicDirs());
+  }
+  if (u.pathname === "/api/telemetry-dirs" && req.method === "POST") {
+    const body = await readJsonBody(req, 8000);
+    const added = addExtraDir(body.path);
+    return json(res, added.status, added.ok ? added : { error: added.error });
+  }
+  if (u.pathname === "/api/telemetry-dirs" && req.method === "DELETE") {
+    return json(res, 200, removeExtraDir(u.searchParams.get("path") || ""));
+  }
+  if (u.pathname === "/api/pick-folder" && req.method === "POST") {
+    try {
+      const picked = await pickFolder();
+      return json(res, 200, { path: picked || "" });
+    } catch (e) {
+      return json(res, 500, { error: String(e.message || e) });
     }
   }
   if (req.method === "POST" && u.pathname === "/api/guest-session") {
@@ -834,6 +981,8 @@ function onListening() {
   console.log("  ▶  Fenêtre d'application (adresse : http://localhost:" + PORT + ")");
   console.log("  Télémétrie LMU : " + (TEL.lmuDir || "introuvable"));
   console.log("  Télémétrie man. : " + (TEL.manualDir || "pas de dossier telemetry/"));
+  console.log("  Téléchargements : " + (TEL.downloadsDir || "introuvable"));
+  if (EXTRA_DIRS.length) console.log("  Dossiers ajoutés : " + EXTRA_DIRS.join(" | "));
   console.log("  DuckDB CLI :     " + (fs.existsSync(DUCKDB) ? "ok" : "MANQUANTE"));
   console.log("  (Pour quitter : ferme la fenêtre de l'app, bouton ⏻ ou Gestionnaire des tâches.)");
   console.log("======================================================");

@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" href="/LOGO_LM2.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/LOGO_LM2.svg">
-<title>LMU Analyse télémétrie</title>
+<title>Telemetry Analyzer</title>
+<script>try{if(JSON.parse(localStorage.getItem("lmuTheme"))==="light")document.documentElement.dataset.theme="light";}catch(e){}</script>
 <style>
   :root{
     --bg:#0e1116; --panel:#161b22; --panel2:#1c2230; --line:#283040;
@@ -13,7 +14,23 @@
     --good:#3fb950; --bad:#f85149; --warn:#d29922; --cyan:#39d0d8;
     --ref:#2f81f7; --cmp:#ff1d44; --shadow:0 6px 24px rgba(0,0,0,.4);
     --accent-ink:#fff;
+    --header:#12171e; --footer:#0c1016; --hover:#222a38; --inset:#0b0e13;
+    --row-hover:#1d2531; --tab-on:#2a1018; --badge:#2a1414;
+    --banner:#241c0a; --banner-err:#241313; --fastest:#10261a; --lc:#1c2840; --guest:#121820;
+    --tooltip:#0b0e13ee;
     --sb-w:320px;
+  }
+  html[data-theme="light"]{
+    color-scheme:light;
+    --bg:#f4f6f8; --panel:#ffffff; --panel2:#eef1f5; --line:#d7dee7;
+    --txt:#171c24; --muted:#5c6b7c; --accent:#ff1d44; --accent2:#2f81f7;
+    --good:#1a7f37; --bad:#d1242f; --warn:#9a6700; --cyan:#0e7c86;
+    --ref:#2f81f7; --cmp:#ff1d44; --shadow:0 10px 28px rgba(20,28,40,.14);
+    --accent-ink:#fff;
+    --header:#ffffff; --footer:#f7f8fa; --hover:#e8edf3; --inset:#e7ebf1;
+    --row-hover:#f3f6fa; --tab-on:#ffe8ec; --badge:#ffe4e8;
+    --banner:#fff6e0; --banner-err:#ffecec; --fastest:#e5f6eb; --lc:#e7eef8; --guest:#f4f6fa;
+    --tooltip:#ffffffee;
   }
   *{box-sizing:border-box}
   html{color-scheme:dark}
@@ -25,10 +42,10 @@
   *::-webkit-scrollbar-thumb:hover{background:#3a4658;border:2px solid transparent;background-clip:padding-box}
   *::-webkit-scrollbar-corner{background:transparent}
   body{background:var(--bg);color:var(--txt);font:14.5px/1.5 "Segoe UI",Roboto,system-ui,sans-serif}
-  header{display:flex;align-items:center;flex-wrap:wrap;gap:14px;padding:12px 20px;background:#12171e;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+  header{display:flex;align-items:center;flex-wrap:wrap;gap:14px;padding:12px 20px;background:var(--header);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
   .hdr-brand{display:flex;align-items:center;gap:10px;min-width:0}
-  .hdr-tools{display:flex;align-items:center;gap:8px}
-  header h1{font-size:15px;margin:0;letter-spacing:.2px;font-weight:600;white-space:nowrap}
+  .hdr-tools{display:flex;align-items:center;gap:8px;margin-left:auto}
+  header h1{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:15px;margin:0;letter-spacing:.2px;font-weight:600;white-space:nowrap;pointer-events:none}
   button.hdrlogo{background:transparent;border:0;padding:0;width:28px;height:28px;border-radius:7px;cursor:pointer;flex-shrink:0}
   button.hdrlogo:hover{background:transparent;border-color:transparent}
   button.hdrlogo img{height:28px;width:28px;display:block;border-radius:7px;filter:drop-shadow(0 1px 3px rgba(0,0,0,.5));pointer-events:none}
@@ -36,19 +53,53 @@
   header h1 .dot{color:var(--accent)}
   .grow{flex:1}
   button,.btn{background:var(--panel2);color:var(--txt);border:1px solid var(--line);padding:7px 12px;border-radius:7px;cursor:pointer;font-size:13px;display:inline-flex;align-items:center;gap:7px;transition:.15s}
-  button:hover{border-color:var(--accent);background:#222a38}
+  button:hover{border-color:var(--accent);background:var(--hover)}
   button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
   button:disabled{opacity:.4;cursor:not-allowed}
-  .status{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:min(280px,24vw)}
+  .status{font-size:10px;line-height:16px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:min(280px,32vw)}
   .langsw{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
   .langsw button{border:0;border-radius:0;padding:6px 10px;font-size:12px;background:var(--panel2);color:var(--muted)}
   .langsw button.active{background:var(--accent);color:var(--accent-ink);font-weight:700}
-  .vbadge{font-size:11px;color:var(--muted);font-family:Consolas,monospace;white-space:nowrap}
-  .vbadge.update a{color:var(--accent);font-weight:700;text-decoration:none;border:1px solid var(--accent);border-radius:6px;padding:2px 7px}
+  .settings{position:relative}
+  .gear{width:31px;height:31px;display:flex;align-items:center;justify-content:center;color:var(--muted);cursor:pointer;border-radius:7px}
+  .gear:hover,.gear[aria-expanded="true"]{color:var(--txt);background:var(--hover)}
+  .gear svg{width:18px;height:18px;display:block}
+  .settings-pop{position:absolute;top:calc(100% + 10px);right:0;width:400px;max-height:min(80vh,640px);overflow:auto;box-sizing:border-box;background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:0;z-index:40;display:flex;flex-direction:column;justify-content:flex-start;gap:0}
+  .settings-pop[hidden]{display:none}
+  .settings-sec{padding:16px 16px 14px;border-bottom:1px solid var(--line)}
+  .settings-sec:last-child{border-bottom:0}
+  .settings-label{margin:0 0 10px;font-size:11px;font-weight:650;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .settings-choice,.settings-pop .langsw{display:grid;width:100%;border:0;border-radius:0;overflow:visible;background:transparent;gap:8px}
+  .settings-choice{grid-template-columns:1fr 1fr}
+  .settings-pop .langsw{grid-template-columns:1fr 1fr 1fr}
+  .settings-choice button,.settings-pop .langsw button{height:40px;justify-content:center;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);color:var(--txt);font-size:13px;font-weight:650;letter-spacing:.06em}
+  .settings-choice button svg{width:18px;height:18px;display:block}
+  .settings-choice button:hover,.settings-pop .langsw button:hover{border-color:var(--accent);background:var(--hover)}
+  .settings-choice button.active,.settings-pop .langsw button.active{background:transparent;border-color:var(--accent);color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+  .dir-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;max-height:240px;overflow:auto}
+  .dir-row{display:flex;align-items:flex-start;gap:10px;min-width:0;padding:10px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel2)}
+  .dir-ico{flex:0 0 auto;width:16px;height:16px;margin-top:2px;color:var(--muted)}
+  .dir-ico svg{width:16px;height:16px;display:block}
+  .dir-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  .dir-name{font-size:13px;font-weight:650;line-height:1.2}
+  .dir-path{font-size:11px;line-height:1.35;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dir-x{flex:0 0 auto;width:28px;height:28px;padding:0;justify-content:center;border-radius:7px;color:var(--muted)}
+  .dir-x svg{width:14px;height:14px;display:block}
+  #btnAddDir{width:100%;justify-content:center;margin-top:10px;height:40px;font-size:13px;font-weight:650}
+  #btnAddDir svg{width:16px;height:16px;display:block}
+  #btnReload .reload-ico{display:inline-block;transform-origin:50% 55%;line-height:1}
+  #btnReload.is-busy .reload-ico{animation:reload-spin .6s linear 1}
+  @keyframes reload-spin{to{transform:rotate(360deg)}}
+  .verbar{position:fixed;left:0;right:0;bottom:0;z-index:25;height:16px;display:flex;align-items:center;justify-content:flex-end;gap:12px;padding:0 10px;background:var(--footer);border-top:1px solid var(--line)}
+  .verbar .status{margin-right:auto}
+  .verbar .langsw{border:0;border-radius:0;background:transparent}
+  .verbar .langsw button{padding:0 3px;height:16px;font-size:10px;line-height:16px;background:transparent;color:var(--muted)}
+  .verbar .langsw button:hover{background:transparent;color:var(--txt);border-color:transparent}
+  .verbar .langsw button.active{background:transparent;color:var(--txt);font-weight:700}
+  .vbadge{font-size:10px;line-height:1;color:var(--muted);font-family:Consolas,monospace;white-space:nowrap}
+  .vbadge.update a{color:var(--accent);font-weight:700;text-decoration:none}
   .iconbtn{background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:7px;padding:6px 10px;font-size:12px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
   .iconbtn:hover{border-color:var(--accent);color:var(--txt)}
-  body.sb-collapsed .layout{grid-template-columns:1fr}
-  body.sb-collapsed aside{display:none}
   #sbToggle{
     position:fixed; left:calc(var(--sb-w) - 1px); z-index:30;
     top:calc(var(--hdr-h, 53px) + (100vh - var(--hdr-h, 53px)) / 2);
@@ -58,19 +109,28 @@
     background:var(--panel); color:var(--muted);
     display:flex; align-items:center; justify-content:center;
     box-shadow:2px 0 10px rgba(0,0,0,.25);
+    transition:color .15s, border-color .15s, background .15s;
   }
-  #sbToggle::before{content:"‹"; font-size:18px; line-height:1; font-weight:700}
+  #sbToggle::before{content:"‹"; display:block; font-size:18px; line-height:1; font-weight:700}
   body.sb-collapsed #sbToggle{left:0}
-  body.sb-collapsed #sbToggle::before{content:"›"}
-  #sbToggle:hover{color:var(--txt); border-color:var(--accent); background:#222a38}
+  body.sb-collapsed #sbToggle::before{transform:rotate(180deg)}
+  #sbToggle:hover{color:var(--txt); border-color:var(--accent); background:var(--hover)}
   body.home-only #sbToggle, body.car-only #sbToggle{display:none}
-  .layout{display:grid;grid-template-columns:var(--sb-w) 1fr;height:calc(100% - var(--hdr-h, 53px))}
+  .layout{display:grid;grid-template-columns:auto 1fr;height:calc(100% - var(--hdr-h, 53px) - 16px)}
+  body.sb-anim aside{transition:width .32s cubic-bezier(.22,1,.36,1), border-right-width .32s cubic-bezier(.22,1,.36,1)}
+  body.sb-anim #sbToggle{transition:left .32s cubic-bezier(.22,1,.36,1), color .15s, border-color .15s, background .15s}
+  body.sb-anim #sbToggle::before{transition:transform .32s cubic-bezier(.22,1,.36,1)}
+  @media (prefers-reduced-motion:reduce){
+    body.sb-anim aside, body.sb-anim #sbToggle, body.sb-anim #sbToggle::before{transition:none}
+  }
   body.loading main, body.loading aside{pointer-events:none;opacity:.6}
   @media (max-width:1100px){
     :root{--sb-w:260px}
     .iconbtn{padding:6px 8px}
   }
-  aside{background:var(--panel);border-right:1px solid var(--line);overflow:auto;padding:16px 14px 24px}
+  aside{width:var(--sb-w);min-width:0;overflow:hidden;background:var(--panel);border-right:1px solid var(--line)}
+  body.sb-collapsed aside{width:0;border-right-width:0;pointer-events:none}
+  .sb-scroll{width:var(--sb-w);height:100%;overflow:auto;padding:16px 14px 24px}
   aside .card{margin-bottom:12px}
   main{overflow:auto;padding:22px 26px 32px}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:18px;box-shadow:0 1px 0 rgba(255,255,255,.03)}
@@ -82,7 +142,7 @@
   th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
   th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.4px}
   tr.lap{cursor:pointer}
-  tr.lap:hover{background:#1d2531}
+  tr.lap:hover{background:var(--row-hover)}
   tr.lap.ref td{box-shadow:inset 3px 0 0 var(--ref)}
   tr.lap.cmp td{box-shadow:inset 3px 0 0 var(--cmp)}
   tr.lap.best .lt{color:var(--good);font-weight:600}
@@ -97,7 +157,7 @@
   .legend i{width:14px;height:3px;border-radius:2px;display:inline-block}
   .tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
   .tab{padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:transparent;cursor:pointer;font-size:13px;color:var(--muted)}
-  .tab.active{color:var(--txt);border-color:var(--accent);background:#2a1018}
+  .tab.active{color:var(--txt);border-color:var(--accent);background:var(--tab-on)}
   .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
   .stat{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
   .stat .v{font-size:20px;font-weight:700}
@@ -105,23 +165,23 @@
   .stat .d{font-size:12px;margin-top:2px}
   .up{color:var(--bad)} .down{color:var(--good)}
   .insight{display:flex;gap:12px;align-items:flex-start;padding:11px 12px;border:1px solid var(--line);border-radius:9px;margin-bottom:9px;background:var(--panel2)}
-  .insight .badge{flex:0 0 auto;min-width:62px;text-align:center;font-weight:700;font-size:15px;padding:6px 8px;border-radius:7px;background:#2a1414;color:var(--bad)}
+  .insight .badge{flex:0 0 auto;min-width:62px;text-align:center;font-weight:700;font-size:15px;padding:6px 8px;border-radius:7px;background:var(--badge);color:var(--bad)}
   .insight .body{flex:1}
   .insight .body .sub{color:var(--muted);font-size:12.5px;margin-top:3px}
   .meta-grid{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:12.5px}
   .meta-grid .k{color:var(--muted)}
   .hint{color:var(--muted);font-size:12.5px}
-  code{background:#0b0e13;border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:12px;color:var(--cyan)}
+  code{background:var(--inset);border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:12px;color:var(--cyan)}
   .mono{font-family:Consolas,"Cascadia Mono",monospace}
   .ok{color:var(--good)} .err{color:var(--bad)} .muted{color:var(--muted)}
   .scrollx{overflow:auto}
-  .tooltip{position:absolute;pointer-events:none;background:#0b0e13ee;border:1px solid var(--line);border-radius:7px;padding:7px 9px;font-size:12px;z-index:5;display:none;min-width:120px;box-shadow:var(--shadow)}
+  .tooltip{position:absolute;pointer-events:none;background:var(--tooltip);border:1px solid var(--line);border-radius:7px;padding:7px 9px;font-size:12px;z-index:5;display:none;min-width:120px;box-shadow:var(--shadow)}
   .tooltip .row{display:flex;justify-content:space-between;gap:14px}
   .tooltip .row b{font-variant-numeric:tabular-nums}
-  .banner{padding:12px 16px;border-radius:10px;border:1px solid var(--warn);background:#241c0a;margin-bottom:16px}
-  .banner.err{border-color:var(--bad);background:#241313}
+  .banner{padding:12px 16px;border-radius:10px;border:1px solid var(--warn);background:var(--banner);margin-bottom:16px}
+  .banner.err{border-color:var(--bad);background:var(--banner-err)}
   details summary{cursor:pointer;color:var(--muted);font-size:12px;margin-top:6px}
-  .kbd{font-family:Consolas,monospace;background:#0b0e13;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px;font-size:12px}
+  .kbd{font-family:Consolas,monospace;background:var(--inset);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px;font-size:12px}
   input[type=number],input[type=text]{width:100%;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:7px;padding:7px 8px;font-size:13px}
   input:focus{outline:none;border-color:var(--accent)}
   .pitgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px}
@@ -133,15 +193,15 @@
   .pit-duration .hint{flex:1 1 100%;margin:0}
   table.pit td,table.pit th{text-align:right;white-space:nowrap}
   table.pit td:first-child,table.pit th:first-child{text-align:left}
-  tr.fastest td{background:#10261a;color:var(--txt)}
-  tr.lc-hi td{background:#1c2840;color:var(--txt)}
+  tr.fastest td{background:var(--fastest);color:var(--txt)}
+  tr.lc-hi td{background:var(--lc);color:var(--txt)}
   tr.invalid td{opacity:.45}
   table.pit tbody tr[data-s]{cursor:pointer}
-  table.pit tbody tr[data-s]:hover td{background:#1a2233}
+  table.pit tbody tr[data-s]:hover td{background:var(--row-hover)}
   tr.selstrat td{box-shadow:inset 0 0 0 1px var(--accent)}
   tr.selstrat td:first-child{box-shadow:inset 1px 0 0 0 var(--accent),inset 0 1px 0 0 var(--accent),inset 0 -1px 0 0 var(--accent)}
   #btnSaveRef{width:100%;font-size:12px;margin-top:8px}
-  #guestBox{margin-top:8px;padding:8px 8px 10px;border:1px solid var(--line);border-radius:8px;background:#121820}
+  #guestBox{margin-top:8px;padding:8px 8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--guest)}
   .wheelgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:620px}
   .wheel{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:10px 12px}
   .wheel .wl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;font-weight:600}
@@ -169,7 +229,7 @@
   .home-lead:empty{display:none}
   .mode-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
   .mode-card{display:flex;flex-direction:column;align-items:flex-start;gap:0;padding:22px 20px 18px;min-height:228px;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:16px;cursor:pointer;width:100%;box-shadow:0 1px 0 rgba(255,255,255,.03);transition:border-color .15s,background .15s,transform .15s}
-  .mode-card:hover{border-color:var(--accent);background:#1a2130;transform:translateY(-2px)}
+  .mode-card:hover{border-color:var(--accent);background:var(--hover);transform:translateY(-2px)}
   .mode-card .mode-ico{width:42px;height:42px;margin-bottom:20px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);color:var(--accent);display:flex;align-items:center;justify-content:center}
   .mode-card .mode-ico svg{display:block}
   .mode-card strong{font-size:18px;font-weight:650;letter-spacing:-.01em;margin-bottom:8px}
@@ -206,21 +266,43 @@
 <header>
   <div class="hdr-brand">
     <button type="button" id="btnHome" class="hdrlogo" data-i18n-title="goHome" title="Accueil"><img alt="" src="/LOGO_LM2.svg"></button>
-    <h1>LMU <span class="dot">●</span> <span data-i18n="appTitle">Analyse télémétrie</span></h1>
+    <h1>Telemetry Analyzer</h1>
   </div>
   <div class="hdr-tools">
-    <button id="btnReload" data-i18n="reload">↻ Aktualisieren</button>
-    <div class="langsw"><button id="langFr" class="active">FR</button><button id="langEn">EN</button><button id="langDe">DE</button></div>
-    <span id="versionBadge" class="vbadge"></span>
+    <div class="settings">
+      <div id="btnSettings" class="gear" role="button" tabindex="0" aria-haspopup="dialog" aria-expanded="false" data-i18n-title="tipSettings" title="Paramètres"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 13.1a7.6 7.6 0 0 0 .1-2.2l2-1.2-2-3.4-2.2.7a7.7 7.7 0 0 0-1.9-1.1L14.8 3h-3.6l-.6 2.9a7.7 7.7 0 0 0-1.9 1.1l-2.2-.7-2 3.4 2 1.2a7.6 7.6 0 0 0 0 2.2l-2 1.2 2 3.4 2.2-.7a7.7 7.7 0 0 0 1.9 1.1l.6 2.9h3.6l.6-2.9a7.7 7.7 0 0 0 1.9-1.1l2.2.7 2-3.4-2-1.2z"/></svg></div>
+      <div id="settingsPop" class="settings-pop" role="dialog" hidden>
+        <section class="settings-sec">
+          <p class="settings-label" data-i18n="themeLabel">Thème</p>
+          <div class="settings-choice">
+            <button type="button" id="themeDark" class="active" data-i18n-title="themeDark" title="Foncé" aria-label="Foncé"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 14.5A8.5 8.5 0 0 1 9.5 3 7 7 0 1 0 21 14.5z"/></svg></button>
+            <button type="button" id="themeLight" data-i18n-title="themeLight" title="Clair" aria-label="Clair"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.6"/><path d="M12 2.6v2.2M12 19.2v2.2M4.8 4.8l1.6 1.6M17.6 17.6l1.6 1.6M2.6 12h2.2M19.2 12h2.2M4.8 19.2l1.6-1.6M17.6 6.4l1.6-1.6"/></svg></button>
+          </div>
+        </section>
+        <section class="settings-sec">
+          <p class="settings-label" data-i18n="langLabel">Langue</p>
+          <div class="langsw">
+            <button type="button" data-lang="fr">FR</button>
+            <button type="button" data-lang="en">EN</button>
+            <button type="button" data-lang="de">DE</button>
+          </div>
+        </section>
+        <section class="settings-sec">
+          <p class="settings-label" data-i18n="dirsLabel">Dossiers</p>
+          <ul id="dirList" class="dir-list"></ul>
+          <button type="button" id="btnAddDir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span data-i18n="dirsAdd">Ajouter un dossier</span></button>
+        </section>
+      </div>
+    </div>
+    <button id="btnReload"><span class="reload-ico" aria-hidden="true">↻</span><span data-i18n="reload">Actualiser</span></button>
   </div>
-  <span class="grow"></span>
-  <span id="status" class="status">…</span>
   <button id="btnQuit" class="iconbtn" data-i18n="quit" data-i18n-title="tipQuit" title="Quitter l'application">⏻ Beenden</button>
 </header>
 <button type="button" id="sbToggle" data-i18n-title="tipSidebar" title="Afficher ou masquer la barre latérale"></button>
 
 <div class="layout">
   <aside>
+    <div class="sb-scroll">
     <div id="metaCard" class="card" style="margin-top:10px;padding:11px 12px"></div>
     <div id="weatherCard" class="card" style="padding:11px 12px"></div>
     <div id="miniMapCard" class="card" style="padding:11px 12px;display:none">
@@ -252,6 +334,7 @@
         <table id="lapTable"><thead><tr><th>#</th><th data-i18n="lapTime">Rundenzeit</th><th data-i18n="topSpeed">Top-Speed</th></tr></thead><tbody></tbody></table>
       </div>
       <div class="hint" style="margin-top:8px" data-i18n-html="lapHint">Klick = Vergleichsrunde · <span class="kbd">R</span>+Klick = Referenz</div>
+    </div>
     </div>
   </aside>
 
@@ -482,6 +565,7 @@
     </div>
   </main>
 </div>
+<footer class="verbar"><span id="status" class="status">…</span><div class="langsw"><button id="langFr" class="active" data-lang="fr">FR</button><button id="langEn" data-lang="en">EN</button><button id="langDe" data-lang="de">DE</button></div><span id="versionBadge" class="vbadge"></span></footer>
 
 <script>
 "use strict";
@@ -503,6 +587,11 @@ const STATE = { sessions:[], model:null, refLap:null, cmpLap:null,
 /* ---------- API ---------- */
 async function apiGet(path, signal){
   const r = await fetch(API + path, {cache:"no-store", signal});
+  if(!r.ok){ const j = await r.json().catch(()=>({error:r.status})); const e=new Error(j.error||r.status); e.code=r.status; e.body=j; throw e; }
+  return r.json();
+}
+async function apiSend(method, path, body){
+  const r = await fetch(API + path, {method, cache:"no-store", headers:body?{"content-type":"application/json"}:undefined, body:body?JSON.stringify(body):undefined});
   if(!r.ok){ const j = await r.json().catch(()=>({error:r.status})); const e=new Error(j.error||r.status); e.code=r.status; e.body=j; throw e; }
   return r.json();
 }
@@ -531,7 +620,7 @@ function WL(k){ return (LANG==="fr"?["AVG","AVD","ARG","ARD"]:LANG==="en"?["FL",
 const STR = {
  de:{
   appTitle:"Telemetrie-Analyse",
-  reload:"↻ Aktualisieren", session:"Session", refSource:"Referenzquelle", refLap:"Referenz-Runde (Bestzeit)", cmpLap:"Vergleichs-Runde",
+  reload:"Aktualisieren", tipSettings:"Einstellungen", themeLabel:"Design", themeDark:"Dunkel", themeLight:"Hell", langLabel:"Sprache", dirsLabel:"Ordner", dirsAdd:"Ordner hinzufügen", dirsRemove:"Entfernen", dirsDefault:"Standard", dirsDownloads:"Downloads", dirsErr:(m)=>`Ordner nicht gefunden (${m})`, session:"Session", refSource:"Referenzquelle", refLap:"Referenz-Runde (Bestzeit)", cmpLap:"Vergleichs-Runde",
   lapTime:"Rundenzeit", topSpeed:"Top-Speed", lapHint:'Klick = Vergleichsrunde · <span class="kbd">R</span>+Klick = Referenz',
   tabImprove:"🎯 Wo verliere ich Zeit?", tabCompare:"📈 Vergleich", tabMap:"🗺️ Streckenkarte", tabTyres:"🛞 Reifen & Bremsen",
   tabSetup:"🔧 Setup & Pace", tabChannels:"📊 Alle Kanäle", tabPit:"⛽ Boxenstopp-Rechner", tabDiag:"🔩 Diagnose",
@@ -696,7 +785,7 @@ const STR = {
  },
  en:{
   appTitle:"Telemetry analysis",
-  reload:"↻ Refresh", session:"Session", refSource:"Reference source", refLap:"Reference lap (best)", cmpLap:"Comparison lap",
+  reload:"Refresh", tipSettings:"Settings", themeLabel:"Theme", themeDark:"Dark", themeLight:"Light", langLabel:"Language", dirsLabel:"Folders", dirsAdd:"Add a folder", dirsRemove:"Remove", dirsDefault:"default", dirsDownloads:"Downloads", dirsErr:(m)=>`Folder not found (${m})`, session:"Session", refSource:"Reference source", refLap:"Reference lap (best)", cmpLap:"Comparison lap",
   lapTime:"Lap time", topSpeed:"Top speed", lapHint:'Click = comparison lap · <span class="kbd">R</span>+click = reference',
   tabImprove:"🎯 Where am I losing time?", tabCompare:"📈 Compare", tabMap:"🗺️ Track map", tabTyres:"🛞 Tyres & brakes",
   tabSetup:"🔧 Setup & pace", tabChannels:"📊 All channels", tabPit:"⛽ Pit stop calculator", tabDiag:"🔩 Diagnostics",
@@ -861,7 +950,7 @@ const STR = {
  },
  fr:{
   appTitle:"Analyse télémétrie",
-  reload:"↻ Actualiser", session:"Session", refSource:"Source de référence", refLap:"Tour de référence (meilleur)", cmpLap:"Tour de comparaison",
+  reload:"Actualiser", tipSettings:"Paramètres", themeLabel:"Thème", themeDark:"Foncé", themeLight:"Clair", langLabel:"Langue", dirsLabel:"Dossiers", dirsAdd:"Ajouter un dossier", dirsRemove:"Retirer", dirsDefault:"défaut", dirsDownloads:"Téléchargements", dirsErr:(m)=>`Dossier introuvable (${m})`, session:"Session", refSource:"Source de référence", refLap:"Tour de référence (meilleur)", cmpLap:"Tour de comparaison",
   lapTime:"Temps au tour", topSpeed:"Vitesse max", lapHint:'Clic = tour de comparaison · <span class="kbd">R</span>+clic = référence',
   tabImprove:"🎯 Où est-ce que je perds du temps ?", tabCompare:"📈 Comparaison", tabMap:"🗺️ Carte du circuit", tabTyres:"🛞 Pneus & freins",
   tabSetup:"🔧 Setup & rythme", tabChannels:"📊 Tous les canaux", tabPit:"⛽ Calculateur d'arrêts", tabDiag:"🔩 Diagnostic",
@@ -1029,16 +1118,14 @@ function t(k,...a){ let v=(STR[LANG]&&STR[LANG][k]); if(v==null)v=STR.fr[k]; if(
 function applyStaticI18n(){
   document.querySelectorAll("[data-i18n]").forEach(el=>{ el.textContent=t(el.dataset.i18n); });
   document.querySelectorAll("[data-i18n-html]").forEach(el=>{ el.innerHTML=t(el.dataset.i18nHtml); });
-  document.querySelectorAll("[data-i18n-title]").forEach(el=>{ el.title=t(el.dataset.i18nTitle); });
+  document.querySelectorAll("[data-i18n-title]").forEach(el=>{ const label=t(el.dataset.i18nTitle); el.title=label; if(!el.textContent.trim()) el.setAttribute("aria-label", label); });
   document.querySelectorAll("canvas").forEach(cv=>{ if(cv._zoomInit) cv.title=t("mapZoomHint"); });
 }
 function setLang(l, pick){
   LANG=l; try{ localStorage.setItem("lmuLang",JSON.stringify(l)); if(pick) localStorage.setItem("lmuLangPick",JSON.stringify(true)); }catch(e){}
   document.documentElement.lang=l==="en"?"en":l==="de"?"de":"fr";
-  document.title="LMU "+t("appTitle");
-  document.getElementById("langDe").classList.toggle("active",l==="de");
-  document.getElementById("langEn").classList.toggle("active",l==="en");
-  document.getElementById("langFr").classList.toggle("active",l==="fr");
+  document.title="Telemetry Analyzer";
+  document.querySelectorAll("[data-lang]").forEach(el=>el.classList.toggle("active", el.dataset.lang===l));
   applyStaticI18n();
   renderGuest();
   renderHome();
@@ -1046,6 +1133,7 @@ function setLang(l, pick){
   if(STATE.model){ renderMeta(); renderWeather(); refreshRefSrc(); recompute(); renderDiag();
     renderSession(); renderTyres(); renderSetup(); renderCarShifts(); pitPrefill(STATE.model); renderPit();
     setStatus(t("loaded", STATE.model.laps.length, STATE.model.laps.filter(l=>l.complete).length)); }
+  renderTelemetryDirs();
 }
 
 /* ---------- Kanal-Aliasse ---------- */
@@ -2158,7 +2246,27 @@ function showBridgeHelp(info){
   h+='</div>';
   showConn(h); setStatus(t("waitingRec"));
 }
-document.getElementById("btnReload").onclick=()=>{ if(STATE.mode==="circuit" && STATE.circuitId && STATE.classKey) openCircuitAnalysis(STATE.circuitId, STATE.classKey); else if(STATE.mode==="car" && STATE.carGroup){ ingestCarBackground(STATE.carGroup); renderCarShifts(); } else if(STATE.loadedKey) loadSession(STATE.loadedKey); else poll(); };
+document.getElementById("btnReload").onclick=async()=>{
+  const btn=document.getElementById("btnReload");
+  const ico=btn.querySelector(".reload-ico");
+  btn.classList.remove("is-busy");
+  void btn.offsetWidth;
+  btn.classList.add("is-busy");
+  const spun=new Promise(r=>{
+    const stop=()=>{ ico.removeEventListener("animationend", stop); r(); };
+    ico.addEventListener("animationend", stop);
+    setTimeout(stop, 700);
+  });
+  try{
+    if(STATE.mode==="circuit" && STATE.circuitId && STATE.classKey) await openCircuitAnalysis(STATE.circuitId, STATE.classKey);
+    else if(STATE.mode==="car" && STATE.carGroup){ await ingestCarBackground(STATE.carGroup); renderCarShifts(); }
+    else if(STATE.loadedKey) await loadSession(STATE.loadedKey);
+    else await poll();
+  }finally{
+    await spun;
+    btn.classList.remove("is-busy");
+  }
+};
 
 let metaBusy=false;
 async function fillSessionMeta(){
@@ -3486,6 +3594,73 @@ async function checkVersion(){ if(versionChecked)return; versionChecked=true;
 document.getElementById("langFr").onclick=()=>setLang("fr", true);
 document.getElementById("langEn").onclick=()=>setLang("en", true);
 document.getElementById("langDe").onclick=()=>setLang("de", true);
+document.querySelectorAll("#settingsPop [data-lang]").forEach(b=>b.onclick=()=>setLang(b.dataset.lang, true));
+function applyTheme(theme){
+  const light=theme==="light";
+  document.documentElement.dataset.theme=light?"light":"dark";
+  try{ localStorage.setItem("lmuTheme", JSON.stringify(light?"light":"dark")); }catch(e){}
+  const d=document.getElementById("themeDark"), l=document.getElementById("themeLight");
+  if(d) d.classList.toggle("active", !light);
+  if(l) l.classList.toggle("active", light);
+}
+applyTheme(document.documentElement.dataset.theme==="light"?"light":"dark");
+document.getElementById("themeDark").onclick=()=>applyTheme("dark");
+document.getElementById("themeLight").onclick=()=>applyTheme("light");
+document.getElementById("btnAddDir").onclick=async()=>{
+  const btn=document.getElementById("btnAddDir");
+  btn.disabled=true;
+  try{
+    const picked=await apiSend("POST","/api/pick-folder");
+    if(!picked.path) return;
+    await apiSend("POST","/api/telemetry-dirs",{path:picked.path});
+    await renderTelemetryDirs();
+    await poll();
+  }catch(e){ setStatus(t("dirsErr", e.message)); }
+  finally{ btn.disabled=false; }
+};
+const DIR_ICO=`<span class="dir-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 7.5h6l2 2h9v9.5a1.5 1.5 0 0 1-1.5 1.5h-14A1.5 1.5 0 0 1 3.5 19V7.5z"/></svg></span>`;
+function dirKindLabel(kind){
+  if(kind==="downloads") return t("dirsDownloads");
+  if(kind==="manual") return "telemetry";
+  if(kind==="lmu") return "LMU";
+  return t("dirsDefault");
+}
+function dirRow(name, full, remove){
+  const x=remove?`<button type="button" class="dir-x" data-dir="${escapeHtml(full)}" data-i18n-title="dirsRemove" title="${escapeHtml(t("dirsRemove"))}" aria-label="${escapeHtml(t("dirsRemove"))}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>`:"";
+  return `<li class="dir-row" title="${escapeHtml(full)}">${DIR_ICO}<div class="dir-main"><span class="dir-name">${escapeHtml(name)}</span><span class="dir-path">${escapeHtml(full)}</span></div>${x}</li>`;
+}
+async function renderTelemetryDirs(){
+  const ul=document.getElementById("dirList");
+  if(!ul) return;
+  let data={defaults:[], extra:[]};
+  try{ data=await apiGet("/api/telemetry-dirs"); }catch(e){ ul.innerHTML=`<li class="hint">${escapeHtml(e.message)}</li>`; return; }
+  const rows=[];
+  (data.defaults||[]).forEach(d=>rows.push(dirRow(dirKindLabel(d.kind), d.path, false)));
+  (data.extra||[]).forEach(p=>{
+    const name=String(p).split(/[/\\]/).filter(Boolean).pop()||p;
+    rows.push(dirRow(name, p, true));
+  });
+  ul.innerHTML=rows.join("") || `<li class="hint">${escapeHtml(t("dirsAdd"))}</li>`;
+  ul.querySelectorAll(".dir-x").forEach(b=>b.onclick=async()=>{
+    try{ await apiSend("DELETE","/api/telemetry-dirs?path="+encodeURIComponent(b.dataset.dir)); await renderTelemetryDirs(); await poll(); }
+    catch(e){ setStatus(t("dirsErr", e.message)); }
+  });
+}
+function setSettingsOpen(open){
+  const pop=document.getElementById("settingsPop"), btn=document.getElementById("btnSettings");
+  pop.hidden=!open;
+  btn.setAttribute("aria-expanded", open?"true":"false");
+  if(open) renderTelemetryDirs();
+}
+document.getElementById("btnSettings").onclick=e=>{ e.stopPropagation(); setSettingsOpen(document.getElementById("settingsPop").hidden); };
+document.getElementById("btnSettings").onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); document.getElementById("btnSettings").click(); } };
+document.addEventListener("click", e=>{
+  const pop=document.getElementById("settingsPop");
+  if(pop.hidden) return;
+  if(e.target.closest("#btnSettings")||e.target.closest("#settingsPop")) return;
+  setSettingsOpen(false);
+});
+document.addEventListener("keydown", e=>{ if(e.key==="Escape") setSettingsOpen(false); });
 attachMapHover("cBigMap","ttBigMap");
 attachMapHover("cCompMap","ttCompMap");
 attachMapHover("cTyreMap","ttTyreMap");
@@ -3497,7 +3672,20 @@ function updMapMode(){ document.getElementById("mapModeDelta").classList.toggle(
 document.getElementById("mapModeDelta").onclick=()=>{ mapMode="delta"; updMapMode(); };
 document.getElementById("mapModeSpeed").onclick=()=>{ mapMode="speed"; updMapMode(); };
 if(lsGet("lmuSidebar",0)) document.body.classList.add("sb-collapsed");
-document.getElementById("sbToggle").onclick=()=>{ document.body.classList.toggle("sb-collapsed"); lsSet("lmuSidebar", document.body.classList.contains("sb-collapsed")?1:0); setTimeout(()=>{ if(STATE.refP){redrawAll(); renderAllMaps();} },30); };
+const sbAside=document.querySelector(".layout > aside");
+const sbToggle=document.getElementById("sbToggle");
+let sbReflowT=0;
+function sbReflow(){ clearTimeout(sbReflowT); if(STATE.refP){redrawAll(); renderAllMaps();} }
+function queueSbReflow(){
+  clearTimeout(sbReflowT);
+  const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches || !document.body.classList.contains("sb-anim");
+  sbReflowT=setTimeout(sbReflow, reduce?0:360);
+}
+sbAside.addEventListener("transitionend", e=>{ if(e.target===sbAside && e.propertyName==="width") sbReflow(); });
+function syncSbToggle(){ sbToggle.setAttribute("aria-expanded", document.body.classList.contains("sb-collapsed")?"false":"true"); }
+syncSbToggle();
+sbToggle.onclick=()=>{ document.body.classList.toggle("sb-collapsed"); syncSbToggle(); lsSet("lmuSidebar", document.body.classList.contains("sb-collapsed")?1:0); queueSbReflow(); };
+requestAnimationFrame(()=>requestAnimationFrame(()=>document.body.classList.add("sb-anim")));
 document.getElementById("btnQuit").onclick=async()=>{ try{ await fetch(API+"/api/quit",{method:"POST"}); }catch(e){} document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#8b97a7;font:16px \'Segoe UI\'">'+t("quitDone")+'</div>'; };
 setLang(LANG);
 function syncHdrH(){
