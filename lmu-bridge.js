@@ -545,7 +545,7 @@ function metaStr(v) {
   return "";
 }
 
-const INDEX_VER = 4;
+const INDEX_VER = 5;
 function normalizeClassKey(cls) {
   const s = String(cls || "").toUpperCase();
   if (!s) return "";
@@ -576,6 +576,7 @@ function lightLapsFromRaw(raw) {
 async function loadSessionMeta(full) {
   const sqlFull = `SELECT (json_object(
     'CarName', (SELECT value FROM metadata WHERE key='CarName' LIMIT 1),
+    'DriverName', (SELECT value FROM metadata WHERE key='DriverName' LIMIT 1),
     'TrackName', (SELECT value FROM metadata WHERE key='TrackName' LIMIT 1),
     'TrackLayout', (SELECT value FROM metadata WHERE key='TrackLayout' LIMIT 1),
     'Layout', (SELECT value FROM metadata WHERE key='Layout' LIMIT 1),
@@ -594,6 +595,7 @@ async function loadSessionMeta(full) {
   ))::VARCHAR AS doc`;
   const sqlBase = `SELECT (json_object(
     'CarName', (SELECT value FROM metadata WHERE key='CarName' LIMIT 1),
+    'DriverName', (SELECT value FROM metadata WHERE key='DriverName' LIMIT 1),
     'TrackName', (SELECT value FROM metadata WHERE key='TrackName' LIMIT 1),
     'TrackLayout', (SELECT value FROM metadata WHERE key='TrackLayout' LIMIT 1),
     'Layout', (SELECT value FROM metadata WHERE key='Layout' LIMIT 1),
@@ -616,6 +618,7 @@ async function loadSessionMeta(full) {
   ))::VARCHAR AS doc`;
   const sqlLite = `SELECT (json_object(
     'CarName', (SELECT value FROM metadata WHERE key='CarName' LIMIT 1),
+    'DriverName', (SELECT value FROM metadata WHERE key='DriverName' LIMIT 1),
     'TrackName', (SELECT value FROM metadata WHERE key='TrackName' LIMIT 1),
     'TrackLayout', (SELECT value FROM metadata WHERE key='TrackLayout' LIMIT 1),
     'Layout', (SELECT value FROM metadata WHERE key='Layout' LIMIT 1),
@@ -657,7 +660,7 @@ function indexRecordFromRaw(st, raw) {
   return {
     v: INDEX_VER,
     mtime: st.mtimeMs, size: st.size,
-    car: metaStr(raw.CarName), track: metaStr(raw.TrackName),
+    car: metaStr(raw.CarName), driver: metaStr(raw.DriverName), track: metaStr(raw.TrackName),
     layout: pickLayout(raw || {}),
     class: cls, classKey: normalizeClassKey(cls),
     stype: metaStr(raw.SessionType),
@@ -676,7 +679,7 @@ function pitDursFromRaw(raw) {
 }
 function publicSessionMeta(name, rec) {
   return {
-    file: name, car: rec.car, track: rec.track, layout: rec.layout || "",
+    file: name, car: rec.car, driver: rec.driver || "", track: rec.track, layout: rec.layout || "",
     class: rec.class, classKey: rec.classKey || normalizeClassKey(rec.class),
     stype: rec.stype, date: rec.date || "", nLaps: rec.nLaps,
     laps: rec.laps || [],
@@ -688,7 +691,7 @@ function enrichSession(s) {
   const e = SESSION_INDEX[indexKey(s.src, s.file)];
   if (e && e.v === INDEX_VER && e.mtime === s.mtime && e.size === s.size) {
     return {
-      ...s, car: e.car, track: e.track, layout: e.layout || "",
+      ...s, car: e.car, driver: e.driver || "", track: e.track, layout: e.layout || "",
       class: e.class, classKey: e.classKey || normalizeClassKey(e.class),
       stype: e.stype, date: e.date || "", nLaps: e.nLaps, laps: e.laps || [],
       pits: e.pits || [], fuelMax: e.fuelMax || null
