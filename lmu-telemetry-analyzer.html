@@ -18,6 +18,7 @@
     --row-hover:#18212c; --tab-on:#28131a; --badge:#2a1414;
     --banner:#241c0a; --banner-err:#241313; --fastest:#10261a; --lc:#1c2840; --guest:#121820;
     --tooltip:#0b0e13ee;
+    --chart:rgba(0,0,0,.95);
     --radius-sm:6px; --radius-md:10px; --radius-lg:14px;
     --sb-w:292px;
   }
@@ -32,6 +33,7 @@
     --row-hover:#f3f6fa; --tab-on:#ffe8ec; --badge:#ffe4e8;
     --banner:#fff6e0; --banner-err:#ffecec; --fastest:#e5f6eb; --lc:#e7eef8; --guest:#f4f6fa;
     --tooltip:#ffffffee;
+    --chart:#f4f7fb;
   }
   *{box-sizing:border-box}
   html{color-scheme:dark}
@@ -47,9 +49,9 @@
   .hdr-brand{display:flex;align-items:center;gap:10px;min-width:0}
   .hdr-tools{display:flex;align-items:center;gap:8px;margin-left:auto}
   header h1{position:static;transform:none;font-size:13px;margin:0;letter-spacing:.045em;font-weight:650;white-space:nowrap;pointer-events:none;text-transform:uppercase}
-  button.hdrlogo{background:transparent;border:0;padding:0;width:28px;height:28px;border-radius:7px;cursor:pointer;flex-shrink:0}
+  button.hdrlogo{background:transparent;border:0;padding:0;width:28px;height:28px;min-width:28px;min-height:28px;aspect-ratio:1;border-radius:50%;overflow:hidden;cursor:pointer;flex:0 0 28px}
   button.hdrlogo:hover{background:transparent;border-color:transparent}
-  button.hdrlogo img{height:28px;width:28px;display:block;border-radius:7px;filter:drop-shadow(0 1px 3px rgba(0,0,0,.5));pointer-events:none}
+  button.hdrlogo img{height:28px;width:28px;display:block;border-radius:50%;filter:drop-shadow(0 1px 3px rgba(0,0,0,.5));pointer-events:none}
   button.hdrlogo:hover img{filter:drop-shadow(0 1px 4px rgba(0,0,0,.55)) brightness(1.15)}
   header h1 .dot{color:var(--accent)}
   .grow{flex:1}
@@ -64,7 +66,7 @@
   .langsw button{border:0;border-radius:0;padding:6px 10px;font-size:12px;background:var(--panel2);color:var(--muted)}
   .langsw button.active{background:var(--accent);color:var(--accent-ink);font-weight:700}
   .settings{position:relative}
-  .gear{width:31px;height:31px;display:flex;align-items:center;justify-content:center;color:var(--muted);cursor:pointer;border-radius:7px}
+  .gear{width:34px;height:34px;min-width:34px;min-height:34px;aspect-ratio:1;display:flex;align-items:center;justify-content:center;color:var(--muted);cursor:pointer;border-radius:50%;padding:0;flex:0 0 34px}
   .gear:hover,.gear[aria-expanded="true"]{color:var(--txt);background:var(--hover)}
   .gear svg{width:18px;height:18px;display:block}
   .settings-pop{position:absolute;top:calc(100% + 10px);right:0;width:400px;max-height:min(80vh,640px);overflow:auto;box-sizing:border-box;background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:0;z-index:40;display:flex;flex-direction:column;justify-content:flex-start;gap:0}
@@ -153,7 +155,7 @@
   .pill{display:inline-block;font-size:10px;padding:1px 6px;border-radius:20px;border:1px solid var(--line);color:var(--muted);margin-left:6px}
   .pill.ref{color:var(--ref);border-color:var(--ref)} .pill.cmp{color:var(--cmp);border-color:var(--cmp)}
   .pill.best{color:var(--good);border-color:var(--good)}
-  canvas{display:block;width:100%;background:#0b0e13;border-radius:8px}
+  canvas{display:block;width:100%;background:var(--chart);border-radius:8px}
   .chartwrap{position:relative}
   .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;margin:0 2px 8px}
   .legend span{display:inline-flex;align-items:center;gap:6px;color:var(--muted)}
@@ -198,7 +200,7 @@
   .pace-head h2{margin:0;font-size:16px;line-height:1.2;letter-spacing:.01em}
   .pace-meta{margin-top:5px;font-size:12px;line-height:1.35;color:var(--muted);font-variant-numeric:tabular-nums}
   .pace-info{position:relative;flex:0 0 auto}
-  .pace-info-btn{display:grid;place-items:center;width:28px;height:28px;padding:0;border:1px solid var(--line);border-radius:50%;background:var(--panel2);color:var(--muted);font:650 12px/1 system-ui;cursor:help}
+  .pace-info-btn{display:grid;place-items:center;box-sizing:border-box;width:28px;height:28px;min-width:28px;min-height:28px;max-width:28px;max-height:28px;aspect-ratio:1;padding:0;border:1px solid var(--line);border-radius:50%;background:var(--panel2);color:var(--muted);font:650 12px/1 system-ui;line-height:1;cursor:help;flex:0 0 28px}
   .pace-info-btn:hover{color:var(--txt);border-color:color-mix(in srgb,var(--line),var(--txt) 28%)}
   .pace-info-btn:focus-visible{outline:2px solid var(--accent2);outline-offset:2px}
   .pace-info-tip{position:absolute;z-index:12;top:36px;right:0;width:min(320px,80vw);padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--tooltip);box-shadow:var(--shadow);color:var(--txt);font-size:11.5px;line-height:1.4;opacity:0;visibility:hidden;transform:translateY(-3px);transition:opacity .14s ease,transform .14s ease,visibility .14s}
@@ -220,7 +222,7 @@
   .pace-filters label:has(input:focus-visible){outline:2px solid var(--accent2);outline-offset:2px}
   .pace-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:0 0 auto;box-shadow:0 0 0 2px color-mix(in srgb,currentColor 16%,transparent)}
   .pace-count{min-width:17px;padding:1px 5px;border-radius:10px;background:var(--inset);color:var(--muted);font-size:10px;font-weight:650;text-align:center;font-variant-numeric:tabular-nums}
-  .pace-chart-shell{position:relative;padding:12px 12px 4px;background:var(--inset)}
+  .pace-chart-shell{position:relative;padding:12px 12px 4px;background:var(--chart)}
   #cPace{background:transparent;cursor:crosshair}
   .pace-chart-hint{position:absolute;right:18px;top:14px;font-size:10.5px;color:var(--muted);pointer-events:none}
   #paceDetail{border-top:1px solid var(--line);background:var(--panel)}
@@ -262,6 +264,9 @@
   table.pit td,table.pit th{text-align:right;white-space:nowrap}
   table.pit td:first-child,table.pit th:first-child{text-align:left}
   tr.fastest td{background:var(--fastest);color:var(--txt)}
+  .wear-life-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  .wear-life-head h2{margin:0 0 14px}
+  tr.wear-limit td{background:color-mix(in srgb, var(--warn) 22%, transparent);font-weight:650}
   tr.lc-hi td{background:var(--lc);color:var(--txt)}
   tr.invalid td{opacity:.45}
   table.pit tbody tr[data-s]{cursor:pointer}
@@ -277,15 +282,15 @@
   .wheel .r2 b{font-variant-numeric:tabular-nums}
   .temp3{display:flex;gap:3px;margin:5px 0}
   .temp3 span{flex:1;text-align:center;font-size:11px;padding:3px 0;border-radius:4px;color:#0b0e13;font-weight:600}
-  .wbar{height:8px;border-radius:4px;background:#0b0e13;overflow:hidden;margin-top:4px;border:1px solid var(--line)}
+  .wbar{height:8px;border-radius:4px;background:var(--chart);overflow:hidden;margin-top:4px;border:1px solid var(--line)}
   .wbar i{display:block;height:100%}
   .setuptbl td:nth-child(2),.setuptbl td:nth-child(3){font-variant-numeric:tabular-nums}
   .chg-up{color:var(--good)} .chg-down{color:var(--bad)}
   .shiftrow{display:grid;grid-template-columns:72px 1fr minmax(140px,auto);gap:10px;align-items:center;margin:8px 0}
   .shiftlbl{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
-  .shiftbar{position:relative;height:16px;background:#0b0e13;border-radius:5px;border:1px solid var(--line);overflow:visible}
+  .shiftbar{position:relative;height:16px;background:var(--chart);border-radius:5px;border:1px solid var(--line);overflow:visible}
   .shiftbar .you{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,#c41230,var(--accent));min-width:2px}
-  .shiftbar .opt{position:absolute;top:-3px;bottom:-3px;width:3px;margin-left:-1.5px;background:var(--good);border-radius:2px;box-shadow:0 0 0 1px #0b0e13}
+  .shiftbar .opt{position:absolute;top:-3px;bottom:-3px;width:3px;margin-left:-1.5px;background:var(--good);border-radius:2px;box-shadow:0 0 0 1px var(--chart)}
   .shiftnums{font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap;text-align:right}
   .shiftnums b{color:var(--txt)}
   .garage-note{font-size:11px;color:var(--muted);margin:8px 0 0}
@@ -295,7 +300,9 @@
   #homeDrillTitle{font-size:28px}
   .home-lead{max-width:58ch;margin:0 0 28px;font-size:15.5px;line-height:1.5;color:var(--muted)}
   .home-lead:empty{display:none}
-  .mode-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+  .mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .mode-card[data-mode="session"]{grid-column:1 / -1;min-height:280px}
+  .mode-card[data-mode="session"] strong{font-size:28px;letter-spacing:-.03em}
   .mode-card{display:flex;flex-direction:column;align-items:flex-start;gap:0;padding:22px 20px 18px;min-height:228px;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:16px;cursor:pointer;width:100%;box-shadow:0 1px 0 rgba(255,255,255,.03);transition:border-color .15s,background .15s,transform .15s}
   .mode-card:hover{border-color:var(--accent);background:var(--hover);transform:translateY(-2px)}
   .mode-card .mode-ico{width:42px;height:42px;margin-bottom:20px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);color:var(--accent);display:flex;align-items:center;justify-content:center}
@@ -322,7 +329,10 @@
   body:not(.home-only) #home{display:none}
   body.car-only aside{display:none}
   body.car-only .layout{grid-template-columns:1fr}
-  @media (max-width:900px){ .mode-grid{grid-template-columns:1fr} }
+  @media (max-width:900px){
+    .mode-grid{grid-template-columns:1fr}
+    .mode-card[data-mode="session"]{grid-column:auto}
+  }
 
   @media (max-width:700px){
     .shiftrow{grid-template-columns:1fr;gap:4px}
@@ -334,7 +344,7 @@
   #btnReload{color:var(--muted);background:transparent}
   #btnReload:hover{color:var(--txt);background:var(--hover)}
   #btnQuit{background:transparent}
-  .gear{width:34px;height:34px;border:1px solid transparent}
+  .gear{border:1px solid transparent}
   .gear:hover,.gear[aria-expanded="true"]{border-color:var(--line)}
   .settings-pop{border-radius:var(--radius-lg)}
   .layout{background:var(--bg)}
@@ -386,7 +396,7 @@
   .insight{border-radius:var(--radius-sm);background:color-mix(in srgb,var(--panel2) 70%,transparent)}
   .wheel{border-radius:var(--radius-sm)}
   .tooltip{border-radius:var(--radius-sm);backdrop-filter:blur(14px)}
-  .pace-chart-shell{background:linear-gradient(180deg,color-mix(in srgb,var(--inset) 86%,var(--panel)),var(--inset))}
+  .pace-chart-shell{background:var(--chart)}
   .pace-head{position:relative;padding:20px 22px 15px}
   .pace-toolbar{padding:10px 22px}
   .pace-filters label{border-radius:999px}
@@ -409,11 +419,12 @@
     #btnQuit::before{content:"⏻";font-size:14px}
     #btnReload .reload-ico{font-size:13px}
     .layout{display:block}
-    aside{position:fixed;z-index:24;left:0;top:var(--hdr-h,53px);bottom:18px;width:var(--sb-w);box-shadow:18px 0 42px rgba(0,0,0,.42)}
-    body.sb-collapsed aside{width:var(--sb-w);transform:translateX(-100%)}
+    aside{position:fixed;z-index:24;left:0;top:var(--hdr-h,53px);bottom:18px;width:var(--sb-w);transform:translateX(-100%);pointer-events:none;box-shadow:18px 0 42px rgba(0,0,0,.42)}
+    body.sb-collapsed aside{width:var(--sb-w);border-right-width:1px;transform:translateX(-100%);pointer-events:none}
+    body.sb-mobile-open aside{transform:none;pointer-events:auto}
     body.sb-anim aside{transition:transform .28s cubic-bezier(.22,1,.36,1)}
-    #sbToggle{left:calc(var(--sb-w) - 1px)}
-    body.sb-collapsed #sbToggle{left:0}
+    #sbToggle,body.sb-collapsed #sbToggle{left:0}
+    body.sb-mobile-open #sbToggle{left:calc(var(--sb-w) - 1px)}
     main{height:100%;padding:16px 12px 34px}
     .tabs{top:-16px;margin-left:-2px;margin-right:-2px}
     .card{padding:16px 14px}
@@ -511,7 +522,7 @@
         <div class="mode-grid">
           <button type="button" class="mode-card" data-mode="session">
             <span class="mode-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5h7l4 4V20a1.5 1.5 0 0 1-1.5 1.5H7A1.5 1.5 0 0 1 5.5 20V5A1.5 1.5 0 0 1 7 3.5z"/><path d="M14 3.5V8h4.5M8.5 12.5h7M8.5 16h5"/></svg></span>
-            <strong data-i18n="modeSession">Session</strong>
+            <strong data-i18n="modeSession">Analyser une session</strong>
             <span class="mode-desc" data-i18n="modeSessionHint">Un enregistrement, tour par tour : delta, secteurs, pneus et setup.</span>
           </button>
           <button type="button" class="mode-card" data-mode="circuit">
@@ -570,7 +581,7 @@
         </div>
         <div id="paceDetail" role="status" aria-live="polite"></div>
       </div>
-      <div class="tabs" role="tablist" aria-label="Outils d'analyse">
+      <div class="tabs" role="tablist" data-i18n-label="toolsLabel" aria-label="Outils d'analyse">
         <button type="button" class="tab active" role="tab" data-tab="improve" data-i18n="tabImprove">Wo verliere ich Zeit?</button>
         <button type="button" class="tab" role="tab" data-tab="compare" data-i18n="tabCompare">Vergleich</button>
         <button type="button" class="tab" role="tab" data-tab="session" data-i18n="tabSession">Letzte Session</button>
@@ -638,6 +649,16 @@
         <div class="card"><h2 data-i18n="tyreTipsTitle">Reifen-Hinweise (Druck · Sturz · Balance)</h2><div id="tyreTips"></div></div>
         <div class="card"><h2 data-i18n="brakeTemp">Bremsen-Temperatur (°C, Rundendurchschnitt)</h2><div id="brakeWheels" class="wheelgrid"></div></div>
         <div class="card"><h2 data-i18n="wearSessionTitle">Verschleiß über die Session</h2><div id="wearSession"></div></div>
+        <div class="card" id="wearLifeCard">
+          <div class="wear-life-head">
+            <h2 data-i18n="wearLifeTitle">Geschätzte Lebensdauer</h2>
+            <div class="pace-info">
+              <button type="button" class="pace-info-btn" data-i18n-title="wearLifeNote" aria-describedby="wearLifeTip">i</button>
+              <div class="pace-info-tip" id="wearLifeTip" role="tooltip" data-i18n="wearLifeNote"></div>
+            </div>
+          </div>
+          <div id="wearLife"></div>
+        </div>
       </section>
 
       <section data-panel="setup" style="display:none">
@@ -835,7 +856,7 @@ const STR = {
   appTitle:"Telemetrie-Analyse",
   reload:"Aktualisieren", tipSettings:"Einstellungen", themeLabel:"Design", themeDark:"Dunkel", themeLight:"Hell", langLabel:"Sprache", dirsLabel:"Ordner", dirsAdd:"Ordner hinzufügen", dirsRemove:"Entfernen", dirsDefault:"Standard", dirsDownloads:"Downloads", dirsErr:(m)=>`Ordner nicht gefunden (${m})`, session:"Session", refSource:"Referenzquelle", refLap:"Referenz-Runde (Bestzeit)", cmpLap:"Vergleichs-Runde",
   lapTime:"Rundenzeit", topSpeed:"Top-Speed", lapHint:'Klick = Vergleichsrunde · <span class="kbd">R</span>+Klick = Referenz',
-  tabImprove:"Wo verliere ich Zeit?", tabCompare:"Vergleich", tabMap:"Streckenkarte", tabTyres:"Reifen & Bremsen",
+  toolsLabel:"Analysewerkzeuge", tabImprove:"Wo verliere ich Zeit?", tabCompare:"Vergleich", tabMap:"Streckenkarte", tabTyres:"Reifen & Bremsen",
   tabSetup:"Setup & Pace", tabChannels:"Alle Kanäle", tabPit:"Boxenstopp-Rechner", tabDiag:"Diagnose",
   lapOverview:"Rundenübersicht", deltaTitle:"Zeitdelta über die Runde", legRefZero:"Referenz (0-Linie)", legCmpSlower:"Vergleich · über 0 = langsamer",
   deltaHint:"Steigt die Linie an, verlierst du dort Zeit. Die größten Anstiege sind deine Hauptbaustellen.", lossZones:"Größte Zeitverlust-Zonen & Tipps",
@@ -895,6 +916,8 @@ const STR = {
   pressure:"Druck", restProfile:"Rest-Profil", noTyreTemp:"Keine Reifen-Temperatur-Kanäle in dieser Aufnahme.", noTyreData:"Reifentemperaturen unauffällig (oder Datenbasis zu klein, z. B. nur Outlap).",
   noBrakeTemp:"Keine Bremstemperatur-Daten.", noWearData:"Keine Verschleißdaten.", wRest:(w)=>w+" Rest", usedPct:(p)=>p+" % verbraucht",
   wearWorst:(w,l)=>`Ø Verschleiß (schlechtestes Rad): <b>${w}</b>${l}`, holdLaps:(n)=>` → Reifen halten ~<b>${n}</b> Runden.`,
+  holdLimit:(n)=>`Bei 35 % Restprofil (unfahrbar): ~<b>${n}</b> Runden.`,
+  wearLifeTitle:"Reifengesundheit", thWearPct:"Gesundheit %", thWearLaps:"Runden", wearLifeNote:"Runden, bis dieses Restprofil erreicht ist, aus dem Durchschnitt des schlechtesten Reifens.",
   tPressHigh:(w,d)=>`<b>${w}</b>: Mitte ${d} °C heißer als die Kanten → <b>Reifendruck zu hoch</b>.`,
   tPressLow:(w,d)=>`<b>${w}</b>: Mitte ${d} °C kühler als die Kanten → <b>Reifendruck zu niedrig</b>.`,
   tCamberOut:(w,d)=>`<b>${w}</b>: Außenkante ${d} °C heißer als innen → <b>mehr negativen Sturz</b> wählen.`,
@@ -1013,7 +1036,7 @@ const STR = {
   appTitle:"Telemetry analysis",
   reload:"Refresh", tipSettings:"Settings", themeLabel:"Theme", themeDark:"Dark", themeLight:"Light", langLabel:"Language", dirsLabel:"Folders", dirsAdd:"Add a folder", dirsRemove:"Remove", dirsDefault:"default", dirsDownloads:"Downloads", dirsErr:(m)=>`Folder not found (${m})`, session:"Session", refSource:"Reference source", refLap:"Reference lap (best)", cmpLap:"Comparison lap",
   lapTime:"Lap time", topSpeed:"Top speed", lapHint:'Click = comparison lap · <span class="kbd">R</span>+click = reference',
-  tabImprove:"Where am I losing time?", tabCompare:"Compare", tabMap:"Track map", tabTyres:"Tyres & brakes",
+  toolsLabel:"Analysis tools", tabImprove:"Where am I losing time?", tabCompare:"Compare", tabMap:"Track map", tabTyres:"Tyres & brakes",
   tabSetup:"Setup & pace", tabChannels:"All channels", tabPit:"Pit stop calculator", tabDiag:"Diagnostics",
   lapOverview:"Lap overview", deltaTitle:"Time delta over the lap", legRefZero:"Reference (zero line)", legCmpSlower:"Comparison · above 0 = slower",
   deltaHint:"When the line rises, you're losing time there. The biggest climbs are your main weak spots.", lossZones:"Biggest time-loss zones & tips",
@@ -1073,6 +1096,8 @@ const STR = {
   pressure:"Pressure", restProfile:"Remaining", noTyreTemp:"No tyre temperature channels in this recording.", noTyreData:"Tyre temperatures look fine (or too little data, e.g. only out-lap).",
   noBrakeTemp:"No brake temperature data.", noWearData:"No wear data.", wRest:(w)=>w+" rem.", usedPct:(p)=>p+" % used",
   wearWorst:(w,l)=>`Avg wear (worst tyre): <b>${w}</b>${l}`, holdLaps:(n)=>` → tyres last ~<b>${n}</b> laps.`,
+  holdLimit:(n)=>`At 35% tread left (impractical): ~<b>${n}</b> laps.`,
+  wearLifeTitle:"Tyre health", thWearPct:"Health %", thWearLaps:"Laps", wearLifeNote:"Laps to reach this remaining health, from the average of the worst tyre.",
   tPressHigh:(w,d)=>`<b>${w}</b>: centre ${d} °C hotter than the edges → <b>tyre pressure too high</b>.`,
   tPressLow:(w,d)=>`<b>${w}</b>: centre ${d} °C cooler than the edges → <b>tyre pressure too low</b>.`,
   tCamberOut:(w,d)=>`<b>${w}</b>: outer edge ${d} °C hotter than inner → choose <b>more negative camber</b>.`,
@@ -1191,7 +1216,7 @@ const STR = {
   appTitle:"Analyse télémétrie",
   reload:"Actualiser", tipSettings:"Paramètres", themeLabel:"Thème", themeDark:"Foncé", themeLight:"Clair", langLabel:"Langue", dirsLabel:"Dossiers", dirsAdd:"Ajouter un dossier", dirsRemove:"Retirer", dirsDefault:"défaut", dirsDownloads:"Téléchargements", dirsErr:(m)=>`Dossier introuvable (${m})`, session:"Session", refSource:"Source de référence", refLap:"Tour de référence (meilleur)", cmpLap:"Tour de comparaison",
   lapTime:"Temps au tour", topSpeed:"Vitesse max", lapHint:'Clic = tour de comparaison · <span class="kbd">R</span>+clic = référence',
-  tabImprove:"Où est-ce que je perds du temps ?", tabCompare:"Comparaison", tabMap:"Carte du circuit", tabTyres:"Pneus & freins",
+  toolsLabel:"Outils d'analyse", tabImprove:"Où est-ce que je perds du temps ?", tabCompare:"Comparaison", tabMap:"Carte du circuit", tabTyres:"Pneus & freins",
   tabSetup:"Setup & rythme", tabChannels:"Tous les canaux", tabPit:"Calculateur d'arrêts", tabDiag:"Diagnostic",
   lapOverview:"Aperçu du tour", deltaTitle:"Delta de temps sur le tour", legRefZero:"Référence (ligne 0)", legCmpSlower:"Comparaison · au-dessus de 0 = plus lent",
   deltaHint:"Quand la courbe monte, tu perds du temps. Les plus fortes hausses sont tes principaux points faibles.", lossZones:"Plus grandes zones de perte & conseils",
@@ -1251,6 +1276,8 @@ const STR = {
   pressure:"Pression", restProfile:"Profil restant", noTyreTemp:"Aucun canal de température pneus dans cet enregistrement.", noTyreData:"Températures pneus sans anomalie (ou trop peu de données, p. ex. seulement une outlap).",
   noBrakeTemp:"Pas de données de température freins.", noWearData:"Pas de données d'usure.", wRest:(w)=>w+" restant", usedPct:(p)=>p+" % usé",
   wearWorst:(w,l)=>`Usure moy. (pire pneu) : <b>${w}</b>${l}`, holdLaps:(n)=>` → les pneus tiennent ~<b>${n}</b> tours.`,
+  holdLimit:(n)=>`À 35 % de santé restante (impraticable) : ~<b>${n}</b> tours.`,
+  wearLifeTitle:"Santé du pneu", thWearPct:"Santé %", thWearLaps:"Tours", wearLifeNote:"Tours pour descendre à cette santé restante, d'après l'usure moyenne du pire pneu.",
   tPressHigh:(w,d)=>`<b>${w}</b> : le centre est ${d} °C plus chaud que les bords → <b>pression trop élevée</b>.`,
   tPressLow:(w,d)=>`<b>${w}</b> : le centre est ${d} °C plus froid que les bords → <b>pression trop basse</b>.`,
   tCamberOut:(w,d)=>`<b>${w}</b> : le bord extérieur est ${d} °C plus chaud que l'intérieur → mets <b>plus de carrossage négatif</b>.`,
@@ -1311,7 +1338,7 @@ const STR = {
   paceGreen:"Valide", pacePurple:"Meilleur", paceYellow:"Mauvais temps", paceRed:"Non valide", paceMa:"Moyenne mobile", paceAvg:"Moyenne générale",
   paceEmpty:"Aucun tour pour ce filtre.", paceLoading:"Chargement du tour…", paceNoDetail:"Pas de données pour ce tour.",
   paceDrive:"Temps de roulage", paceFuel:"Essence à ce moment", paceFuelUsed:"Essence ce tour", paceVE:"Virtual Energy", paceVEused:"VE ce tour", paceWear:"Usure pneus", paceWearLap:"Usure ce tour", paceDelta:"Écart au meilleur",
-  modeSession:"Session", modeCircuit:"Circuit", modeCar:"Voiture",
+  modeSession:"Analyser une session", modeCircuit:"Circuit", modeCar:"Voiture",
   modeSessionHint:"Un enregistrement, tour par tour : delta, secteurs, pneus et setup.",
   modeCircuitHint:"Tous tes tours d'un tracé et d'une classe, pour voir où tu progresses.",
   modeCarHint:"Puissance et points de passage, à partir de tes accélérations plein gaz.",
@@ -1371,6 +1398,7 @@ function applyStaticI18n(){
   document.querySelectorAll("[data-i18n]").forEach(el=>{ el.textContent=t(el.dataset.i18n); });
   document.querySelectorAll("[data-i18n-html]").forEach(el=>{ el.innerHTML=t(el.dataset.i18nHtml); });
   document.querySelectorAll("[data-i18n-title]").forEach(el=>{ const label=t(el.dataset.i18nTitle); el.title=label; if(!el.textContent.trim()) el.setAttribute("aria-label", label); });
+  document.querySelectorAll("[data-i18n-label]").forEach(el=>{ el.setAttribute("aria-label", t(el.dataset.i18nLabel)); });
   document.querySelectorAll("canvas").forEach(cv=>{ if(cv._zoomInit) cv.title=t("mapZoomHint"); });
 }
 function setLang(l, pick){
@@ -3732,18 +3760,35 @@ function renderBrakes(){
   grid.innerHTML=[0,1,2,3].map(k=>{ const a=bt[k],v=a&&a.avg,mx=a&&a.max,col=v==null?"#33405a":v<150?"#5aa0e6":v<500?"#3fb950":v<650?"#d29922":"#f85149";
     return `<div class="wheel"><div class="wl">${WL(k)}</div><div class="r2"><span class="muted">${t("brAvg")}</span><b style="color:${col}">${v!=null?v.toFixed(0)+' °C':'–'}</b></div><div class="r2"><span class="muted">${t("brMax")}</span><b>${mx!=null?mx.toFixed(0)+' °C':'–'}</b></div></div>`; }).join("");
 }
+function lapsForWear(pct, perLap){
+  if(!(perLap>0)) return null;
+  if(!(pct>0)) return 0;
+  return Math.round(pct/perLap);
+}
+function renderWearLife(perLap){
+  const el=document.getElementById("wearLife"); if(!el) return;
+  if(!(perLap>0)){ el.innerHTML=`<div class="hint">${t("noWearData")}</div>`; return; }
+  let rows="";
+  for(let health=100;health>=0;health-=5){
+    const laps=lapsForWear(100-health, perLap);
+    rows+=`<tr${health===70||health===65?' class="wear-limit"':""}><td>${health} %</td><td>${laps}</td></tr>`;
+  }
+  el.innerHTML=`<div class="scrollx" style="max-height:360px"><table class="setuptbl"><thead><tr><th>${t("thWearPct")}</th><th>${t("thWearLaps")}</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
 function renderWearSession(){
   const m=STATE.model, ww=(m.wheels||{})["Tyres Wear"], el=document.getElementById("wearSession");
-  if(!ww){ el.innerHTML=`<div class="hint">${t("noWearData")}</div>`; return; }
+  if(!ww){ el.innerHTML=`<div class="hint">${t("noWearData")}</div>`; renderWearLife(null); return; }
   const sT=m.laps.length?m.laps[0].t0:0, eT=m.laps.length?m.laps[m.laps.length-1].t1:0;
   const s=wheelVal(ww,sT), e=wheelVal(ww,eT);
   let html='<div class="grid2">';
   for(let k=0;k<4;k++){ const used=(s&&e)?(s[k]-e[k]):null;
     html+=`<div class="stat"><div class="l">${t("wRest",WL(k))}</div><div class="v">${e?e[k].toFixed(1)+' %':'–'}</div><div class="d muted">${used!=null?t("usedPct",used.toFixed(1)):''}</div></div>`; }
   const worstStr = m.wearPerLap!=null? m.wearPerLap.toFixed(2)+" %"+perLap():"—";
-  const holdStr = m.wearPerLap? t("holdLaps",Math.floor(100/m.wearPerLap)):"";
-  html+='</div><div class="hint" style="margin-top:8px">'+t("wearWorst","<b>"+worstStr+"</b>",holdStr)+'</div>';
+  const holdStr = m.wearPerLap? t("holdLaps",lapsForWear(100,m.wearPerLap)):"";
+  const limitStr = m.wearPerLap? `<div class="hint" style="margin-top:4px">${t("holdLimit",lapsForWear(65,m.wearPerLap))}</div>`:"";
+  html+='</div><div class="hint" style="margin-top:8px">'+t("wearWorst","<b>"+worstStr+"</b>",holdStr)+'</div>'+limitStr;
   el.innerHTML=html;
+  renderWearLife(m.wearPerLap);
 }
 
 /* ---------- Setup-Vergleich & -Hinweise ---------- */
@@ -3828,7 +3873,7 @@ function renderSetupHints(){
   }
   const corr=steeringCorrections(m,lap);
   if(corr>=16) hints.push({title:t("hNervous"),body:t("hNervousD",corr)});
-  el.innerHTML = hints.length? hints.map(h=>`<div class="insight" style="background:var(--panel2)"><div class="badge" style="background:#16202e;color:var(--cyan);min-width:auto;padding:6px 10px">${escapeHtml(h.title)}</div><div class="body"><div class="sub">${h.body}</div></div></div>`).join("")+`<div class="hint" style="margin-top:6px">${t("hintsCaveat")}</div>` : `<div class="hint">${t("noHints")}</div>`;
+  el.innerHTML = hints.length? hints.map(h=>`<div class="insight" style="background:var(--panel2)"><div class="badge" style="background:var(--inset);color:var(--cyan);min-width:auto;padding:6px 10px">${escapeHtml(h.title)}</div><div class="body"><div class="sub">${h.body}</div></div></div>`).join("")+`<div class="hint" style="margin-top:6px">${t("hintsCaveat")}</div>` : `<div class="hint">${t("noHints")}</div>`;
 }
 function steeringCorrections(m,lap){ const cs=findChan(m.channels,ALIAS.steer); if(!cs)return 0; const a=Math.floor(lap.t0*cs.freq),b=Math.ceil(lap.t1*cs.freq); let corr=0,lastSign=0; for(let i=a+1;i<b&&i<cs.nData;i++){ const d=cs.data[i]-cs.data[i-1], sign=Math.sign(d); if(sign!==0&&sign!==lastSign&&Math.abs(d)>1.5){ corr++; lastSign=sign; } } return corr; }
 
@@ -4209,7 +4254,7 @@ function renderCarShifts(){
   });
   if(nShifts<8) notes.push({title:"n", body:t("carHintLowN")});
   notes.push({title:"—", body:t("carStraightHint")});
-  tips.innerHTML = notes.map(h=>`<div class="insight" style="background:var(--panel2)"><div class="badge" style="background:#16202e;color:var(--cyan);min-width:auto;padding:6px 10px">${escapeHtml(h.title)}</div><div class="body"><div class="sub">${h.body}</div></div></div>`).join("");
+  tips.innerHTML = notes.map(h=>`<div class="insight" style="background:var(--panel2)"><div class="badge" style="background:var(--inset);color:var(--cyan);min-width:auto;padding:6px 10px">${escapeHtml(h.title)}</div><div class="body"><div class="sub">${h.body}</div></div></div>`).join("");
   renderCarSessTable(groupKey);
 }
 const GEAR_COL=["#8b97a7","#2f81f7","#3fb950","#d29922","#818cf8","#f85149","#a371f7","#39d0d8","#f778ba"];
@@ -4467,9 +4512,10 @@ attachPitMapHover();
 function updMapMode(){ document.getElementById("mapModeDelta").classList.toggle("active",mapMode==="delta"); document.getElementById("mapModeSpeed").classList.toggle("active",mapMode==="speed"); renderAllMaps(); }
 document.getElementById("mapModeDelta").onclick=()=>{ mapMode="delta"; updMapMode(); };
 document.getElementById("mapModeSpeed").onclick=()=>{ mapMode="speed"; updMapMode(); };
-if(lsGet("lmuSidebar",0) || window.innerWidth<=780) document.body.classList.add("sb-collapsed");
+if(lsGet("lmuSidebar",0)) document.body.classList.add("sb-collapsed");
 const sbAside=document.querySelector(".layout > aside");
 const sbToggle=document.getElementById("sbToggle");
+const sbNarrow=matchMedia("(max-width: 780px)");
 let sbReflowT=0;
 function sbReflow(){ clearTimeout(sbReflowT); renderPaceChart(); if(STATE.refP){redrawAll(); renderAllMaps();} }
 function queueSbReflow(){
@@ -4477,10 +4523,22 @@ function queueSbReflow(){
   const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches || !document.body.classList.contains("sb-anim");
   sbReflowT=setTimeout(sbReflow, reduce?0:360);
 }
-sbAside.addEventListener("transitionend", e=>{ if(e.target===sbAside && e.propertyName==="width") sbReflow(); });
-function syncSbToggle(){ sbToggle.setAttribute("aria-expanded", document.body.classList.contains("sb-collapsed")?"false":"true"); }
+function sidebarIsOpen(){
+  return sbNarrow.matches ? document.body.classList.contains("sb-mobile-open") : !document.body.classList.contains("sb-collapsed");
+}
+sbAside.addEventListener("transitionend", e=>{ if(e.target===sbAside && (e.propertyName==="width" || e.propertyName==="transform")) sbReflow(); });
+function syncSbToggle(){ sbToggle.setAttribute("aria-expanded", sidebarIsOpen()?"true":"false"); }
 syncSbToggle();
-sbToggle.onclick=()=>{ document.body.classList.toggle("sb-collapsed"); syncSbToggle(); lsSet("lmuSidebar", document.body.classList.contains("sb-collapsed")?1:0); queueSbReflow(); };
+sbToggle.onclick=()=>{
+  if(sbNarrow.matches) document.body.classList.toggle("sb-mobile-open");
+  else {
+    document.body.classList.toggle("sb-collapsed");
+    lsSet("lmuSidebar", document.body.classList.contains("sb-collapsed")?1:0);
+  }
+  syncSbToggle();
+  queueSbReflow();
+};
+sbNarrow.addEventListener("change", ()=>{ document.body.classList.remove("sb-mobile-open"); syncSbToggle(); queueSbReflow(); });
 requestAnimationFrame(()=>requestAnimationFrame(()=>document.body.classList.add("sb-anim")));
 document.getElementById("btnQuit").onclick=async()=>{ try{ await fetch(API+"/api/quit",{method:"POST"}); }catch(e){} document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#8b97a7;font:16px \'Segoe UI\'">'+t("quitDone")+'</div>'; };
 setLang(LANG);

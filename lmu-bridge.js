@@ -533,7 +533,17 @@ const INDEX_PATH = path.join(DATA_DIR, "session-index.json");
 let SESSION_INDEX = {};
 try { SESSION_INDEX = JSON.parse(fs.readFileSync(INDEX_PATH, "utf8")) || {}; } catch (_) { SESSION_INDEX = {}; }
 function saveSessionIndex() {
-  try { fs.writeFileSync(INDEX_PATH, JSON.stringify(SESSION_INDEX)); } catch (_) {}
+  const tmp = INDEX_PATH + ".tmp";
+  try {
+    fs.writeFileSync(tmp, JSON.stringify(SESSION_INDEX));
+    try { fs.renameSync(tmp, INDEX_PATH); }
+    catch (_) {
+      try { fs.unlinkSync(INDEX_PATH); } catch (e) {}
+      fs.renameSync(tmp, INDEX_PATH);
+    }
+  } catch (_) {
+    try { fs.unlinkSync(tmp); } catch (e) {}
+  }
 }
 function metaStr(v) {
   if (v == null) return "";
@@ -837,8 +847,22 @@ function sessionOpenError(res, msg) {
   return json(res, 500, { error: msg.slice(0, 800) });
 }
 
+function requestHostName(req) {
+  const raw = String(req.headers.host || "").trim();
+  const m = raw.match(/^(\[[^\]]+\]|[^:]+)(?::\d+)?$/);
+  if (!m) return "";
+  const name = m[1].toLowerCase();
+  return name.startsWith("[") ? name.slice(1, -1) : name;
+}
+function isLoopbackRequest(req) {
+  const name = requestHostName(req);
+  return name === "localhost" || name === "127.0.0.1" || name === "::1";
+}
+
 /* ---- HTTP ---- */
 async function handleRequest(req, res) {
+  // Host auf Loopback begrenzen: DNS-Rebinding darf die lokale API nicht erreichen.
+  if (!isLoopbackRequest(req)) return json(res, 403, { error: "forbidden" });
   const site = String(req.headers["sec-fetch-site"] || "");
   if (site && site !== "same-origin" && site !== "none") {
     return json(res, 403, { error: "forbidden" });

@@ -28,3 +28,5 @@ desktop.ini
 # Telemetrie-Daten (gehören nicht ins Repo)
 *.duckdb
 telemetry-dirs.json
+session-index.json
+session-index.json.tmp
